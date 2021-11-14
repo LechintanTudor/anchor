@@ -1,6 +1,5 @@
-use crate::core::{Config, EventHandler, GameBuilder, ShouldRun};
+use crate::core::{Config, EventHandler, FpsLimiter, GameBuilder, ShouldRun};
 use log::info;
-use std::time::{Duration, Instant};
 use winit::event::{ElementState, Event, StartCause, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::WindowBuilder;
@@ -19,15 +18,11 @@ where
         .build(&event_loop)?;
 
     let mut game = game_builder.build(&event_loop, &main_window)?;
-
-    let target_frame_time = Duration::from_secs(1) / TARGET_TPS;
-    let max_accumulator = MAX_UPDATES_PER_FRAME * target_frame_time;
-    let mut old_time = Instant::now();
-    let mut accumulator = Duration::ZERO;
+    let mut fps_limiter = FpsLimiter::new(60, 3);
 
     event_loop.run(move |event, _event_loop, control_flow| match event {
         Event::NewEvents(StartCause::Init) => {
-            info!("Starting tankage client...");
+            info!("Starting Anchor...");
         }
         Event::WindowEvent { window_id, event } if window_id == main_window.id() => match event {
             WindowEvent::CloseRequested => {
@@ -54,19 +49,9 @@ where
             _ => (),
         },
         Event::MainEventsCleared => {
-            let current_time = Instant::now();
-            let last_frame_time = current_time - old_time;
+            fps_limiter.begin();
 
-            old_time = current_time;
-            accumulator += last_frame_time;
-
-            if accumulator > max_accumulator {
-                accumulator = max_accumulator;
-            }
-
-            while accumulator >= target_frame_time {
-                accumulator -= target_frame_time;
-
+            while fps_limiter.update() {
                 match game.update() {
                     ShouldRun::Yes => main_window.request_redraw(),
                     ShouldRun::No => *control_flow = ControlFlow::Exit,
@@ -77,7 +62,7 @@ where
             game.draw();
         }
         Event::LoopDestroyed => {
-            info!("Shutting down tankage client...");
+            info!("Shutting down Anchor...");
         }
         _ => (),
     });
