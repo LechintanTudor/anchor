@@ -2,6 +2,7 @@
 
 mod core;
 mod game;
+mod graphics;
 
 use crate::core::Config;
 use crate::game::Game;
