@@ -1,4 +1,6 @@
-use crate::core::{Config, EventHandler, FpsLimiter, GameBuilder, ShouldRun};
+use std::thread;
+
+use crate::core::{Config, EventHandler, FpsLimiter, GameBuilder, ShouldRun, ShouldYield};
 use log::info;
 use winit::event::{ElementState, Event, StartCause, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
@@ -49,9 +51,11 @@ where
             _ => (),
         },
         Event::MainEventsCleared => {
-            fps_limiter.begin();
+            if fps_limiter.begin() == ShouldYield::Yes {
+                thread::yield_now();
+            }
 
-            while fps_limiter.update() {
+            while fps_limiter.update() == ShouldRun::Yes {
                 match game.update() {
                     ShouldRun::Yes => main_window.request_redraw(),
                     ShouldRun::No => *control_flow = ControlFlow::Exit,

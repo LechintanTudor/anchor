@@ -1,3 +1,4 @@
+use crate::core::ShouldRun;
 use winit::dpi::PhysicalSize;
 use winit::event::VirtualKeyCode;
 use winit::event_loop::EventLoop;
@@ -19,12 +20,6 @@ where
     fn build(self, event_loop: &EventLoop<()>, main_window: &Window) -> anyhow::Result<Self::Game> {
         self(event_loop, main_window)
     }
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum ShouldRun {
-    Yes,
-    No,
 }
 
 pub trait EventHandler

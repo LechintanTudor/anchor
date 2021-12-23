@@ -1,5 +1,17 @@
 use std::time::{Duration, Instant};
 
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum ShouldYield {
+    No,
+    Yes,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum ShouldRun {
+    No,
+    Yes,
+}
+
 #[derive(Clone, Copy)]
 pub struct FpsLimiter {
     target_frame_duration: Duration,
@@ -20,7 +32,7 @@ impl FpsLimiter {
         }
     }
 
-    pub fn begin(&mut self) {
+    pub fn begin(&mut self) -> ShouldYield {
         let current_time = Instant::now();
         let last_frame_time = current_time - self.old_time;
 
@@ -30,14 +42,20 @@ impl FpsLimiter {
         if self.accumulator > self.max_accumulator {
             self.accumulator = self.max_accumulator;
         }
+
+        if last_frame_time < self.target_frame_duration {
+            ShouldYield::Yes
+        } else {
+            ShouldYield::No
+        }
     }
 
-    pub fn update(&mut self) -> bool {
+    pub fn update(&mut self) -> ShouldRun {
         if self.accumulator >= self.target_frame_duration {
             self.accumulator -= self.target_frame_duration;
-            true
+            ShouldRun::Yes
         } else {
-            false
+            ShouldRun::No
         }
     }
 }
