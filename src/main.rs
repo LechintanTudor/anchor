@@ -3,7 +3,6 @@
 mod core;
 mod game;
 mod graphics;
-mod physics;
 
 use crate::core::Config;
 use crate::game::Game;
