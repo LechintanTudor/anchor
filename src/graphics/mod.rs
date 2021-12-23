@@ -1,3 +1,5 @@
-pub use self::graphics::*;
+pub use self::context::*;
+pub use self::flat_pipeline::*;
 
-mod graphics;
+mod context;
+mod flat_pipeline;

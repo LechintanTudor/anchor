@@ -1,5 +1,5 @@
 use crate::core::{EventHandler, ShouldRun};
-use crate::graphics::Graphics;
+use crate::graphics::{FlatPipeline, GraphicsContext};
 use log::error;
 use winit::dpi::PhysicalSize;
 use winit::event::VirtualKeyCode;
@@ -7,13 +7,18 @@ use winit::event_loop::EventLoop;
 use winit::window::Window;
 
 pub struct Game {
-    graphics: Graphics,
+    graphics: GraphicsContext,
+    flat_pipeline: FlatPipeline,
 }
 
 impl Game {
     pub fn new(_event_loop: &EventLoop<()>, main_window: &Window) -> anyhow::Result<Self> {
+        let graphics = GraphicsContext::new(main_window)?;
+        let flat_pipeline = FlatPipeline::new(&graphics.device, graphics.surface_config.format)?;
+
         Ok(Game {
-            graphics: Graphics::new(main_window)?,
+            graphics,
+            flat_pipeline,
         })
     }
 }
@@ -55,7 +60,7 @@ impl EventHandler for Game {
                 });
 
         {
-            let _render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("render_pass"),
                 color_attachments: &[wgpu::RenderPassColorAttachment {
                     view: &view,
@@ -67,6 +72,8 @@ impl EventHandler for Game {
                 }],
                 depth_stencil_attachment: None,
             });
+            render_pass.set_pipeline(&self.flat_pipeline);
+            render_pass.draw(0..3, 0..1);
         }
 
         let command_buffer = encoder.finish();

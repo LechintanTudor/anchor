@@ -1,3 +1,2 @@
 imports_granularity = "Module"
 newline_style = "Unix"
-wrap_comments = true

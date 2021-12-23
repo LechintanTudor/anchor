@@ -1,16 +1,17 @@
+use wgpu::*;
 use winit::dpi::PhysicalSize;
 use winit::window::Window;
 
-pub struct Graphics {
-    pub instance: wgpu::Instance,
-    pub adapter: wgpu::Adapter,
-    pub device: wgpu::Device,
-    pub queue: wgpu::Queue,
-    pub surface_config: wgpu::SurfaceConfiguration,
-    pub surface: wgpu::Surface,
+pub struct GraphicsContext {
+    pub instance: Instance,
+    pub adapter: Adapter,
+    pub device: Device,
+    pub queue: Queue,
+    pub surface_config: SurfaceConfiguration,
+    pub surface: Surface,
 }
 
-impl Graphics {
+impl GraphicsContext {
     pub fn new(main_window: &Window) -> anyhow::Result<Self> {
         Ok(pollster::block_on(Self::new_async(main_window)))
     }
@@ -18,12 +19,12 @@ impl Graphics {
     async fn new_async(main_window: &Window) -> Self {
         let window_size = main_window.inner_size();
 
-        let instance = wgpu::Instance::new(wgpu::Backends::VULKAN);
+        let instance = Instance::new(Backends::VULKAN);
         let surface = unsafe { instance.create_surface(main_window) };
 
         let adapter = instance
-            .request_adapter(&wgpu::RequestAdapterOptions {
-                power_preference: wgpu::PowerPreference::default(),
+            .request_adapter(&RequestAdapterOptions {
+                power_preference: PowerPreference::default(),
                 compatible_surface: Some(&surface),
                 force_fallback_adapter: false,
             })
@@ -32,9 +33,9 @@ impl Graphics {
 
         let (device, queue) = adapter
             .request_device(
-                &wgpu::DeviceDescriptor {
-                    features: wgpu::Features::empty(),
-                    limits: wgpu::Limits::default(),
+                &DeviceDescriptor {
+                    features: Features::empty(),
+                    limits: Limits::default(),
                     label: None,
                 },
                 None,
@@ -42,12 +43,12 @@ impl Graphics {
             .await
             .unwrap();
 
-        let surface_config = wgpu::SurfaceConfiguration {
-            usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+        let surface_config = SurfaceConfiguration {
+            usage: TextureUsages::RENDER_ATTACHMENT,
             format: surface.get_preferred_format(&adapter).unwrap(),
             width: window_size.width,
             height: window_size.height,
-            present_mode: wgpu::PresentMode::Fifo,
+            present_mode: PresentMode::Fifo,
         };
         surface.configure(&device, &surface_config);
 
