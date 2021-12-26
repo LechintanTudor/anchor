@@ -1,8 +1,24 @@
-use std::ops::Deref;
+use glam::f32::Vec3;
+use std::mem;
+use wgpu::util::{BufferInitDescriptor, DeviceExt};
 use wgpu::*;
 
+#[repr(C)]
+#[derive(Clone, Copy, Debug, bytemuck::Pod, bytemuck::Zeroable)]
+struct Vertex {
+    position: Vec3,
+    color: Vec3,
+}
+
+impl Vertex {
+    const fn new(position: Vec3, color: Vec3) -> Self {
+        Self { position, color }
+    }
+}
+
 pub struct FlatPipeline {
-    pipeline: RenderPipeline,
+    pub pipeline: RenderPipeline,
+    pub vertex_buffer: Buffer,
 }
 
 impl FlatPipeline {
@@ -18,13 +34,19 @@ impl FlatPipeline {
             source: ShaderSource::Wgsl(include_str!("shaders/flat.wgsl").into()),
         });
 
+        let vertex_buffer_layout = VertexBufferLayout {
+            array_stride: mem::size_of::<Vertex>() as BufferAddress,
+            step_mode: VertexStepMode::Vertex,
+            attributes: &vertex_attr_array![0 => Float32x3, 1 => Float32x3],
+        };
+
         let pipeline = device.create_render_pipeline(&RenderPipelineDescriptor {
             label: Some("flat"),
             layout: Some(&pipeline_layout),
             vertex: VertexState {
                 module: &shader,
                 entry_point: "vs_main",
-                buffers: &[],
+                buffers: &[vertex_buffer_layout],
             },
             fragment: Some(FragmentState {
                 module: &shader,
@@ -53,14 +75,21 @@ impl FlatPipeline {
             multiview: None,
         });
 
-        Ok(Self { pipeline })
-    }
-}
+        let vertices = [
+            Vertex::new(Vec3::new(0.0, 0.5, 0.0), Vec3::new(1.0, 0.0, 0.0)),
+            Vertex::new(Vec3::new(-0.5, -0.5, 0.0), Vec3::new(0.0, 1.0, 0.0)),
+            Vertex::new(Vec3::new(0.5, -0.5, 0.0), Vec3::new(0.0, 0.0, 1.0)),
+        ];
 
-impl Deref for FlatPipeline {
-    type Target = RenderPipeline;
+        let vertex_buffer = device.create_buffer_init(&BufferInitDescriptor {
+            label: Some("flat"),
+            contents: bytemuck::cast_slice(&vertices),
+            usage: BufferUsages::VERTEX,
+        });
 
-    fn deref(&self) -> &Self::Target {
-        &self.pipeline
+        Ok(Self {
+            pipeline,
+            vertex_buffer,
+        })
     }
 }

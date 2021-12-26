@@ -72,7 +72,8 @@ impl EventHandler for Game {
                 }],
                 depth_stencil_attachment: None,
             });
-            render_pass.set_pipeline(&self.flat_pipeline);
+            render_pass.set_pipeline(&self.flat_pipeline.pipeline);
+            render_pass.set_vertex_buffer(0, self.flat_pipeline.vertex_buffer.slice(..));
             render_pass.draw(0..3, 0..1);
         }
 
