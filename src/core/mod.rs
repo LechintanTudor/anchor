@@ -1,9 +1,12 @@
-pub use self::config::*;
-pub use self::event_handler::*;
-pub use self::fps_limiter::*;
-pub use self::game_loop::*;
+pub use self::config::Config;
+pub use self::context::api::*;
+pub use self::context::Context;
+pub use self::game::{Game, GameBuilder};
 
-mod config;
-mod event_handler;
-mod fps_limiter;
-mod game_loop;
+pub(crate) use self::fps_limiter::*;
+
+pub(crate) mod config;
+pub(crate) mod context;
+pub(crate) mod fps_limiter;
+pub(crate) mod game;
+pub(crate) mod game_loop;

@@ -52,14 +52,7 @@ impl GraphicsContext {
         };
         surface.configure(&device, &surface_config);
 
-        Self {
-            instance,
-            adapter,
-            device,
-            queue,
-            surface_config,
-            surface,
-        }
+        Self { instance, adapter, device, queue, surface_config, surface }
     }
 
     pub fn resize_surface(&mut self, new_size: PhysicalSize<u32>) {
