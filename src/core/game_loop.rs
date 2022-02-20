@@ -64,8 +64,7 @@ where
 
                     game.update(ctx);
                 }
-            }
-            Event::RedrawRequested(window_id) if window_id == ctx.window.id() => {
+
                 game.draw(ctx);
             }
             Event::LoopDestroyed => {
