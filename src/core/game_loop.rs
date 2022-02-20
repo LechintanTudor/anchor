@@ -1,11 +1,13 @@
-use crate::core::{Config, Context, FpsLimiter, Game, GameBuilder, ShouldRun, ShouldYield};
-use log::info;
+use crate::core::{
+    Config, Context, FpsLimiter, Game, GameBuilder, GameError, GameResult, ShouldRun, ShouldYield,
+};
+use log::{error, info};
 use std::thread;
 use winit::event::{ElementState, Event, StartCause, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::WindowBuilder;
 
-pub fn run<G>(config: Config, game_builder: G)
+pub fn run<G>(config: Config, game_builder: G) -> GameResult<()>
 where
     G: GameBuilder,
 {
@@ -14,10 +16,10 @@ where
         .with_title(config.window_title)
         .with_inner_size(config.window_size)
         .build(&event_loop)
-        .unwrap();
+        .map_err(GameError::CannotCreateWindow)?;
 
     let mut ctx = Context { window, should_exit: false };
-    let mut game = game_builder.build(&mut ctx);
+    let mut game = game_builder.build(&mut ctx)?;
     let mut fps_limiter = FpsLimiter::new(60, 3);
 
     event_loop.run(move |event, _event_loop, control_flow| {
@@ -62,10 +64,15 @@ where
                         break;
                     }
 
-                    game.update(ctx);
+                    if let Err(error) = game.update(ctx) {
+                        handle_error(error, control_flow);
+                        return;
+                    }
                 }
 
-                game.draw(ctx);
+                if let Err(error) = game.draw(ctx) {
+                    handle_error(error, control_flow);
+                }
             }
             Event::LoopDestroyed => {
                 info!("Shutting down Anchor...");
@@ -73,4 +80,9 @@ where
             _ => (),
         }
     });
+}
+
+fn handle_error(error: GameError, control_flow: &mut ControlFlow) {
+    error!("{}", error);
+    *control_flow = ControlFlow::Exit;
 }

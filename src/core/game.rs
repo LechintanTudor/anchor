@@ -1,5 +1,5 @@
 use crate::core;
-use crate::core::Context;
+use crate::core::{Context, GameResult};
 use winit::event::VirtualKeyCode;
 
 pub trait Game
@@ -16,25 +16,29 @@ where
 
     fn on_key_released(&mut self, _ctx: &mut Context, _key_code: VirtualKeyCode) {}
 
-    fn update(&mut self, _ctx: &mut Context) {}
+    fn update(&mut self, _ctx: &mut Context) -> GameResult<()> {
+        Ok(())
+    }
 
-    fn draw(&mut self, _ctx: &mut Context) {}
+    fn draw(&mut self, _ctx: &mut Context) -> GameResult<()> {
+        Ok(())
+    }
 }
 
 pub trait GameBuilder {
     type Game: Game;
 
-    fn build(self, ctx: &mut Context) -> Self::Game;
+    fn build(self, ctx: &mut Context) -> GameResult<Self::Game>;
 }
 
 impl<F, G> GameBuilder for F
 where
-    F: FnOnce(&mut Context) -> G,
+    F: FnOnce(&mut Context) -> GameResult<G>,
     G: Game,
 {
     type Game = G;
 
-    fn build(self, ctx: &mut Context) -> Self::Game {
+    fn build(self, ctx: &mut Context) -> GameResult<Self::Game> {
         self(ctx)
     }
 }
