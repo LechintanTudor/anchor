@@ -1,8 +1,11 @@
 use winit::window::Window;
 
+use crate::graphics::GraphicsContext;
+
 pub struct Context {
     pub(crate) window: Window,
     pub(crate) should_exit: bool,
+    pub(crate) graphics: GraphicsContext,
 }
 
 pub(crate) mod api {

@@ -1,6 +1,7 @@
 use crate::core::{
     Config, Context, FpsLimiter, Game, GameBuilder, GameError, GameResult, ShouldRun, ShouldYield,
 };
+use crate::graphics::GraphicsContext;
 use log::{error, info};
 use std::thread;
 use winit::event::{ElementState, Event, StartCause, WindowEvent};
@@ -18,7 +19,9 @@ where
         .build(&event_loop)
         .map_err(GameError::CannotCreateWindow)?;
 
-    let mut ctx = Context { window, should_exit: false };
+    let graphics = GraphicsContext::new(&window)?;
+    let mut ctx = Context { window, should_exit: false, graphics };
+
     let mut game = game_builder.build(&mut ctx)?;
     let mut fps_limiter = FpsLimiter::new(60, 3);
 
@@ -29,30 +32,25 @@ where
             Event::NewEvents(StartCause::Init) => {
                 info!("Starting Anchor...");
             }
-            Event::WindowEvent { window_id, event } if window_id == ctx.window.id() => {
-                match event {
-                    WindowEvent::CloseRequested => {
-                        *control_flow = ControlFlow::Exit;
-                    }
-                    WindowEvent::Resized(new_inner_size) => {
-                        game.on_window_resized(ctx, new_inner_size.width, new_inner_size.height);
-                    }
-                    WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
-                        let width = new_inner_size.width;
-                        let height = new_inner_size.height;
-                        game.on_window_resized(ctx, width, height);
-                    }
-                    WindowEvent::KeyboardInput { input, .. } => {
-                        if let Some(key_code) = input.virtual_keycode {
-                            match input.state {
-                                ElementState::Pressed => game.on_key_pressed(ctx, key_code),
-                                ElementState::Released => game.on_key_released(ctx, key_code),
-                            }
+            Event::WindowEvent { event, .. } => match event {
+                WindowEvent::CloseRequested => {
+                    *control_flow = ControlFlow::Exit;
+                }
+                WindowEvent::Resized(size) => {
+                    let (width, height) = (size.width, size.height);
+                    ctx.graphics.resize_surface(width, height);
+                    game.on_window_resized(ctx, width, height);
+                }
+                WindowEvent::KeyboardInput { input, .. } => {
+                    if let Some(key_code) = input.virtual_keycode {
+                        match input.state {
+                            ElementState::Pressed => game.on_key_pressed(ctx, key_code),
+                            ElementState::Released => game.on_key_released(ctx, key_code),
                         }
                     }
-                    _ => (),
                 }
-            }
+                _ => (),
+            },
             Event::MainEventsCleared => {
                 if fps_limiter.begin() == ShouldYield::Yes {
                     thread::yield_now();
@@ -70,6 +68,7 @@ where
                     }
                 }
 
+                ctx.graphics.draw();
                 if let Err(error) = game.draw(ctx) {
                     handle_error(error, control_flow);
                 }

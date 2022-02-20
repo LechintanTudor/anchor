@@ -1,10 +1,11 @@
+use bytemuck::{Pod, Zeroable};
 use glam::f32::Vec3;
 use std::mem;
 use wgpu::util::{BufferInitDescriptor, DeviceExt};
 use wgpu::*;
 
 #[repr(C)]
-#[derive(Clone, Copy, Debug, bytemuck::Pod, bytemuck::Zeroable)]
+#[derive(Clone, Copy, Debug, Pod, Zeroable)]
 struct Vertex {
     position: Vec3,
     color: Vec3,
@@ -22,7 +23,7 @@ pub struct FlatPipeline {
 }
 
 impl FlatPipeline {
-    pub fn new(device: &Device, format: TextureFormat) -> anyhow::Result<Self> {
+    pub fn new(device: &Device, format: TextureFormat) -> Self {
         let pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
             label: Some("flat"),
             bind_group_layouts: &[],
@@ -83,6 +84,6 @@ impl FlatPipeline {
             usage: BufferUsages::VERTEX,
         });
 
-        Ok(Self { pipeline, vertex_buffer })
+        Self { pipeline, vertex_buffer }
     }
 }
