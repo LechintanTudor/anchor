@@ -1,7 +1,6 @@
-use crate::core::{
+use crate::{
     Config, Context, FpsLimiter, Game, GameBuilder, GameError, GameResult, ShouldRun, ShouldYield,
 };
-use crate::graphics::GraphicsContext;
 use log::{error, info};
 use std::thread;
 use winit::event::{ElementState, Event, StartCause, WindowEvent};
@@ -19,8 +18,7 @@ where
         .build(&event_loop)
         .map_err(GameError::CannotCreateWindow)?;
 
-    let graphics = GraphicsContext::new(&window)?;
-    let mut ctx = Context { window, should_exit: false, graphics };
+    let mut ctx = Context { window, should_exit: false };
 
     let mut game = game_builder.build(&mut ctx)?;
     let mut fps_limiter = FpsLimiter::new(60, 3);
@@ -38,7 +36,6 @@ where
                 }
                 WindowEvent::Resized(size) => {
                     let (width, height) = (size.width, size.height);
-                    ctx.graphics.resize_surface(width, height);
                     game.on_window_resized(ctx, width, height);
                 }
                 WindowEvent::KeyboardInput { input, .. } => {
@@ -68,7 +65,6 @@ where
                     }
                 }
 
-                ctx.graphics.draw();
                 if let Err(error) = game.draw(ctx) {
                     handle_error(error, control_flow);
                 }
