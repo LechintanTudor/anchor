@@ -34,7 +34,7 @@ impl Keyboard {
         self.just_released_keys.as_slice()
     }
 
-    pub fn on_frame_start(&mut self) {
+    pub fn on_frame_end(&mut self) {
         self.just_pressed_keys.clear();
         self.just_released_keys.clear();
     }

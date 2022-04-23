@@ -1,5 +1,5 @@
 use crate::core::{
-    Config, Context, FpsLimiter, Game, GameBuilder, GameError, GameResult, ShouldRun, ShouldYield,
+    Config, Context, FpsLimiter, Game, GameBuilder, GameError, GameResult, ShouldYield,
 };
 use log::{error, info};
 use winit::event::{ElementState, Event, StartCause, WindowEvent};
@@ -29,9 +29,6 @@ where
             Event::NewEvents(StartCause::Init) => {
                 info!("Starting Anchor...");
             }
-            Event::NewEvents(StartCause::Poll) => {
-                ctx.keyboard.on_frame_start();
-            }
             Event::WindowEvent { event, .. } => match event {
                 WindowEvent::CloseRequested => {
                     *control_flow = ControlFlow::Exit;
@@ -60,24 +57,25 @@ where
                 _ => (),
             },
             Event::MainEventsCleared => {
+                if ctx.should_exit {
+                    *control_flow = ControlFlow::Exit;
+                    return;
+                }
+
                 if fps_limiter.begin() == ShouldYield::Yes {
                     std::thread::yield_now();
                 }
 
-                while fps_limiter.update() == ShouldRun::Yes {
-                    if ctx.should_exit {
-                        *control_flow = ControlFlow::Exit;
-                        break;
-                    }
+                let mut updated = false;
 
-                    if let Err(error) = game.update(ctx) {
-                        handle_error(error, control_flow);
-                        return;
-                    }
+                while fps_limiter.update() {
+                    game.update(ctx).unwrap_or_else(|error| handle_error(error, control_flow));
+                    updated = true;
                 }
 
-                if let Err(error) = game.draw(ctx) {
-                    handle_error(error, control_flow);
+                if updated {
+                    game.draw(ctx).unwrap_or_else(|error| handle_error(error, control_flow));
+                    ctx.keyboard.on_frame_end();
                 }
             }
             Event::LoopDestroyed => {

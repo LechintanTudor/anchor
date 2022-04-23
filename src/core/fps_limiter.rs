@@ -6,12 +6,6 @@ pub(crate) enum ShouldYield {
     Yes,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub(crate) enum ShouldRun {
-    No,
-    Yes,
-}
-
 #[derive(Clone, Copy)]
 pub(crate) struct FpsLimiter {
     target_frame_duration: Duration,
@@ -32,6 +26,7 @@ impl FpsLimiter {
         }
     }
 
+    #[must_use]
     pub fn begin(&mut self) -> ShouldYield {
         let current_time = Instant::now();
         let last_frame_time = current_time - self.old_time;
@@ -50,12 +45,13 @@ impl FpsLimiter {
         }
     }
 
-    pub fn update(&mut self) -> ShouldRun {
+    #[must_use]
+    pub fn update(&mut self) -> bool {
         if self.accumulator >= self.target_frame_duration {
             self.accumulator -= self.target_frame_duration;
-            ShouldRun::Yes
+            true
         } else {
-            ShouldRun::No
+            false
         }
     }
 }
