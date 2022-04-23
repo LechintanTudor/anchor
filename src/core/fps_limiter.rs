@@ -1,19 +1,19 @@
 use std::time::{Duration, Instant};
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum ShouldYield {
+pub(crate) enum ShouldYield {
     No,
     Yes,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum ShouldRun {
+pub(crate) enum ShouldRun {
     No,
     Yes,
 }
 
 #[derive(Clone, Copy)]
-pub struct FpsLimiter {
+pub(crate) struct FpsLimiter {
     target_frame_duration: Duration,
     max_accumulator: Duration,
     old_time: Instant,

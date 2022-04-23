@@ -5,4 +5,5 @@ edition = "2021"
 
 [dependencies]
 log = "0.4"
+smallvec = { version = "1.8", features = ["const_generics", "const_new", "union"] }
 winit = "0.26"

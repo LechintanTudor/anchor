@@ -1,16 +1,13 @@
-pub use self::config::*;
-pub use self::context::*;
-pub use self::error::*;
-pub use self::game::*;
-pub use self::game_loop::*;
+pub(crate) mod utils;
 
-pub use winit::event::VirtualKeyCode as KeyCode;
+use crate::core::{Config, GameBuilder, GameResult};
 
-pub(crate) use self::fps_limiter::*;
+pub mod core;
+pub mod input;
 
-pub(crate) mod config;
-pub(crate) mod context;
-pub(crate) mod error;
-pub(crate) mod fps_limiter;
-pub(crate) mod game;
-pub(crate) mod game_loop;
+pub fn run<G>(config: Config, game_builder: G) -> GameResult<()>
+where
+    G: GameBuilder,
+{
+    core::run(config, game_builder)
+}

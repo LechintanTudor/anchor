@@ -1,4 +1,6 @@
-use crate::{Context, GameResult, KeyCode};
+use crate::core;
+use crate::core::{Context, GameResult};
+use crate::input::Key;
 
 pub trait Game
 where
@@ -6,13 +8,13 @@ where
 {
     fn on_window_resized(&mut self, _ctx: &mut Context, _width: u32, _height: u32) {}
 
-    fn on_key_pressed(&mut self, ctx: &mut Context, key_code: KeyCode) {
-        if key_code == KeyCode::Q {
-            crate::request_exit(ctx);
+    fn on_key_pressed(&mut self, ctx: &mut Context, key: Key) {
+        if key == Key::Escape {
+            core::request_exit(ctx);
         }
     }
 
-    fn on_key_released(&mut self, _ctx: &mut Context, _key_code: KeyCode) {}
+    fn on_key_released(&mut self, _ctx: &mut Context, _key: Key) {}
 
     fn update(&mut self, _ctx: &mut Context) -> GameResult<()> {
         Ok(())
