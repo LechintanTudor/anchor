@@ -4,6 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+bytemuck = { version = "1", features = ["derive"] }
+glam = { version = "0.20", features = ["bytemuck"] }
 log = "0.4"
+pollster = "0.2"
 smallvec = { version = "1.8", features = ["const_generics", "const_new", "union"] }
 winit = "0.26"
+wgpu = "0.12"

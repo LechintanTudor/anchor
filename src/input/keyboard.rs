@@ -1,6 +1,6 @@
-use crate::utils::SmallVecSet;
-
 pub use winit::event::VirtualKeyCode as Key;
+
+use crate::utils::SmallVecSet;
 
 #[derive(Debug, Default)]
 pub(crate) struct Keyboard {

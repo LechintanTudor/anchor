@@ -1,6 +1,7 @@
 use crate::core::{
     Config, Context, FpsLimiter, Game, GameBuilder, GameError, GameResult, ShouldYield,
 };
+use crate::graphics;
 use log::{error, info};
 use winit::event::{ElementState, Event, StartCause, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
@@ -35,6 +36,7 @@ where
                 }
                 WindowEvent::Resized(size) => {
                     let (width, height) = (size.width, size.height);
+                    ctx.graphics.reconfigure_surface(width, height);
                     game.on_window_resized(ctx, width, height);
                 }
                 WindowEvent::KeyboardInput { input, .. } => {
@@ -69,12 +71,24 @@ where
                 let mut updated = false;
 
                 while fps_limiter.update() {
-                    game.update(ctx).unwrap_or_else(|error| handle_error(error, control_flow));
+                    if let Err(error) = game.update(ctx) {
+                        handle_error(error, control_flow);
+                        return;
+                    }
+
                     updated = true;
                 }
 
                 if updated {
-                    game.draw(ctx).unwrap_or_else(|error| handle_error(error, control_flow));
+                    let frame = match game.draw(ctx) {
+                        Ok(frame) => frame,
+                        Err(error) => {
+                            handle_error(error, control_flow);
+                            return;
+                        }
+                    };
+
+                    graphics::display(ctx, frame);
                     ctx.keyboard.on_frame_end();
                 }
             }

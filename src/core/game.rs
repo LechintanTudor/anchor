@@ -1,5 +1,6 @@
 use crate::core;
 use crate::core::{Context, GameResult};
+use crate::graphics::Frame;
 use crate::input::Key;
 
 pub trait Game
@@ -20,8 +21,8 @@ where
         Ok(())
     }
 
-    fn draw(&mut self, _ctx: &mut Context) -> GameResult<()> {
-        Ok(())
+    fn draw(&mut self, _ctx: &mut Context) -> GameResult<Frame> {
+        Ok(Frame::default())
     }
 }
 

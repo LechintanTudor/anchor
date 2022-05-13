@@ -1,8 +1,8 @@
 mod keyboard;
 
-use crate::core::Context;
-
 pub use self::keyboard::*;
+
+use crate::core::Context;
 
 #[inline]
 pub fn is_key_pressed(ctx: &Context, key: Key) -> bool {
