@@ -1,3 +1,4 @@
+use crate::graphics::Vec4;
 use bytemuck::{Pod, Zeroable};
 
 #[repr(C)]
@@ -11,7 +12,7 @@ pub struct Color {
 
 impl Default for Color {
     fn default() -> Self {
-        Self { r: 1.0, g: 1.0, b: 1.0, a: 1.0 }
+        Self::WHITE
     }
 }
 
@@ -32,6 +33,10 @@ impl Color {
     pub const fn rgba(r: f32, g: f32, b: f32, a: f32) -> Self {
         Self { r, g, b, a }
     }
+
+    pub fn to_linear_vec4(&self) -> Vec4 {
+        Vec4::new(srgb_to_linear(self.r), srgb_to_linear(self.g), srgb_to_linear(self.b), self.a)
+    }
 }
 
 impl From<Color> for wgpu::Color {
@@ -40,10 +45,10 @@ impl From<Color> for wgpu::Color {
     }
 }
 
-// fn srgb_to_linear(value: f32) -> f32 {
-//     if value <= 0.0031308 {
-//         value * 12.92
-//     } else {
-//         (1.055 * value.powf(1.0 / 2.4)) - 0.055
-//     }
-// }
+fn srgb_to_linear(value: f32) -> f32 {
+    if value <= 0.0031308 {
+        value * 12.92
+    } else {
+        (1.055 * value.powf(1.0 / 2.4)) - 0.055
+    }
+}

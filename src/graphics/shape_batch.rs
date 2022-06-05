@@ -1,6 +1,6 @@
 use crate::core::Context;
-use crate::graphics::{Drawable, Shape, ShapeStyle, ShapeVertex};
-use glam::{Vec2, Vec4};
+use crate::graphics::{Drawable, Shape, ShapeVertex, Transform};
+use glam::Vec2;
 use wgpu::util::DeviceExt;
 
 #[derive(Default)]
@@ -24,44 +24,35 @@ impl ShapeBatch {
         self.indexes.clear();
     }
 
-    pub fn draw<S>(&mut self, shape: &S, style: &ShapeStyle)
+    pub fn draw<S>(&mut self, shape: &S, transform: &Transform)
     where
         S: Shape,
     {
-        let ShapeStyle { color, transform } = style;
-        let linear_color = Vec4::new(color.r, color.g, color.b, color.a);
-
-        let index_offset: u32 = self.vertexes.len().try_into().unwrap();
-        let indexes = shape.indexes().map(|i| i + index_offset);
-        self.indexes.extend(indexes);
+        let shape_vertexes = {
+            let prev_vertex_count = self.vertexes.len();
+            shape.write(&mut self.vertexes, &mut self.indexes);
+            &mut self.vertexes[prev_vertex_count..]
+        };
 
         if transform.rotation == 0.0 {
-            let vertexes = shape.vertexes().map(|vertex| {
-                let position =
-                    (vertex.position - transform.origin) * transform.scale + transform.position;
-
-                ShapeVertex::new(position, linear_color)
-            });
-
-            self.vertexes.extend(vertexes);
+            for vertex in shape_vertexes {
+                vertex.position =
+                    (vertex.position - transform.offset) * transform.scale + transform.position;
+            }
         } else {
             let sin = transform.rotation.sin();
             let cos = transform.rotation.cos();
 
-            let vertexes = shape.vertexes().map(|vertex| {
+            for vertex in shape_vertexes {
                 let [unrotated_x, unrotated_y] =
-                    ((vertex.position - transform.origin) * transform.scale + transform.position)
+                    ((vertex.position - transform.offset) * transform.scale + transform.position)
                         .to_array();
 
-                let position = Vec2::new(
+                vertex.position = Vec2::new(
                     unrotated_x * cos - unrotated_y * sin,
                     unrotated_x * sin + unrotated_y * cos,
                 );
-
-                ShapeVertex::new(position, linear_color)
-            });
-
-            self.vertexes.extend(vertexes);
+            }
         };
 
         self.needs_sync = true;

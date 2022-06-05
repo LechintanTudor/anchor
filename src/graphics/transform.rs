@@ -1,8 +1,8 @@
-use glam::f32::Vec2;
+use crate::graphics::Vec2;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Transform {
-    pub origin: Vec2,
+    pub offset: Vec2,
     pub position: Vec2,
     pub scale: Vec2,
     pub rotation: f32,
@@ -16,5 +16,5 @@ impl Default for Transform {
 
 impl Transform {
     pub const DEFAULT: Self =
-        Self { origin: Vec2::ZERO, position: Vec2::ZERO, scale: Vec2::ONE, rotation: 0.0 };
+        Self { offset: Vec2::ZERO, position: Vec2::ZERO, scale: Vec2::ONE, rotation: 0.0 };
 }

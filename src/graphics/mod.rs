@@ -4,13 +4,17 @@ mod frame;
 mod shape;
 mod shape_batch;
 mod shape_pipeline;
+mod shapes;
 mod transform;
+
+pub use glam::f32::{Vec2, Vec3, Vec4};
 
 pub use self::color::*;
 pub use self::frame::*;
 pub use self::shape::*;
 pub use self::shape_batch::*;
 pub use self::shape_pipeline::*;
+pub use self::shapes::*;
 pub use self::transform::*;
 
 pub(crate) use self::context::*;
