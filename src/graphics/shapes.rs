@@ -14,27 +14,25 @@ impl Rect {
 }
 
 unsafe impl Shape for Rect {
-    fn write(&self, vertexes: &mut Vec<ShapeVertex>, indexes: &mut Vec<u32>) {
-        let base_index = u32::try_from(vertexes.len()).expect("Vertex index overflow");
+    type Vertexes = <[ShapeVertex; 4] as IntoIterator>::IntoIter;
+    type Indexes = <[u32; 6] as IntoIterator>::IntoIter;
 
+    fn vertexes(&self) -> Self::Vertexes {
         let half_width = self.width / 2.0;
         let half_height = self.height / 2.0;
         let linear_color = self.color.to_linear_vec4();
 
-        vertexes.extend([
+        let vertexes = [
             ShapeVertex::new(Vec2::new(-half_width, half_height), linear_color),
             ShapeVertex::new(Vec2::new(-half_width, -half_height), linear_color),
             ShapeVertex::new(Vec2::new(half_width, -half_height), linear_color),
             ShapeVertex::new(Vec2::new(half_width, half_height), linear_color),
-        ]);
+        ];
 
-        indexes.extend([
-            base_index,
-            base_index + 1,
-            base_index + 3,
-            base_index + 3,
-            base_index + 2,
-            base_index + 1,
-        ]);
+        vertexes.into_iter()
+    }
+
+    fn indexes(&self) -> Self::Indexes {
+        [0, 1, 3, 3, 1, 2].into_iter()
     }
 }

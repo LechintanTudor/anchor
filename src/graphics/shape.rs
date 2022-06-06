@@ -16,5 +16,10 @@ impl ShapeVertex {
 }
 
 pub unsafe trait Shape {
-    fn write(&self, vertexes: &mut Vec<ShapeVertex>, indexes: &mut Vec<u32>);
+    type Vertexes: Iterator<Item = ShapeVertex>;
+    type Indexes: Iterator<Item = u32>;
+
+    fn vertexes(&self) -> Self::Vertexes;
+
+    fn indexes(&self) -> Self::Indexes;
 }

@@ -1,6 +1,6 @@
 use crate::core::Context;
 use crate::graphics::{Drawable, Shape, ShapeVertex, Transform};
-use glam::Vec2;
+use glam::Affine2;
 use wgpu::util::DeviceExt;
 
 #[derive(Default)]
@@ -28,32 +28,21 @@ impl ShapeBatch {
     where
         S: Shape,
     {
-        let shape_vertexes = {
-            let prev_vertex_count = self.vertexes.len();
-            shape.write(&mut self.vertexes, &mut self.indexes);
-            &mut self.vertexes[prev_vertex_count..]
-        };
+        let affine_tranform = Affine2::from_scale_angle_translation(
+            transform.scale,
+            transform.rotation,
+            transform.position,
+        );
+        let base_index = u32::try_from(self.vertexes.len()).expect("ShapeBatch index overflow");
 
-        if transform.rotation == 0.0 {
-            for vertex in shape_vertexes {
-                vertex.position =
-                    (vertex.position - transform.offset) * transform.scale + transform.position;
-            }
-        } else {
-            let sin = transform.rotation.sin();
-            let cos = transform.rotation.cos();
+        let vertexes = shape.vertexes().map(|mut vertex| {
+            vertex.position = affine_tranform.transform_point2(vertex.position - transform.offset);
+            vertex
+        });
+        self.vertexes.extend(vertexes);
 
-            for vertex in shape_vertexes {
-                let [unrotated_x, unrotated_y] =
-                    ((vertex.position - transform.offset) * transform.scale + transform.position)
-                        .to_array();
-
-                vertex.position = Vec2::new(
-                    unrotated_x * cos - unrotated_y * sin,
-                    unrotated_x * sin + unrotated_y * cos,
-                );
-            }
-        };
+        let indexes = shape.indexes().map(|index| base_index + index);
+        self.indexes.extend(indexes);
 
         self.needs_sync = true;
     }
@@ -130,10 +119,10 @@ impl Drawable for ShapeBatch {
         };
 
         let vertex_buffer_slice_len: wgpu::BufferAddress =
-            (self.vertexes.len() * std::mem::size_of::<ShapeVertex>()).try_into().unwrap();
+            (self.vertexes.len() * std::mem::size_of::<ShapeVertex>()) as wgpu::BufferAddress;
 
         let index_buffer_slice_len: wgpu::BufferAddress =
-            (self.indexes.len() * std::mem::size_of::<u32>()).try_into().unwrap();
+            (self.indexes.len() * std::mem::size_of::<u32>()) as wgpu::BufferAddress;
 
         render_pass.set_pipeline(&ctx.graphics.shape_pipeline.pipeline);
         render_pass.set_vertex_buffer(0, wgpu_data.vertex_buffer.slice(..vertex_buffer_slice_len));
