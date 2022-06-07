@@ -1,3 +1,4 @@
+mod camera;
 mod color;
 mod context;
 mod frame;
@@ -9,6 +10,7 @@ mod transform;
 
 pub use glam::f32::{Vec2, Vec3, Vec4};
 
+pub use self::camera::*;
 pub use self::color::*;
 pub use self::frame::*;
 pub use self::shape::*;
@@ -21,7 +23,7 @@ pub(crate) use self::context::*;
 
 use crate::core::Context;
 
-pub(crate) fn display(ctx: &mut Context, frame: Frame) {
+pub(crate) fn display(ctx: &mut Context, mut frame: Frame) {
     let output = match ctx.graphics.surface.get_current_texture() {
         Ok(output) => output,
         Err(wgpu::SurfaceError::Lost) => {
@@ -32,10 +34,16 @@ pub(crate) fn display(ctx: &mut Context, frame: Frame) {
     };
     let output_view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
 
-    let (clear_color, mut drawables) = frame.split();
+    let default_camera = {
+        let window_size = ctx.window.inner_size();
+        let size = Vec2::new(window_size.width as f32, window_size.height as f32);
+        let position = size / 2.0;
 
-    for drawable in drawables.iter_mut() {
-        drawable.prepare(ctx);
+        Camera { position, size }
+    };
+
+    for (drawable, camera) in frame.drawables.iter_mut() {
+        drawable.prepare(ctx, camera.unwrap_or(&default_camera));
     }
 
     let mut encoder =
@@ -48,14 +56,14 @@ pub(crate) fn display(ctx: &mut Context, frame: Frame) {
                 view: &output_view,
                 resolve_target: None,
                 ops: wgpu::Operations {
-                    load: wgpu::LoadOp::Clear(clear_color.into()),
+                    load: wgpu::LoadOp::Clear(frame.clear_color.into()),
                     store: true,
                 },
             }],
             depth_stencil_attachment: None,
         });
 
-        for drawable in drawables.iter_mut() {
+        for (drawable, _) in frame.drawables.iter_mut() {
             drawable.draw(ctx, &mut render_pass);
         }
     }

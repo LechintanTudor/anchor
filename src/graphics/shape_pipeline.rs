@@ -1,20 +1,36 @@
 use crate::graphics::ShapeVertex;
 
 pub struct ShapePipeline {
-    pub(crate) pipeline: wgpu::RenderPipeline,
+    pub pipeline: wgpu::RenderPipeline,
+    pub camera_bind_group_layout: wgpu::BindGroupLayout,
 }
 
 impl ShapePipeline {
     pub fn new(device: &wgpu::Device, target_format: wgpu::TextureFormat) -> Self {
-        let shader = device.create_shader_module(&wgpu::ShaderModuleDescriptor {
-            label: Some("flat"),
-            source: wgpu::ShaderSource::Wgsl(include_str!("shaders/shape.wgsl").into()),
-        });
+        let camera_bind_group_layout =
+            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: Some("shape_camera_bind_group"),
+                entries: &[wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::VERTEX,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                }],
+            });
 
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("flat"),
-            bind_group_layouts: &[],
+            bind_group_layouts: &[&camera_bind_group_layout],
             push_constant_ranges: &[],
+        });
+
+        let shader = device.create_shader_module(&wgpu::ShaderModuleDescriptor {
+            label: Some("flat"),
+            source: wgpu::ShaderSource::Wgsl(include_str!("shaders/shape.wgsl").into()),
         });
 
         let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
@@ -67,10 +83,6 @@ impl ShapePipeline {
             multiview: None,
         });
 
-        Self { pipeline }
-    }
-
-    pub fn get(&self) -> &wgpu::RenderPipeline {
-        &self.pipeline
+        Self { pipeline, camera_bind_group_layout }
     }
 }

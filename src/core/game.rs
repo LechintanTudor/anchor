@@ -1,27 +1,23 @@
-use crate::core;
 use crate::core::{Context, GameResult};
 use crate::graphics::Frame;
 use crate::input::Key;
 
+#[allow(unused_variables)]
 pub trait Game
 where
     Self: Sized + 'static,
 {
-    fn on_window_resized(&mut self, _ctx: &mut Context, _width: u32, _height: u32) {}
+    fn on_window_resized(&mut self, ctx: &mut Context, width: u32, height: u32) {}
 
-    fn on_key_pressed(&mut self, ctx: &mut Context, key: Key) {
-        if key == Key::Escape {
-            core::request_exit(ctx);
-        }
-    }
+    fn on_key_pressed(&mut self, ctx: &mut Context, key: Key) {}
 
-    fn on_key_released(&mut self, _ctx: &mut Context, _key: Key) {}
+    fn on_key_released(&mut self, ctx: &mut Context, key: Key) {}
 
-    fn update(&mut self, _ctx: &mut Context) -> GameResult<()> {
+    fn update(&mut self, ctx: &mut Context) -> GameResult<()> {
         Ok(())
     }
 
-    fn draw(&mut self, _ctx: &mut Context) -> GameResult<Frame> {
+    fn draw(&mut self, ctx: &mut Context) -> GameResult<Frame> {
         Ok(Frame::default())
     }
 }
