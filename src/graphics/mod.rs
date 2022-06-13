@@ -2,21 +2,33 @@ mod camera;
 mod color;
 mod context;
 mod frame;
+mod image;
 mod shape;
 mod shape_batch;
 mod shape_pipeline;
 mod shapes;
+mod sprite;
+mod sprite_batch;
+mod sprite_pipeline;
+mod sprite_sheet;
+mod texture;
 mod transform;
 
-pub use glam::f32::{Vec2, Vec3, Vec4};
+pub use glam::f32::{Vec2, Vec4};
 
 pub use self::camera::*;
 pub use self::color::*;
 pub use self::frame::*;
+pub use self::image::*;
 pub use self::shape::*;
 pub use self::shape_batch::*;
 pub use self::shape_pipeline::*;
 pub use self::shapes::*;
+pub use self::sprite::*;
+pub use self::sprite_batch::*;
+pub use self::sprite_pipeline::*;
+pub use self::sprite_sheet::*;
+pub use self::texture::*;
 pub use self::transform::*;
 
 pub(crate) use self::context::*;

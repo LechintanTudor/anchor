@@ -2,10 +2,9 @@ use crate::graphics::Vec2;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Transform {
-    pub offset: Vec2,
-    pub position: Vec2,
-    pub scale: Vec2,
+    pub translation: Vec2,
     pub rotation: f32,
+    pub scale: Vec2,
 }
 
 impl Default for Transform {
@@ -15,6 +14,5 @@ impl Default for Transform {
 }
 
 impl Transform {
-    pub const DEFAULT: Self =
-        Self { offset: Vec2::ZERO, position: Vec2::ZERO, scale: Vec2::ONE, rotation: 0.0 };
+    pub const DEFAULT: Self = Self { translation: Vec2::ZERO, rotation: 0.0, scale: Vec2::ONE };
 }

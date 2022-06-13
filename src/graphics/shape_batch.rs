@@ -33,12 +33,12 @@ impl ShapeBatch {
         let affine_tranform = Affine2::from_scale_angle_translation(
             transform.scale,
             transform.rotation,
-            transform.position,
+            transform.translation,
         );
         let base_index = u32::try_from(self.vertexes.len()).expect("ShapeBatch index overflow");
 
         let vertexes = shape.vertexes().map(|mut vertex| {
-            vertex.position = affine_tranform.transform_point2(vertex.position - transform.offset);
+            vertex.position = affine_tranform.transform_point2(vertex.position);
             vertex
         });
         self.vertexes.extend(vertexes);
