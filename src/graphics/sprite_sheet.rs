@@ -25,7 +25,8 @@ pub struct SpriteSheetBuilder {
 
 impl SpriteSheetBuilder {
     fn new(texture: Texture) -> Self {
-        Self { texture, sprite_bounds: Default::default(), sprite_indexes: Default::default() }
+        let sprite_bounds = vec![SpriteBounds::new(0, 0, texture.width(), texture.height())];
+        Self { texture, sprite_bounds, sprite_indexes: Default::default() }
     }
 
     pub fn add_sprite(&mut self, sprite_name: String, sprite_bounds: SpriteBounds) -> &mut Self {
@@ -46,26 +47,14 @@ impl SpriteSheetBuilder {
 
     pub fn build(&mut self) -> SpriteSheet {
         let texture = self.texture.clone();
+        let sprite_bounds = vec![SpriteBounds::new(0, 0, texture.width(), texture.height())];
 
-        if !self.sprite_indexes.is_empty() {
-            SpriteSheet {
-                texture,
-                data: Arc::new(SpriteSheetData {
-                    sprite_bounds: std::mem::take(&mut self.sprite_bounds),
-                    sprite_indexes: std::mem::take(&mut self.sprite_indexes),
-                }),
-            }
-        } else {
-            let width = texture.width();
-            let height = texture.height();
-
-            SpriteSheet {
-                texture,
-                data: Arc::new(SpriteSheetData {
-                    sprite_bounds: vec![SpriteBounds::new(0, 0, width, height)],
-                    sprite_indexes: Default::default(),
-                }),
-            }
+        SpriteSheet {
+            texture,
+            data: Arc::new(SpriteSheetData {
+                sprite_bounds: std::mem::replace(&mut self.sprite_bounds, sprite_bounds),
+                sprite_indexes: std::mem::take(&mut self.sprite_indexes),
+            }),
         }
     }
 }
@@ -100,5 +89,15 @@ impl SpriteSheet {
     #[inline]
     pub fn texture(&self) -> &Texture {
         &self.texture
+    }
+
+    #[inline]
+    pub fn width(&self) -> u32 {
+        self.texture.width()
+    }
+
+    #[inline]
+    pub fn height(&self) -> u32 {
+        self.texture.height()
     }
 }

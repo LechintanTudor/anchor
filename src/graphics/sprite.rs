@@ -1,5 +1,4 @@
-use crate::graphics::{Color, Vec2, Vec4};
-use bytemuck::{Pod, Zeroable};
+use crate::graphics::{Color, Vec2};
 use glam::const_vec2;
 
 #[derive(Clone, Copy, Default, Debug)]

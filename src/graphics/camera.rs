@@ -9,7 +9,7 @@ pub struct Camera {
 }
 
 impl Camera {
-    pub fn ortho_matrix(&self) -> Mat4 {
+    pub fn to_ortho_matrix(&self) -> Mat4 {
         let half_size = self.size / 2.0;
 
         Mat4::orthographic_rh(

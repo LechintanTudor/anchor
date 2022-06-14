@@ -9,6 +9,12 @@ pub struct SpriteVertex {
     pub linear_color: Vec4,
 }
 
+impl SpriteVertex {
+    pub const fn new(position: Vec2, tex_coords: Vec2, linear_color: Vec4) -> Self {
+        Self { position, tex_coords, linear_color }
+    }
+}
+
 pub struct SpritePipeline {
     pub pipeline: wgpu::RenderPipeline,
     pub bind_group_layout: wgpu::BindGroupLayout,

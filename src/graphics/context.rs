@@ -1,6 +1,4 @@
-pub use glam::{Vec2, Vec3, Vec4};
-
-use crate::graphics::ShapePipeline;
+use crate::graphics::{ShapePipeline, SpritePipeline};
 use winit::window::Window;
 
 pub(crate) struct GraphicsContext {
@@ -10,6 +8,7 @@ pub(crate) struct GraphicsContext {
     pub(crate) device: wgpu::Device,
     pub(crate) queue: wgpu::Queue,
     pub(crate) shape_pipeline: ShapePipeline,
+    pub(crate) sprite_pipeline: SpritePipeline,
 }
 
 impl GraphicsContext {
@@ -56,8 +55,17 @@ impl GraphicsContext {
         surface.configure(&device, &surface_config);
 
         let shape_pipeline = ShapePipeline::new(&device, surface_format);
+        let sprite_pipeline = SpritePipeline::new(&device, surface_format);
 
-        Self { surface, surface_format, surface_config, device, queue, shape_pipeline }
+        Self {
+            surface,
+            surface_format,
+            surface_config,
+            device,
+            queue,
+            shape_pipeline,
+            sprite_pipeline,
+        }
     }
 
     pub(crate) fn reconfigure_surface(&mut self, width: u32, height: u32) {

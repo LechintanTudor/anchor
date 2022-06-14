@@ -1,6 +1,5 @@
 use crate::core::Context;
 use crate::graphics::{Camera, Drawable, Shape, ShapeVertex, Transform};
-use glam::Affine2;
 use wgpu::util::DeviceExt;
 
 #[derive(Default)]
@@ -30,15 +29,11 @@ impl ShapeBatch {
     where
         S: Shape,
     {
-        let affine_tranform = Affine2::from_scale_angle_translation(
-            transform.scale,
-            transform.rotation,
-            transform.translation,
-        );
+        let affine_transform = transform.to_affine2();
         let base_index = u32::try_from(self.vertexes.len()).expect("ShapeBatch index overflow");
 
         let vertexes = shape.vertexes().map(|mut vertex| {
-            vertex.position = affine_tranform.transform_point2(vertex.position);
+            vertex.position = affine_transform.transform_point2(vertex.position);
             vertex
         });
         self.vertexes.extend(vertexes);
@@ -99,7 +94,7 @@ impl Drawable for ShapeBatch {
                     self.needs_sync = true;
                 }
 
-                let ortho_matrix = camera.ortho_matrix();
+                let ortho_matrix = camera.to_ortho_matrix();
                 queue.write_buffer(&wgpu_data.camera_buffer, 0, bytemuck::bytes_of(&ortho_matrix));
             }
             None => {
@@ -120,7 +115,7 @@ impl Drawable for ShapeBatch {
                 let index_buffer_capacity = self.indexes.len();
 
                 // Camera uniform
-                let ortho_matrix = camera.ortho_matrix();
+                let ortho_matrix = camera.to_ortho_matrix();
                 let camera_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
                     label: None,
                     contents: bytemuck::bytes_of(&ortho_matrix),
