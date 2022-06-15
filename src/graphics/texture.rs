@@ -14,7 +14,7 @@ pub struct Texture {
 }
 
 impl Texture {
-    fn new(image: &Image, device: &wgpu::Device, queue: &wgpu::Queue) -> Self {
+    pub fn new(image: &Image, device: &wgpu::Device, queue: &wgpu::Queue) -> Self {
         let width = image.width();
         let height = image.height();
 
@@ -59,5 +59,10 @@ impl Texture {
     #[inline]
     pub fn height(&self) -> u32 {
         self.height
+    }
+
+    #[inline]
+    pub fn view(&self) -> &wgpu::TextureView {
+        &self.data.texture_view
     }
 }

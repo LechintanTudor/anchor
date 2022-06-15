@@ -28,10 +28,10 @@ fn vs_main(input: VertexInput) -> VertexOutput {
 // FRAGMENT
 
 [[group(0), binding(1)]]
-var<uniform> texture: texture_2d<f32>;
+var texture: texture_2d<f32>;
 
 [[group(0), binding(2)]]
-var<uniform> texture_sampler: sampler;
+var texture_sampler: sampler;
 
 [[stage(fragment)]]
 fn fs_main(input: VertexOutput) -> [[location(0)]] vec4<f32> {

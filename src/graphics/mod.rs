@@ -14,8 +14,6 @@ mod sprite_sheet;
 mod texture;
 mod transform;
 
-pub use glam::f32::{Vec2, Vec4};
-
 pub use self::camera::*;
 pub use self::color::*;
 pub use self::frame::*;
@@ -30,10 +28,21 @@ pub use self::sprite_pipeline::*;
 pub use self::sprite_sheet::*;
 pub use self::texture::*;
 pub use self::transform::*;
+pub use glam::f32::{Vec2, Vec4};
 
 pub(crate) use self::context::*;
 
 use crate::core::Context;
+use std::path::Path;
+
+pub fn load_texure<P>(ctx: &Context, path: P) -> Texture
+where
+    P: AsRef<Path>,
+{
+    let image = Image::load(path);
+    let texture = Texture::new(&image, &ctx.graphics.device, &ctx.graphics.queue);
+    texture
+}
 
 pub(crate) fn display(ctx: &mut Context, mut frame: Frame) {
     let output = match ctx.graphics.surface.get_current_texture() {

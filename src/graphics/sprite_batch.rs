@@ -1,7 +1,7 @@
-use wgpu::util::DeviceExt;
-
 use crate::core::Context;
 use crate::graphics::{Camera, Drawable, Sprite, SpriteSheet, SpriteVertex, Transform, Vec2};
+use glam::const_vec2;
+use wgpu::util::DeviceExt;
 
 struct SpriteBatchData {
     vertexes: wgpu::Buffer,
@@ -86,8 +86,6 @@ impl Drawable for SpriteBatch {
                         data.indexes = create_index_buffer(&self.indexes);
                         data.indexes_capacity = self.indexes.len();
                     }
-
-                    self.needs_sync = false;
                 }
 
                 // Camera buffer
@@ -103,10 +101,33 @@ impl Drawable for SpriteBatch {
                     usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
                 });
 
+                let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+                    address_mode_u: wgpu::AddressMode::ClampToEdge,
+                    address_mode_v: wgpu::AddressMode::ClampToEdge,
+                    address_mode_w: wgpu::AddressMode::ClampToEdge,
+                    mag_filter: wgpu::FilterMode::Nearest,
+                    min_filter: wgpu::FilterMode::Nearest,
+                    mipmap_filter: wgpu::FilterMode::Nearest,
+                    ..Default::default()
+                });
+
+                // Bind group
                 let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
                     label: Some("sprite_batch_bind_group"),
                     layout: &ctx.graphics.sprite_pipeline.bind_group_layout,
-                    entries: todo!(),
+                    entries: &[
+                        wgpu::BindGroupEntry { binding: 0, resource: camera.as_entire_binding() },
+                        wgpu::BindGroupEntry {
+                            binding: 1,
+                            resource: wgpu::BindingResource::TextureView(
+                                self.sprite_sheet.texture().view(),
+                            ),
+                        },
+                        wgpu::BindGroupEntry {
+                            binding: 2,
+                            resource: wgpu::BindingResource::Sampler(&sampler),
+                        },
+                    ],
                 });
 
                 self.data = Some(SpriteBatchData {
@@ -119,10 +140,30 @@ impl Drawable for SpriteBatch {
                 })
             }
         }
+
+        self.needs_sync = false;
+
+        // println!("{:#?}", self.vertexes);
+        // crate::core::request_exit(ctx);
     }
 
-    fn draw<'a>(&'a mut self, ctx: &'a Context, render_pass: &mut wgpu::RenderPass<'a>) {
-        todo!()
+    fn draw<'a>(&'a mut self, ctx: &'a Context, pass: &mut wgpu::RenderPass<'a>) {
+        let data = match self.data.as_mut() {
+            Some(data) if !self.vertexes.is_empty() => data,
+            _ => return,
+        };
+
+        let vertexes_slice_len =
+            (std::mem::size_of::<SpriteVertex>() * self.vertexes.len()) as wgpu::BufferAddress;
+
+        let indexes_slice_len =
+            (std::mem::size_of::<u32>() * self.indexes.len()) as wgpu::BufferAddress;
+
+        pass.set_pipeline(&ctx.graphics.sprite_pipeline.pipeline);
+        pass.set_bind_group(0, &data.bind_group, &[]);
+        pass.set_vertex_buffer(0, data.vertexes.slice(..vertexes_slice_len));
+        pass.set_index_buffer(data.indexes.slice(..indexes_slice_len), wgpu::IndexFormat::Uint32);
+        pass.draw_indexed(0..self.indexes.len() as u32, 0, 0..1);
     }
 }
 
@@ -138,20 +179,18 @@ impl<'a> SpriteDrawer<'a> {
         // Compute vertex positions
         let [top_left, bottom_left, bottom_right, top_right] = {
             let transform = transform.to_affine2();
+            let anchor = Vec2::new(sprite.anchor.x, -sprite.anchor.y);
             let size = sprite.size.unwrap_or_else(|| {
                 Vec2::new(sprite_bounds.width as f32, sprite_bounds.height as f32)
             });
-            let offset = sprite.anchor * size;
 
-            let transform_point = |anchor| {
-                transform.transform_point2(transform.translation + size * anchor + offset) - offset
-            };
+            let transform_point = |corner| transform.transform_point2(size * (corner - anchor));
 
             [
-                transform_point(Sprite::ANCHOR_TOP_LEFT),
-                transform_point(Sprite::ANCHOR_BOTTOM_LEFT),
-                transform_point(Sprite::ANCHOR_BOTTOM_RIGHT),
-                transform_point(Sprite::ANCHOR_TOP_RIGHT),
+                transform_point(const_vec2!([-0.5, -0.5])),
+                transform_point(const_vec2!([-0.5, 0.5])),
+                transform_point(const_vec2!([0.5, 0.5])),
+                transform_point(const_vec2!([0.5, -0.5])),
             ]
         };
 
@@ -200,10 +239,10 @@ impl<'a> SpriteDrawer<'a> {
             self.sprite_batch.indexes.extend([
                 base_index,
                 base_index + 1,
-                base_index + 2,
-                base_index + 2,
-                base_index + 1,
                 base_index + 3,
+                base_index + 3,
+                base_index + 1,
+                base_index + 2,
             ]);
         }
 
