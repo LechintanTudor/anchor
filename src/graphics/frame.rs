@@ -4,7 +4,7 @@ use crate::graphics::{Camera, Color};
 pub trait Drawable {
     fn prepare(&mut self, ctx: &mut Context, camera: &Camera);
 
-    fn draw<'a>(&'a mut self, ctx: &'a Context, render_pass: &mut wgpu::RenderPass<'a>);
+    fn draw<'a>(&'a mut self, ctx: &'a Context, pass: &mut wgpu::RenderPass<'a>);
 }
 
 pub struct Frame<'a> {

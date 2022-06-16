@@ -15,12 +15,6 @@ impl Default for Transform {
     }
 }
 
-impl Into<Affine2> for Transform {
-    fn into(self) -> Affine2 {
-        Affine2::from_scale_angle_translation(self.scale, self.rotation, self.translation)
-    }
-}
-
 impl Transform {
     pub const DEFAULT: Self = Self { translation: Vec2::ZERO, rotation: 0.0, scale: Vec2::ONE };
 

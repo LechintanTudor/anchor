@@ -18,7 +18,7 @@ impl Texture {
         let width = image.width();
         let height = image.height();
 
-        let size = wgpu::Extent3d { width: width, height: height, depth_or_array_layers: 1 };
+        let size = wgpu::Extent3d { width, height, depth_or_array_layers: 1 };
 
         let texture = device.create_texture(&wgpu::TextureDescriptor {
             label: None,

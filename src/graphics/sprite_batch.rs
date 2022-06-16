@@ -38,6 +38,7 @@ impl SpriteBatch {
         SpriteDrawer { sprite_batch: self }
     }
 
+    #[inline]
     pub fn resume(&mut self) -> SpriteDrawer {
         SpriteDrawer { sprite_batch: self }
     }
@@ -142,9 +143,6 @@ impl Drawable for SpriteBatch {
         }
 
         self.needs_sync = false;
-
-        // println!("{:#?}", self.vertexes);
-        // crate::core::request_exit(ctx);
     }
 
     fn draw<'a>(&'a mut self, ctx: &'a Context, pass: &mut wgpu::RenderPass<'a>) {
@@ -167,6 +165,7 @@ impl Drawable for SpriteBatch {
     }
 }
 
+#[must_use]
 pub struct SpriteDrawer<'a> {
     sprite_batch: &'a mut SpriteBatch,
 }
@@ -261,6 +260,7 @@ impl<'a> SpriteDrawer<'a> {
         self.sprite_batch.needs_sync = true;
     }
 
+    #[inline]
     pub fn finish(self) -> &'a mut SpriteBatch {
         self.sprite_batch
     }

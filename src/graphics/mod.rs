@@ -14,6 +14,9 @@ mod sprite_sheet;
 mod texture;
 mod transform;
 
+use crate::core::Context;
+use std::path::Path;
+
 pub use self::camera::*;
 pub use self::color::*;
 pub use self::frame::*;
@@ -32,16 +35,11 @@ pub use glam::f32::{Vec2, Vec4};
 
 pub(crate) use self::context::*;
 
-use crate::core::Context;
-use std::path::Path;
-
 pub fn load_texure<P>(ctx: &Context, path: P) -> Texture
 where
     P: AsRef<Path>,
 {
-    let image = Image::load(path);
-    let texture = Texture::new(&image, &ctx.graphics.device, &ctx.graphics.queue);
-    texture
+    Texture::new(&Image::load(path), &ctx.graphics.device, &ctx.graphics.queue)
 }
 
 pub(crate) fn display(ctx: &mut Context, mut frame: Frame) {
@@ -71,7 +69,7 @@ pub(crate) fn display(ctx: &mut Context, mut frame: Frame) {
         ctx.graphics.device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
 
     {
-        let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+        let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: None,
             color_attachments: &[wgpu::RenderPassColorAttachment {
                 view: &output_view,
@@ -85,7 +83,7 @@ pub(crate) fn display(ctx: &mut Context, mut frame: Frame) {
         });
 
         for (drawable, _) in frame.drawables.iter_mut() {
-            drawable.draw(ctx, &mut render_pass);
+            drawable.draw(ctx, &mut pass);
         }
     }
 
