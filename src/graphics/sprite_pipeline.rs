@@ -113,7 +113,7 @@ impl SpritePipeline {
                 entry_point: "fs_main",
                 targets: &[wgpu::ColorTargetState {
                     format: target_format,
-                    blend: Some(wgpu::BlendState::REPLACE),
+                    blend: Some(wgpu::BlendState::ALPHA_BLENDING),
                     write_mask: wgpu::ColorWrites::ALL,
                 }],
             }),
