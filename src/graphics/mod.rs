@@ -1,4 +1,3 @@
-mod camera;
 mod color;
 mod context;
 mod frame;
@@ -17,7 +16,6 @@ mod transform;
 use crate::core::Context;
 use std::path::Path;
 
-pub use self::camera::*;
 pub use self::color::*;
 pub use self::frame::*;
 pub use self::image::*;
@@ -53,16 +51,8 @@ pub(crate) fn display(ctx: &mut Context, mut frame: Frame) {
     };
     let output_view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
 
-    let default_camera = {
-        let window_size = ctx.window.inner_size();
-        let size = Vec2::new(window_size.width as f32, window_size.height as f32);
-        let position = size / 2.0;
-
-        Camera { position, size }
-    };
-
-    for (drawable, camera) in frame.drawables.iter_mut() {
-        drawable.prepare(ctx, camera.unwrap_or(&default_camera));
+    for drawable in frame.drawables.iter_mut() {
+        drawable.prepare(ctx);
     }
 
     let mut encoder =
@@ -82,7 +72,7 @@ pub(crate) fn display(ctx: &mut Context, mut frame: Frame) {
             depth_stencil_attachment: None,
         });
 
-        for (drawable, _) in frame.drawables.iter_mut() {
+        for drawable in frame.drawables.iter_mut() {
             drawable.draw(ctx, &mut pass);
         }
     }

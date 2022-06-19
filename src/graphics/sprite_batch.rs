@@ -1,5 +1,5 @@
 use crate::core::Context;
-use crate::graphics::{Camera, Drawable, Sprite, SpriteSheet, SpriteVertex, Transform, Vec2};
+use crate::graphics::{Drawable, Sprite, SpriteSheet, SpriteVertex, Transform, Vec2};
 use glam::const_vec2;
 use wgpu::util::DeviceExt;
 
@@ -45,13 +45,14 @@ impl SpriteBatch {
 }
 
 impl Drawable for SpriteBatch {
-    fn prepare(&mut self, ctx: &mut Context, camera: &Camera) {
+    fn prepare(&mut self, ctx: &mut Context) {
         if self.vertexes.is_empty() {
             return;
         }
 
         let device = &ctx.graphics.device;
         let queue = &ctx.graphics.queue;
+        let ortho_matrix = ctx.graphics.window_ortho_matrix();
 
         let create_vertex_buffer = |vertexes: &[SpriteVertex]| {
             device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -90,12 +91,10 @@ impl Drawable for SpriteBatch {
                 }
 
                 // Camera buffer
-                let ortho_matrix = camera.to_ortho_matrix();
                 queue.write_buffer(&data.camera, 0, bytemuck::bytes_of(&ortho_matrix));
             }
             None => {
                 // Camera
-                let ortho_matrix = camera.to_ortho_matrix();
                 let camera = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
                     label: Some("sprite_batch_camera_buffer"),
                     contents: bytemuck::bytes_of(&ortho_matrix),

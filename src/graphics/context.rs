@@ -1,4 +1,5 @@
 use crate::graphics::{ShapePipeline, SpritePipeline};
+use glam::Mat4;
 use winit::window::Window;
 
 pub(crate) struct GraphicsContext {
@@ -74,5 +75,11 @@ impl GraphicsContext {
             self.surface_config.height = height;
             self.surface.configure(&self.device, &self.surface_config);
         }
+    }
+
+    pub(crate) fn window_ortho_matrix(&self) -> Mat4 {
+        let width = self.surface_config.width as f32;
+        let height = self.surface_config.height as f32;
+        Mat4::orthographic_rh(0.0, width, 0.0, height, 0.0, 1.0)
     }
 }

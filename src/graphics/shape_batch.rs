@@ -1,5 +1,5 @@
 use crate::core::Context;
-use crate::graphics::{Camera, Drawable, Shape, ShapeVertex, Transform};
+use crate::graphics::{Drawable, Shape, ShapeVertex, Transform};
 use wgpu::util::DeviceExt;
 
 #[derive(Default)]
@@ -39,13 +39,14 @@ impl ShapeBatch {
 }
 
 impl Drawable for ShapeBatch {
-    fn prepare(&mut self, ctx: &mut Context, camera: &Camera) {
+    fn prepare(&mut self, ctx: &mut Context) {
         if self.vertexes.is_empty() {
             return;
         }
 
-        let device = &mut ctx.graphics.device;
-        let queue = &mut ctx.graphics.queue;
+        let device = &ctx.graphics.device;
+        let queue = &ctx.graphics.queue;
+        let ortho_matrix = ctx.graphics.window_ortho_matrix();
 
         let create_vertex_buffer = |vertexes: &[ShapeVertex]| {
             device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -85,13 +86,12 @@ impl Drawable for ShapeBatch {
                     self.needs_sync = false;
                 }
 
-                let ortho_matrix = camera.to_ortho_matrix();
                 queue.write_buffer(&data.camera, 0, bytemuck::bytes_of(&ortho_matrix));
             }
             None => {
                 let camera = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
                     label: None,
-                    contents: bytemuck::bytes_of(&camera.to_ortho_matrix()),
+                    contents: bytemuck::bytes_of(&ortho_matrix),
                     usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
                 });
 

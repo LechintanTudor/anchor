@@ -1,15 +1,15 @@
 use crate::core::Context;
-use crate::graphics::{Camera, Color};
+use crate::graphics::Color;
 
 pub trait Drawable {
-    fn prepare(&mut self, ctx: &mut Context, camera: &Camera);
+    fn prepare(&mut self, ctx: &mut Context);
 
     fn draw<'a>(&'a mut self, ctx: &'a Context, pass: &mut wgpu::RenderPass<'a>);
 }
 
 pub struct Frame<'a> {
     pub(crate) clear_color: Color,
-    pub(crate) drawables: Vec<(&'a mut dyn Drawable, Option<&'a Camera>)>,
+    pub(crate) drawables: Vec<&'a mut dyn Drawable>,
 }
 
 impl Default for Frame<'_> {
@@ -23,8 +23,8 @@ impl<'a> Frame<'a> {
         Self { clear_color, drawables: Vec::new() }
     }
 
-    pub fn draw(mut self, drawable: &'a mut dyn Drawable, camera: Option<&'a Camera>) -> Self {
-        self.drawables.push((drawable, camera));
+    pub fn draw(mut self, drawable: &'a mut dyn Drawable) -> Self {
+        self.drawables.push(drawable);
         self
     }
 }
