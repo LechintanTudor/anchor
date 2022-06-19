@@ -3,6 +3,7 @@ use crate::core::{
 };
 use crate::graphics;
 use log::{error, info};
+use winit::dpi::Size;
 use winit::event::{ElementState, Event, StartCause, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::WindowBuilder;
@@ -14,7 +15,7 @@ where
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new()
         .with_title(config.window_title)
-        .with_inner_size(config.window_size)
+        .with_inner_size(Size::Physical(config.window_size.into()))
         .build(&event_loop)
         .map_err(GameError::CannotCreateWindow)?;
 
