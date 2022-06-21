@@ -17,7 +17,7 @@ where
         .with_title(config.window_title)
         .with_inner_size(Size::Physical(config.window_size.into()))
         .build(&event_loop)
-        .map_err(GameError::CannotCreateWindow)?;
+        .map_err(GameError::WindowError)?;
 
     let mut ctx = Context::new(window);
 
@@ -73,7 +73,7 @@ where
 
                 while fps_limiter.update() {
                     if let Err(error) = game.update(ctx) {
-                        handle_error(error, control_flow);
+                        handle_error(&error, control_flow);
                         return;
                     }
 
@@ -84,7 +84,7 @@ where
                     let frame = match game.draw(ctx) {
                         Ok(frame) => frame,
                         Err(error) => {
-                            handle_error(error, control_flow);
+                            handle_error(&error, control_flow);
                             return;
                         }
                     };
@@ -101,7 +101,7 @@ where
     });
 }
 
-fn handle_error(error: GameError, control_flow: &mut ControlFlow) {
-    error!("{}", error);
+fn handle_error(error: &GameError, control_flow: &mut ControlFlow) {
+    println!("{}", error);
     *control_flow = ControlFlow::Exit;
 }

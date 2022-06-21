@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 bytemuck = { version = "1", features = ["derive"] }
+fontdue = "0.7"
 glam = { version = "0.20", features = ["bytemuck"] }
 image = "0.24"
 log = "0.4"

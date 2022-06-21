@@ -1,15 +1,10 @@
 use image::RgbaImage;
-use std::path::Path;
 
 #[derive(Clone, Debug)]
 pub struct Image(RgbaImage);
 
 impl Image {
-    pub fn load<P>(path: P) -> Self
-    where
-        P: AsRef<Path>,
-    {
-        let image = image::open(path).unwrap().into_rgba8();
+    pub(crate) fn new(image: RgbaImage) -> Self {
         Self(image)
     }
 
