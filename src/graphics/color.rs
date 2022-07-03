@@ -1,8 +1,10 @@
-use crate::graphics::Vec4;
 use bytemuck::{Pod, Zeroable};
+use glam::Vec4;
+use ordered_float::OrderedFloat;
+use std::hash::{Hash, Hasher};
 
 #[repr(C)]
-#[derive(Clone, Copy, Debug, Pod, Zeroable)]
+#[derive(Clone, Copy, Debug, PartialEq, Pod, Zeroable)]
 pub struct Color {
     pub r: f32,
     pub g: f32,
@@ -13,6 +15,18 @@ pub struct Color {
 impl Default for Color {
     fn default() -> Self {
         Self::WHITE
+    }
+}
+
+impl Hash for Color {
+    fn hash<H>(&self, state: &mut H)
+    where
+        H: Hasher,
+    {
+        OrderedFloat(self.r).hash(state);
+        OrderedFloat(self.g).hash(state);
+        OrderedFloat(self.b).hash(state);
+        OrderedFloat(self.a).hash(state);
     }
 }
 

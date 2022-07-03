@@ -1,6 +1,6 @@
 use glam::Affine2;
 
-use crate::graphics::Vec2;
+use glam::Vec2;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Transform {

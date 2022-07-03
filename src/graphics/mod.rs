@@ -12,6 +12,8 @@ mod sprite;
 mod sprite_batch;
 mod sprite_pipeline;
 mod sprite_sheet;
+mod text;
+mod text_batch;
 mod texture;
 mod transform;
 
@@ -28,8 +30,11 @@ pub use self::sprite::*;
 pub use self::sprite_batch::*;
 pub use self::sprite_pipeline::*;
 pub use self::sprite_sheet::*;
+pub use self::text::*;
+pub use self::text_batch::*;
 pub use self::texture::*;
 pub use self::transform::*;
-pub use glam::f32::{Vec2, Vec4};
 
 pub(crate) use self::context::*;
+
+pub use glam::f32::{Vec2, Vec4};

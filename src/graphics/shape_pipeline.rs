@@ -1,5 +1,5 @@
-use crate::graphics::{Vec2, Vec4};
 use bytemuck::{Pod, Zeroable};
+use glam::{Vec2, Vec4};
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Pod, Zeroable)]

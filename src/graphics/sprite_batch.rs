@@ -1,6 +1,6 @@
 use crate::core::Context;
-use crate::graphics::{Drawable, Sprite, SpriteSheet, SpriteVertex, Transform, Vec2};
-use glam::const_vec2;
+use crate::graphics::{Drawable, Sprite, SpriteSheet, SpriteVertex, Transform};
+use glam::{const_vec2, Vec2};
 use wgpu::util::DeviceExt;
 
 struct SpriteBatchData {

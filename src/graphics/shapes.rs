@@ -1,4 +1,5 @@
-use crate::graphics::{Color, Shape, ShapeVertex, Vec2};
+use crate::graphics::{Color, Shape, ShapeVertex};
+use glam::Vec2;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Rect {

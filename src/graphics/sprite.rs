@@ -1,5 +1,5 @@
-use crate::graphics::{Color, Vec2};
-use glam::const_vec2;
+use crate::graphics::Color;
+use glam::{const_vec2, Vec2};
 
 #[derive(Clone, Copy, Default, Debug)]
 pub struct Sprite {
