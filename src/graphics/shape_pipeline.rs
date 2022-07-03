@@ -43,7 +43,7 @@ impl ShapePipeline {
             push_constant_ranges: &[],
         });
 
-        let shader = device.create_shader_module(&wgpu::ShaderModuleDescriptor {
+        let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("flat"),
             source: wgpu::ShaderSource::Wgsl(include_str!("shaders/shape.wgsl").into()),
         });
@@ -89,11 +89,11 @@ impl ShapePipeline {
             fragment: Some(wgpu::FragmentState {
                 module: &shader,
                 entry_point: "fs_main",
-                targets: &[wgpu::ColorTargetState {
+                targets: &[Some(wgpu::ColorTargetState {
                     format: target_format,
                     blend: Some(wgpu::BlendState::ALPHA_BLENDING),
                     write_mask: wgpu::ColorWrites::ALL,
-                }],
+                })],
             }),
             multiview: None,
         });

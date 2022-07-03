@@ -1,27 +1,23 @@
-struct CameraUniform {
-    ortho: mat4x4<f32>;
-};
-
 struct VertexInput {
-    [[location(0)]] position: vec2<f32>;
-    [[location(1)]] color: vec4<f32>;
-};
+    @location(0) position: vec2<f32>,
+    @location(1) color: vec4<f32>,
+}
 
 struct VertexOutput {
-    [[builtin(position)]] clip_position: vec4<f32>;
-    [[location(0)]] color: vec4<f32>;
-};
+    @builtin(position) clip_position: vec4<f32>,
+    @location(0) color: vec4<f32>,
+}
 
-[[group(0), binding(0)]]
-var<uniform> camera: CameraUniform;
+@group(0) @binding(0)
+var<uniform> ortho_matrix: mat4x4<f32>;
 
-[[stage(vertex)]]
+@vertex
 fn vs_main(input: VertexInput) -> VertexOutput {
-    let position = camera.ortho * vec4<f32>(input.position, 0.0, 1.0);
+    let position = ortho_matrix * vec4<f32>(input.position, 0.0, 1.0);
     return VertexOutput(position, input.color);
 }
 
-[[stage(fragment)]]
-fn fs_main(input: VertexOutput) -> [[location(0)]] vec4<f32> {
+@fragment
+fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
     return vec4<f32>(input.color);
 }

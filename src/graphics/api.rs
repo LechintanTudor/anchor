@@ -49,14 +49,14 @@ pub(crate) fn display(ctx: &mut Context, mut frame: Frame) {
     {
         let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: None,
-            color_attachments: &[wgpu::RenderPassColorAttachment {
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                 view: &output_view,
                 resolve_target: None,
                 ops: wgpu::Operations {
                     load: wgpu::LoadOp::Clear(frame.clear_color.into()),
                     store: true,
                 },
-            }],
+            })],
             depth_stencil_attachment: None,
         });
 

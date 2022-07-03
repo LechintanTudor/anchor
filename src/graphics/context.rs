@@ -44,7 +44,7 @@ impl GraphicsContext {
             .await
             .expect("No suitable graphics device found");
 
-        let surface_format = surface.get_preferred_format(&adapter).unwrap();
+        let surface_format = surface.get_supported_formats(&adapter)[0];
         let surface_config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
             format: surface_format,
