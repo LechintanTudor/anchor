@@ -30,7 +30,7 @@ impl Default for Text {
 
 #[derive(Clone)]
 pub struct TextSection {
-    pub value: String,
+    pub content: String,
     pub font: Font,
     pub font_size: f32,
     pub color: Color,

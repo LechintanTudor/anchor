@@ -53,20 +53,24 @@ pub struct FileError {
 }
 
 impl FileError {
+    #[inline]
     pub(crate) fn new(path: PathBuf, error: IoError) -> Self {
         Self { path, error }
     }
 
+    #[inline]
     pub fn path(&self) -> &Path {
         &self.path
     }
 
+    #[inline]
     pub fn error(&self) -> &IoError {
         &self.error
     }
 }
 
 impl Error for FileError {
+    #[inline]
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         Some(&self.error)
     }

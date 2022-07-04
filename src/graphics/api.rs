@@ -1,5 +1,5 @@
 use crate::core::{Context, FileError, GameError, GameResult};
-use crate::graphics::{Frame, Image, Texture};
+use crate::graphics::{Font, Frame, Image, Texture};
 use image::ImageError;
 use std::path::Path;
 
@@ -26,6 +26,28 @@ where
 {
     let image = load_image(ctx, path)?;
     Ok(Texture::new(&image, &ctx.graphics.device, &ctx.graphics.queue))
+}
+
+pub fn load_font<P>(ctx: &Context, path: P) -> GameResult<Font>
+where
+    P: AsRef<Path>,
+{
+    fn inner(_ctx: &Context, path: &Path) -> GameResult<Font> {
+        let data = match std::fs::read(path) {
+            Ok(data) => data,
+            Err(error) => {
+                return Err(Box::new(GameError::FileError(FileError::new(
+                    path.to_path_buf(),
+                    error,
+                ))))
+            }
+        };
+
+        let font_vec = glyph_brush::ab_glyph::FontVec::try_from_vec(data).expect("TODO");
+        Ok(Font::new(font_vec))
+    }
+
+    inner(ctx, path.as_ref())
 }
 
 pub(crate) fn display(ctx: &mut Context, mut frame: Frame) {
