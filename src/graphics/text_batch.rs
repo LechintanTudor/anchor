@@ -1,5 +1,5 @@
 use crate::core::Context;
-use crate::graphics::{Color, Drawable, Font, Text, TextSection, Transform};
+use crate::graphics::{Color, Drawable, Font, Text, Transform};
 use glam::{Vec2, Vec4};
 use glyph_brush::{BrushAction, BrushError, FontId as FontIndex, GlyphBrushBuilder};
 use rustc_hash::FxHashMap;
@@ -41,7 +41,7 @@ impl TextBatch {
 }
 
 impl Drawable for TextBatch {
-    fn prepare(&mut self, ctx: &mut Context) {
+    fn prepare(&mut self, _ctx: &mut Context) {
         let update_texture = |bounds: glyph_brush::Rectangle<u32>, data: &[u8]| {
             let width = bounds.width();
 
@@ -62,20 +62,20 @@ impl Drawable for TextBatch {
             println!();
         };
 
-        let into_vertex = |vertex: glyph_brush::GlyphVertex<Color>| TextVertex {
+        let into_vertex = |_vertex: glyph_brush::GlyphVertex<Color>| TextVertex {
             position: Vec2::ZERO,
             tex_coords: Vec2::ZERO,
             linear_color: Vec4::ONE,
         };
 
         match self.brush.process_queued(update_texture, into_vertex) {
-            Ok(BrushAction::Draw(vertexes)) => {}
+            Ok(BrushAction::Draw(_vertexes)) => {}
             Ok(BrushAction::ReDraw) => {}
-            Err(BrushError::TextureTooSmall { suggested: (width, height) }) => {}
+            Err(BrushError::TextureTooSmall { suggested: (_width, _height) }) => {}
         }
     }
 
-    fn draw<'a>(&'a mut self, ctx: &'a Context, pass: &mut wgpu::RenderPass<'a>) {}
+    fn draw<'a>(&'a mut self, _ctx: &'a Context, _pass: &mut wgpu::RenderPass<'a>) {}
 }
 
 pub struct TextDrawer<'a> {
