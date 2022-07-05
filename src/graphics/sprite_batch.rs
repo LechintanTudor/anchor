@@ -1,7 +1,7 @@
 use crate::core::Context;
 use crate::graphics::{Drawable, Sprite, SpriteSheet, SpriteVertex, Transform};
-use glam::{const_vec2, Vec2, Vec4};
 use bytemuck::{Pod, Zeroable};
+use glam::{const_vec2, Vec2, Vec4};
 use wgpu::util::DeviceExt;
 
 struct SpriteBatchData {
@@ -168,19 +168,6 @@ impl Drawable for SpriteBatch {
 #[must_use]
 pub struct SpriteDrawer<'a> {
     sprite_batch: &'a mut SpriteBatch,
-}
-
-#[repr(C)]
-#[derive(Clone, Copy, Pod, Zeroable)]
-pub struct SpriteInstance {
-    sprite_sheet_size: Vec2,
-    sprite_size: Vec2,
-    anchor: Vec2,
-    scale_rotation_col_0: Vec2,
-    scale_rotation_col_1: Vec2,
-    translation: Vec2,
-    tex_coords: Vec4,
-    linear_color: Vec4,
 }
 
 impl<'a> SpriteDrawer<'a> {

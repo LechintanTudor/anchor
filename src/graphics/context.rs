@@ -1,4 +1,4 @@
-use crate::graphics::{ShapePipeline, SpritePipeline};
+use crate::graphics::{ShapePipeline, SpritePipeline, SpritePipeline2};
 use glam::Mat4;
 use winit::window::Window;
 
@@ -10,6 +10,7 @@ pub(crate) struct GraphicsContext {
     pub(crate) queue: wgpu::Queue,
     pub(crate) shape_pipeline: ShapePipeline,
     pub(crate) sprite_pipeline: SpritePipeline,
+    pub(crate) sprite_pipeline2: SpritePipeline2,
 }
 
 impl GraphicsContext {
@@ -57,6 +58,7 @@ impl GraphicsContext {
 
         let shape_pipeline = ShapePipeline::new(&device, surface_format);
         let sprite_pipeline = SpritePipeline::new(&device, surface_format);
+        let sprite_pipeline2 = SpritePipeline2::new(&device, surface_format);
 
         Self {
             surface,
@@ -66,6 +68,7 @@ impl GraphicsContext {
             queue,
             shape_pipeline,
             sprite_pipeline,
+            sprite_pipeline2,
         }
     }
 
