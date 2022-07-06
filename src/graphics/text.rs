@@ -12,6 +12,11 @@ pub struct Text {
 }
 
 impl Text {
+    pub fn from_section(section: TextSection) -> Self {
+        Self { sections: vec![section], ..Default::default() }
+    }
+
+    #[inline]
     pub fn add_section(&mut self, section: TextSection) -> &mut Self {
         self.sections.push(section);
         self
@@ -34,4 +39,13 @@ pub struct TextSection {
     pub font: Font,
     pub font_size: f32,
     pub color: Color,
+}
+
+impl TextSection {
+    pub fn new<S>(content: S, font: Font, font_size: f32, color: Color) -> Self
+    where
+        S: Into<String>,
+    {
+        Self { content: content.into(), font, font_size, color }
+    }
 }
