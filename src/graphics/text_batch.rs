@@ -1,11 +1,19 @@
 use crate::core::Context;
 use crate::graphics::{Color, Drawable, Font, Text, Transform};
+use bytemuck::{Pod, Zeroable};
 use glam::{Vec2, Vec4};
 use glyph_brush::{BrushAction, BrushError, FontId as FontIndex, GlyphBrushBuilder};
 use rustc_hash::FxHashMap;
 
-type TextVertex = crate::graphics::SpriteVertex;
 type GlyphBrush = glyph_brush::GlyphBrush<TextVertex, Color, Font>;
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Pod, Zeroable)]
+pub struct TextVertex {
+    pub position: Vec2,
+    pub tex_coords: Vec2,
+    pub linear_color: Vec4,
+}
 
 pub struct TextBatch {
     fonts: FxHashMap<usize, FontIndex>,

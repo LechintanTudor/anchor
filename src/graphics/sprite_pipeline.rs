@@ -2,17 +2,16 @@ use bytemuck::{Pod, Zeroable};
 use glam::{Vec2, Vec4};
 
 #[repr(C)]
-#[derive(Clone, Copy, Debug, Pod, Zeroable)]
-pub struct SpriteVertex {
-    pub position: Vec2,
-    pub tex_coords: Vec2,
+#[derive(Clone, Copy, Pod, Zeroable)]
+pub struct SpriteInstance {
+    pub sprite_sheet_size: Vec2,
+    pub size: Vec2,
+    pub anchor: Vec2,
+    pub scale_rotation_col_0: Vec2,
+    pub scale_rotation_col_1: Vec2,
+    pub translation: Vec2,
+    pub absolute_tex_coords_edges: Vec4,
     pub linear_color: Vec4,
-}
-
-impl SpriteVertex {
-    pub const fn new(position: Vec2, tex_coords: Vec2, linear_color: Vec4) -> Self {
-        Self { position, tex_coords, linear_color }
-    }
 }
 
 pub struct SpritePipeline {
@@ -23,7 +22,7 @@ pub struct SpritePipeline {
 impl SpritePipeline {
     pub fn new(device: &wgpu::Device, target_format: wgpu::TextureFormat) -> Self {
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("sprite_bind_group_layout"),
+            label: Some("sprite_pipeline_bind_group_layout"),
             entries: &[
                 wgpu::BindGroupLayoutEntry {
                     binding: 0,
@@ -61,7 +60,7 @@ impl SpritePipeline {
         });
 
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: Some("sprite_shader"),
+            label: Some("sprite_pipeline_shader"),
             source: wgpu::ShaderSource::Wgsl(include_str!("shaders/sprite.wgsl").into()),
         });
 
@@ -72,24 +71,17 @@ impl SpritePipeline {
                 module: &shader,
                 entry_point: "vs_main",
                 buffers: &[wgpu::VertexBufferLayout {
-                    array_stride: std::mem::size_of::<SpriteVertex>() as wgpu::BufferAddress,
-                    step_mode: wgpu::VertexStepMode::Vertex,
-                    attributes: &[
-                        wgpu::VertexAttribute {
-                            format: wgpu::VertexFormat::Float32x2,
-                            offset: 0,
-                            shader_location: 0,
-                        },
-                        wgpu::VertexAttribute {
-                            format: wgpu::VertexFormat::Float32x2,
-                            offset: 8,
-                            shader_location: 1,
-                        },
-                        wgpu::VertexAttribute {
-                            format: wgpu::VertexFormat::Float32x4,
-                            offset: 16,
-                            shader_location: 2,
-                        },
+                    array_stride: std::mem::size_of::<SpriteInstance>() as wgpu::BufferAddress,
+                    step_mode: wgpu::VertexStepMode::Instance,
+                    attributes: &wgpu::vertex_attr_array![
+                        0 => Float32x2, // sprite_sheet_size
+                        1 => Float32x2, // size
+                        2 => Float32x2, // anchor
+                        3 => Float32x2, // scale_rotation_col_0
+                        4 => Float32x2, // scale_rotation_col_1
+                        5 => Float32x2, // translation
+                        6 => Float32x4, // absolute_tex_coords_edges
+                        7 => Float32x4, // linear_color
                     ],
                 }],
             },

@@ -1,53 +1,42 @@
 use crate::core::Context;
-use crate::graphics::{Drawable, Sprite, SpriteSheet, SpriteVertex, Transform};
-
-use glam::{const_vec2, Vec2};
+use crate::graphics::{Drawable, Sprite, SpriteInstance, SpriteSheet, Transform};
+use glam::{Vec2, Vec4};
 use wgpu::util::DeviceExt;
 
 struct SpriteBatchData {
-    vertexes: wgpu::Buffer,
-    vertexes_capacity: usize,
-    indexes: wgpu::Buffer,
-    indexes_capacity: usize,
+    instances: wgpu::Buffer,
+    instances_capacity: usize,
     camera: wgpu::Buffer,
     bind_group: wgpu::BindGroup,
 }
 
 pub struct SpriteBatch {
     sprite_sheet: SpriteSheet,
-    vertexes: Vec<SpriteVertex>,
-    indexes: Vec<u32>,
+    instances: Vec<SpriteInstance>,
     data: Option<SpriteBatchData>,
     needs_sync: bool,
 }
 
 impl SpriteBatch {
     pub fn new(sprite_sheet: SpriteSheet) -> Self {
-        Self {
-            sprite_sheet,
-            vertexes: Vec::new(),
-            indexes: Vec::new(),
-            data: None,
-            needs_sync: false,
-        }
-    }
-
-    pub fn begin(&mut self) -> SpriteDrawer {
-        self.vertexes.clear();
-        self.indexes.clear();
-
-        SpriteDrawer { sprite_batch: self }
+        Self { sprite_sheet, instances: Default::default(), data: None, needs_sync: false }
     }
 
     #[inline]
-    pub fn resume(&mut self) -> SpriteDrawer {
-        SpriteDrawer { sprite_batch: self }
+    pub fn begin(&mut self) -> SpriteDrawer2 {
+        self.instances.clear();
+        SpriteDrawer2 { batch: self }
+    }
+
+    #[inline]
+    pub fn resume(&mut self) -> SpriteDrawer2 {
+        SpriteDrawer2 { batch: self }
     }
 }
 
 impl Drawable for SpriteBatch {
     fn prepare(&mut self, ctx: &mut Context) {
-        if self.vertexes.is_empty() {
+        if self.instances.is_empty() {
             return;
         }
 
@@ -55,47 +44,34 @@ impl Drawable for SpriteBatch {
         let queue = &ctx.graphics.queue;
         let ortho_matrix = ctx.graphics.window_ortho_matrix();
 
-        let create_vertex_buffer = |vertexes: &[SpriteVertex]| {
+        let create_instance_buffer = |instances: &[SpriteInstance]| {
             device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: Some("sprite_batch_vertex_buffer"),
-                contents: bytemuck::cast_slice(vertexes),
+                label: Some("sprite_batch_instance_buffer"),
+                contents: bytemuck::cast_slice(instances),
                 usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
-            })
-        };
-
-        let create_index_buffer = |indexes: &[u32]| {
-            device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: Some("sprite_batch_index_buffer"),
-                contents: bytemuck::cast_slice(indexes),
-                usage: wgpu::BufferUsages::INDEX | wgpu::BufferUsages::COPY_DST,
             })
         };
 
         match self.data.as_mut() {
             Some(data) => {
                 if self.needs_sync {
-                    // Vertex buffer
-                    if self.vertexes.len() <= data.vertexes_capacity {
-                        queue.write_buffer(&data.vertexes, 0, bytemuck::cast_slice(&self.vertexes));
+                    if self.instances.len() <= data.instances_capacity {
+                        queue.write_buffer(
+                            &data.instances,
+                            0,
+                            bytemuck::cast_slice(&self.instances),
+                        );
                     } else {
-                        data.vertexes = create_vertex_buffer(&self.vertexes);
-                        data.vertexes_capacity = self.vertexes.len();
+                        data.instances = create_instance_buffer(&self.instances);
+                        data.instances_capacity = self.instances.len();
                     }
 
-                    // Index buffer
-                    if self.indexes.len() <= data.indexes_capacity {
-                        queue.write_buffer(&data.indexes, 0, bytemuck::cast_slice(&self.indexes));
-                    } else {
-                        data.indexes = create_index_buffer(&self.indexes);
-                        data.indexes_capacity = self.indexes.len();
-                    }
+                    self.needs_sync = false;
                 }
 
-                // Camera buffer
                 queue.write_buffer(&data.camera, 0, bytemuck::bytes_of(&ortho_matrix));
             }
             None => {
-                // Camera
                 let camera = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
                     label: Some("sprite_batch_camera_buffer"),
                     contents: bytemuck::bytes_of(&ortho_matrix),
@@ -112,7 +88,6 @@ impl Drawable for SpriteBatch {
                     ..Default::default()
                 });
 
-                // Bind group
                 let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
                     label: Some("sprite_batch_bind_group"),
                     layout: &ctx.graphics.sprite_pipeline.bind_group_layout,
@@ -132,74 +107,62 @@ impl Drawable for SpriteBatch {
                 });
 
                 self.data = Some(SpriteBatchData {
-                    vertexes: create_vertex_buffer(&self.vertexes),
-                    vertexes_capacity: self.vertexes.len(),
-                    indexes: create_index_buffer(&self.indexes),
-                    indexes_capacity: self.indexes.len(),
+                    instances: create_instance_buffer(&self.instances),
+                    instances_capacity: self.instances.len(),
                     camera,
                     bind_group,
-                })
+                });
             }
         }
-
-        self.needs_sync = false;
     }
 
     fn draw<'a>(&'a mut self, ctx: &'a Context, pass: &mut wgpu::RenderPass<'a>) {
         let data = match self.data.as_mut() {
-            Some(data) if !self.vertexes.is_empty() => data,
+            Some(data) if !self.instances.is_empty() => data,
             _ => return,
         };
 
-        let vertexes_slice_len =
-            (std::mem::size_of::<SpriteVertex>() * self.vertexes.len()) as wgpu::BufferAddress;
-
-        let indexes_slice_len =
-            (std::mem::size_of::<u32>() * self.indexes.len()) as wgpu::BufferAddress;
+        let instances_size =
+            (std::mem::size_of::<SpriteInstance>() * self.instances.len()) as wgpu::BufferAddress;
 
         pass.set_pipeline(&ctx.graphics.sprite_pipeline.pipeline);
         pass.set_bind_group(0, &data.bind_group, &[]);
-        pass.set_vertex_buffer(0, data.vertexes.slice(..vertexes_slice_len));
-        pass.set_index_buffer(data.indexes.slice(..indexes_slice_len), wgpu::IndexFormat::Uint32);
-        pass.draw_indexed(0..self.indexes.len() as u32, 0, 0..1);
+        pass.set_vertex_buffer(0, data.instances.slice(..instances_size));
+        pass.draw(0..6, 0..(self.instances.len() as u32));
     }
 }
 
-#[must_use]
-pub struct SpriteDrawer<'a> {
-    sprite_batch: &'a mut SpriteBatch,
+pub struct SpriteDrawer2<'a> {
+    batch: &'a mut SpriteBatch,
 }
 
-impl<'a> SpriteDrawer<'a> {
+impl<'a> SpriteDrawer2<'a> {
     pub fn draw(&mut self, sprite: &Sprite, transform: &Transform) {
+        let sprite_sheet_size = Vec2::new(
+            self.batch.sprite_sheet.width() as f32,
+            self.batch.sprite_sheet.height() as f32,
+        );
+
         let sprite_bounds =
-            self.sprite_batch.sprite_sheet.get_bounds(sprite.index).expect("Invalid sprite index");
+            self.batch.sprite_sheet.get_bounds(sprite.index).expect("Sprite index out of range");
 
-        // Compute vertex positions
-        let [top_left, bottom_left, bottom_right, top_right] = {
-            let transform = transform.to_affine2();
-            let anchor = Vec2::new(sprite.anchor.x, -sprite.anchor.y);
-            let size = sprite.size.unwrap_or_else(|| {
-                Vec2::new(sprite_bounds.width as f32, sprite_bounds.height as f32)
-            });
+        let size = sprite
+            .size
+            .unwrap_or_else(|| Vec2::new(sprite_bounds.width as f32, sprite_bounds.height as f32));
 
-            let transform_point = |corner| transform.transform_point2(size * (corner - anchor));
+        let anchor = Vec2::new(sprite.anchor.x, -sprite.anchor.y);
 
-            [
-                transform_point(const_vec2!([-0.5, -0.5])),
-                transform_point(const_vec2!([-0.5, 0.5])),
-                transform_point(const_vec2!([0.5, 0.5])),
-                transform_point(const_vec2!([0.5, -0.5])),
-            ]
+        let (scale_rotation_col_0, scale_rotation_col_1, translation) = {
+            let affine_transform = transform.to_affine2();
+
+            (
+                affine_transform.matrix2.col(0),
+                affine_transform.matrix2.col(1),
+                affine_transform.translation,
+            )
         };
 
-        // Compute vertex tex coords
-        let [tex_top_left, tex_bottom_left, tex_bottom_right, tex_top_right] = {
-            let texure_size = Vec2::new(
-                self.sprite_batch.sprite_sheet.width() as f32,
-                self.sprite_batch.sprite_sheet.height() as f32,
-            );
-
+        let absolute_tex_coords_edges = {
             let (left, right) = {
                 let left = sprite_bounds.x as f32;
                 let right = (sprite_bounds.x + sprite_bounds.width) as f32;
@@ -222,46 +185,28 @@ impl<'a> SpriteDrawer<'a> {
                 }
             };
 
-            [
-                Vec2::new(left, top) / texure_size,
-                Vec2::new(left, bottom) / texure_size,
-                Vec2::new(right, bottom) / texure_size,
-                Vec2::new(right, top) / texure_size,
-            ]
+            Vec4::new(top, left, bottom, right)
         };
 
-        // Add indexes
-        {
-            let base_index = u32::try_from(self.sprite_batch.vertexes.len())
-                .expect("Sprite batch index overflow");
+        let linear_color = sprite.color.to_linear_vec4();
 
-            self.sprite_batch.indexes.extend([
-                base_index,
-                base_index + 1,
-                base_index + 3,
-                base_index + 3,
-                base_index + 1,
-                base_index + 2,
-            ]);
-        }
+        let instance = SpriteInstance {
+            sprite_sheet_size,
+            size,
+            anchor,
+            scale_rotation_col_0,
+            scale_rotation_col_1,
+            translation,
+            absolute_tex_coords_edges,
+            linear_color,
+        };
 
-        // Add vertexes
-        {
-            let linear_color = sprite.color.to_linear_vec4();
-
-            self.sprite_batch.vertexes.extend([
-                SpriteVertex::new(top_left, tex_top_left, linear_color),
-                SpriteVertex::new(bottom_left, tex_bottom_left, linear_color),
-                SpriteVertex::new(bottom_right, tex_bottom_right, linear_color),
-                SpriteVertex::new(top_right, tex_top_right, linear_color),
-            ]);
-        }
-
-        self.sprite_batch.needs_sync = true;
+        self.batch.instances.push(instance);
+        self.batch.needs_sync = true;
     }
 
     #[inline]
     pub fn finish(self) -> &'a mut SpriteBatch {
-        self.sprite_batch
+        self.batch
     }
 }
