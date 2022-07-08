@@ -1,13 +1,15 @@
 use crate::core::Context;
-use crate::graphics::{Drawable, Shape, ShapeVertex, Transform};
+use crate::graphics;
+use crate::graphics::{Drawable, Projection, Shape, ShapeVertex, Transform};
 use wgpu::util::DeviceExt;
 
 #[derive(Default)]
 pub struct ShapeBatch {
     vertexes: Vec<ShapeVertex>,
     indexes: Vec<u32>,
-    needs_sync: bool,
+    projection: Projection,
     data: Option<ShapeBatchData>,
+    needs_sync: bool,
 }
 
 struct ShapeBatchData {
@@ -15,7 +17,7 @@ struct ShapeBatchData {
     vertexes_capacity: usize,
     indexes: wgpu::Buffer,
     indexes_capacity: usize,
-    camera: wgpu::Buffer,
+    projection: wgpu::Buffer,
     bind_group: wgpu::BindGroup,
 }
 
@@ -25,16 +27,23 @@ impl ShapeBatch {
         Default::default()
     }
 
+    pub fn set_projection<P>(&mut self, projection: P)
+    where
+        P: Into<Projection>,
+    {
+        self.projection = projection.into();
+    }
+
     pub fn begin(&mut self) -> ShapeDrawer {
         self.vertexes.clear();
         self.indexes.clear();
 
-        ShapeDrawer { shape_batch: self }
+        ShapeDrawer { batch: self }
     }
 
     #[inline]
     pub fn resume(&mut self) -> ShapeDrawer {
-        ShapeDrawer { shape_batch: self }
+        ShapeDrawer { batch: self }
     }
 }
 
@@ -46,7 +55,8 @@ impl Drawable for ShapeBatch {
 
         let device = &ctx.graphics.device;
         let queue = &ctx.graphics.queue;
-        let ortho_matrix = ctx.graphics.window_ortho_matrix();
+
+        let projection = self.projection.to_mat4(graphics::window_size(ctx));
 
         let create_vertex_buffer = |vertexes: &[ShapeVertex]| {
             device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -67,7 +77,6 @@ impl Drawable for ShapeBatch {
         match self.data.as_mut() {
             Some(data) => {
                 if self.needs_sync {
-                    // Vertex buffer
                     if self.vertexes.len() <= data.vertexes_capacity {
                         queue.write_buffer(&data.vertexes, 0, bytemuck::cast_slice(&self.vertexes))
                     } else {
@@ -75,7 +84,6 @@ impl Drawable for ShapeBatch {
                         data.vertexes_capacity = self.vertexes.len();
                     }
 
-                    // Index buffer
                     if self.indexes.len() <= data.indexes_capacity {
                         queue.write_buffer(&data.indexes, 0, bytemuck::cast_slice(&self.indexes));
                     } else {
@@ -86,21 +94,21 @@ impl Drawable for ShapeBatch {
                     self.needs_sync = false;
                 }
 
-                queue.write_buffer(&data.camera, 0, bytemuck::bytes_of(&ortho_matrix));
+                queue.write_buffer(&data.projection, 0, bytemuck::bytes_of(&projection));
             }
             None => {
-                let camera = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                    label: None,
-                    contents: bytemuck::bytes_of(&ortho_matrix),
+                let projection = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                    label: Some("shape_batch_projection_buffer"),
+                    contents: bytemuck::bytes_of(&projection),
                     usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
                 });
 
                 let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-                    label: None,
+                    label: Some("shape_batch_bind_group"),
                     layout: &ctx.graphics.shape_pipeline.camera_bind_group_layout,
                     entries: &[wgpu::BindGroupEntry {
                         binding: 0,
-                        resource: camera.as_entire_binding(),
+                        resource: projection.as_entire_binding(),
                     }],
                 });
 
@@ -109,7 +117,7 @@ impl Drawable for ShapeBatch {
                     vertexes_capacity: self.vertexes.len(),
                     indexes: create_index_buffer(&self.indexes),
                     indexes_capacity: self.indexes.len(),
-                    camera,
+                    projection,
                     bind_group,
                 });
             }
@@ -136,9 +144,8 @@ impl Drawable for ShapeBatch {
     }
 }
 
-#[must_use]
 pub struct ShapeDrawer<'a> {
-    shape_batch: &'a mut ShapeBatch,
+    batch: &'a mut ShapeBatch,
 }
 
 impl<'a> ShapeDrawer<'a> {
@@ -147,20 +154,20 @@ impl<'a> ShapeDrawer<'a> {
         S: Shape,
     {
         let base_index =
-            u32::try_from(self.shape_batch.vertexes.len()).expect("ShapeBatch index overflow");
-        self.shape_batch.indexes.extend(shape.indexes().map(|index| base_index + index));
+            u32::try_from(self.batch.vertexes.len()).expect("ShapeBatch index overflow");
+        self.batch.indexes.extend(shape.indexes().map(|index| base_index + index));
 
         let transform = transform.to_affine2();
-        self.shape_batch.vertexes.extend(shape.vertexes().map(|mut vertex| {
+        self.batch.vertexes.extend(shape.vertexes().map(|mut vertex| {
             vertex.position = transform.transform_point2(vertex.position);
             vertex
         }));
 
-        self.shape_batch.needs_sync = true;
+        self.batch.needs_sync = true;
     }
 
     #[inline]
     pub fn finish(self) -> &'a mut ShapeBatch {
-        self.shape_batch
+        self.batch
     }
 }

@@ -1,36 +1,51 @@
 use crate::core::Context;
-use crate::graphics::{Drawable, Sprite, SpriteInstance, SpriteSheet, Transform};
+use crate::graphics;
+use crate::graphics::{Drawable, Projection, Sprite, SpriteInstance, SpriteSheet, Transform};
 use glam::{Vec2, Vec4};
 use wgpu::util::DeviceExt;
 
 struct SpriteBatchData {
     instances: wgpu::Buffer,
     instances_capacity: usize,
-    camera: wgpu::Buffer,
+    projection: wgpu::Buffer,
     bind_group: wgpu::BindGroup,
 }
 
 pub struct SpriteBatch {
     sprite_sheet: SpriteSheet,
     instances: Vec<SpriteInstance>,
+    projection: Projection,
     data: Option<SpriteBatchData>,
     needs_sync: bool,
 }
 
 impl SpriteBatch {
     pub fn new(sprite_sheet: SpriteSheet) -> Self {
-        Self { sprite_sheet, instances: Default::default(), data: None, needs_sync: false }
+        Self {
+            sprite_sheet,
+            instances: Default::default(),
+            projection: Default::default(),
+            data: None,
+            needs_sync: false,
+        }
+    }
+
+    pub fn set_projection<P>(&mut self, projection: P)
+    where
+        P: Into<Projection>,
+    {
+        self.projection = projection.into();
     }
 
     #[inline]
-    pub fn begin(&mut self) -> SpriteDrawer2 {
+    pub fn begin(&mut self) -> SpriteDrawer {
         self.instances.clear();
-        SpriteDrawer2 { batch: self }
+        SpriteDrawer { batch: self }
     }
 
     #[inline]
-    pub fn resume(&mut self) -> SpriteDrawer2 {
-        SpriteDrawer2 { batch: self }
+    pub fn resume(&mut self) -> SpriteDrawer {
+        SpriteDrawer { batch: self }
     }
 }
 
@@ -42,7 +57,8 @@ impl Drawable for SpriteBatch {
 
         let device = &ctx.graphics.device;
         let queue = &ctx.graphics.queue;
-        let ortho_matrix = ctx.graphics.window_ortho_matrix();
+
+        let projection = self.projection.to_mat4(graphics::window_size(ctx));
 
         let create_instance_buffer = |instances: &[SpriteInstance]| {
             device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -69,12 +85,12 @@ impl Drawable for SpriteBatch {
                     self.needs_sync = false;
                 }
 
-                queue.write_buffer(&data.camera, 0, bytemuck::bytes_of(&ortho_matrix));
+                queue.write_buffer(&data.projection, 0, bytemuck::bytes_of(&projection));
             }
             None => {
-                let camera = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                    label: Some("sprite_batch_camera_buffer"),
-                    contents: bytemuck::bytes_of(&ortho_matrix),
+                let projection = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                    label: Some("sprite_batch_projection_buffer"),
+                    contents: bytemuck::bytes_of(&projection),
                     usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
                 });
 
@@ -92,7 +108,10 @@ impl Drawable for SpriteBatch {
                     label: Some("sprite_batch_bind_group"),
                     layout: &ctx.graphics.sprite_pipeline.bind_group_layout,
                     entries: &[
-                        wgpu::BindGroupEntry { binding: 0, resource: camera.as_entire_binding() },
+                        wgpu::BindGroupEntry {
+                            binding: 0,
+                            resource: projection.as_entire_binding(),
+                        },
                         wgpu::BindGroupEntry {
                             binding: 1,
                             resource: wgpu::BindingResource::TextureView(
@@ -109,7 +128,7 @@ impl Drawable for SpriteBatch {
                 self.data = Some(SpriteBatchData {
                     instances: create_instance_buffer(&self.instances),
                     instances_capacity: self.instances.len(),
-                    camera,
+                    projection,
                     bind_group,
                 });
             }
@@ -132,11 +151,11 @@ impl Drawable for SpriteBatch {
     }
 }
 
-pub struct SpriteDrawer2<'a> {
+pub struct SpriteDrawer<'a> {
     batch: &'a mut SpriteBatch,
 }
 
-impl<'a> SpriteDrawer2<'a> {
+impl<'a> SpriteDrawer<'a> {
     pub fn draw(&mut self, sprite: &Sprite, transform: &Transform) {
         let sprite_sheet_size = Vec2::new(
             self.batch.sprite_sheet.width() as f32,

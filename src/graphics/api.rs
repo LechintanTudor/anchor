@@ -1,7 +1,14 @@
 use crate::core::{Context, FileError, GameError, GameResult};
 use crate::graphics::{Font, Frame, Image, Texture};
+use glam::Vec2;
 use image::ImageError;
 use std::path::Path;
+
+#[inline]
+pub fn window_size(ctx: &Context) -> Vec2 {
+    let size = ctx.window.inner_size();
+    Vec2::new(size.width as f32, size.height as f32)
+}
 
 pub fn load_image<P>(ctx: &Context, path: P) -> GameResult<Image>
 where

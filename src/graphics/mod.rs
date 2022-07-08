@@ -1,9 +1,11 @@
 mod api;
 mod color;
+mod consts;
 mod context;
 mod font;
 mod frame;
 mod image;
+mod projection;
 mod shape;
 mod shape_batch;
 mod shape_pipeline;
@@ -19,9 +21,11 @@ mod transform;
 
 pub use self::api::*;
 pub use self::color::*;
+pub use self::consts::*;
 pub use self::font::*;
 pub use self::frame::*;
 pub use self::image::*;
+pub use self::projection::*;
 pub use self::shape::*;
 pub use self::shape_batch::*;
 pub use self::shape_pipeline::*;

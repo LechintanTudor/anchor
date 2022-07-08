@@ -34,7 +34,7 @@ var<private> CORNERS: array<vec2<f32>, 6> = array<vec2<f32>, 6>(
 );
 
 @group(0) @binding(0)
-var<uniform> ortho_matrix: mat4x4<f32>;
+var<uniform> projection: mat4x4<f32>;
 
 @group(0) @binding(1)
 var sprite_sheet: texture_2d<f32>;
@@ -53,7 +53,7 @@ fn vs_main(@builtin(vertex_index) i: u32, instance: Instance) -> Vertex {
         );
         let relative_position = instance.size * (CORNERS[i] - instance.anchor);
         let absolute_position = (scale_rotation_matrix * relative_position + instance.translation);
-        position = ortho_matrix * vec4<f32>(absolute_position, 0.0, 1.0);
+        position = projection * vec4<f32>(absolute_position, 0.0, 1.0);
     }
 
     var tex_coords: vec2<f32>;

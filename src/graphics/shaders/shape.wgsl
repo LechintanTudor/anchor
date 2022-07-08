@@ -9,11 +9,11 @@ struct VertexOutput {
 }
 
 @group(0) @binding(0)
-var<uniform> ortho_matrix: mat4x4<f32>;
+var<uniform> projection: mat4x4<f32>;
 
 @vertex
 fn vs_main(input: VertexInput) -> VertexOutput {
-    let position = ortho_matrix * vec4<f32>(input.position, 0.0, 1.0);
+    let position = projection * vec4<f32>(input.position, 0.0, 1.0);
     return VertexOutput(position, input.color);
 }
 
