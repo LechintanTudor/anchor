@@ -19,6 +19,8 @@ where
         .build(&event_loop)
         .map_err(GameError::WindowError)?;
 
+    window.set_cursor_visible(config.cursor_visible);
+
     let mut ctx = Context::new(window);
 
     let mut game = game_builder.build(&mut ctx)?;
@@ -44,18 +46,27 @@ where
                     if let Some(key) = input.virtual_keycode {
                         match input.state {
                             ElementState::Pressed => {
-                                ctx.keyboard.on_key_pressed(key);
+                                ctx.input.keyboard.on_key_pressed(key);
                                 game.on_key_pressed(ctx, key);
                             }
                             ElementState::Released => {
-                                ctx.keyboard.on_key_released(key);
+                                ctx.input.keyboard.on_key_released(key);
                                 game.on_key_released(ctx, key);
                             }
                         }
                     }
                 }
+                WindowEvent::CursorEntered { .. } => {
+                    ctx.input.cursor.hovers_window = true;
+                }
+                WindowEvent::CursorLeft { .. } => {
+                    ctx.input.cursor.hovers_window = false;
+                }
+                WindowEvent::CursorMoved { position, .. } => {
+                    ctx.input.cursor.last_position = position.into();
+                }
                 WindowEvent::Focused(false) => {
-                    ctx.keyboard.on_focus_lost();
+                    ctx.input.keyboard.on_focus_lost();
                 }
                 _ => (),
             },
@@ -90,7 +101,7 @@ where
                     };
 
                     graphics::display(ctx, frame);
-                    ctx.keyboard.on_frame_end();
+                    ctx.input.keyboard.on_frame_end();
                 }
             }
             Event::LoopDestroyed => {

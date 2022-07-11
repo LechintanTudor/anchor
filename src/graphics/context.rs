@@ -1,5 +1,4 @@
 use crate::graphics::{ShapePipeline, SpritePipeline};
-use glam::Mat4;
 use winit::window::Window;
 
 pub(crate) struct GraphicsContext {

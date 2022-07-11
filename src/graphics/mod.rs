@@ -19,6 +19,10 @@ mod text_batch;
 mod texture;
 mod transform;
 
+pub(crate) use self::context::*;
+
+pub use glam::f32::{Vec2, Vec4};
+
 pub use self::api::*;
 pub use self::color::*;
 pub use self::consts::*;
@@ -38,7 +42,3 @@ pub use self::text::*;
 pub use self::text_batch::*;
 pub use self::texture::*;
 pub use self::transform::*;
-
-pub(crate) use self::context::*;
-
-pub use glam::f32::{Vec2, Vec4};

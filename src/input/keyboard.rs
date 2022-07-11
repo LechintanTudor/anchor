@@ -1,5 +1,4 @@
-pub use winit::event::VirtualKeyCode as Key;
-
+use crate::input::Key;
 use crate::utils::SmallVecSet;
 
 #[derive(Debug, Default)]
