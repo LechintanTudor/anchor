@@ -13,6 +13,6 @@ log = "0.4"
 ordered-float = "3"
 pollster = "0.2"
 rustc-hash = "1.1"
-smallvec = { version = "1.8", features = ["const_generics", "const_new", "union"] }
+smallvec = { version = "1.9", features = ["const_generics", "const_new", "union"] }
 winit = "0.26"
 wgpu = "0.13"
