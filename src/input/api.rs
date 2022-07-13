@@ -45,3 +45,8 @@ pub fn last_cursor_position(ctx: &Context) -> Vec2 {
     let (cursor_x, cursor_y) = ctx.input.cursor.last_position();
     Vec2::new(cursor_x as f32, cursor_y as f32)
 }
+
+#[inline]
+pub fn cursor_hovers_window(ctx: &Context) -> bool {
+    ctx.input.cursor.hovers_window
+}
