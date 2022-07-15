@@ -1,12 +1,13 @@
 use crate::graphics::Image;
 use std::sync::Arc;
 
+#[derive(Debug)]
 struct TextureData {
     texture: wgpu::Texture,
     texture_view: wgpu::TextureView,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Texture {
     data: Arc<TextureData>,
     width: u32,

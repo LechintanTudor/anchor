@@ -1,4 +1,22 @@
-use crate::core::{Context, Window};
+use crate::core::{Config, Context, GameErrorKind, GameResult, Window};
+use std::path::Path;
+
+pub fn load_config<P>(path: P) -> GameResult<Config>
+where
+    P: AsRef<Path>,
+{
+    fn inner(path: &Path) -> GameResult<Config> {
+        let data = std::fs::read_to_string(path)
+            .map_err(|e| GameErrorKind::IoError(e).into_error_with_path(path))?;
+
+        let config = ron::from_str::<Config>(&data)
+            .map_err(|e| GameErrorKind::RonError(e).into_error_with_path(path))?;
+
+        Ok(config)
+    }
+
+    inner(path.as_ref())
+}
 
 #[inline]
 pub fn request_exit(ctx: &mut Context) {

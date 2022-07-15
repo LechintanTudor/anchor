@@ -1,7 +1,9 @@
-use crate::core::{Context, FileError, GameError, GameResult};
-use crate::graphics::{Font, Frame, Image, Texture};
+use crate::core::{Context, GameErrorKind, GameResult};
+use crate::graphics::{Font, Frame, Image, SpriteBounds, SpriteSheet, Texture};
 use glam::Vec2;
 use image::ImageError;
+use serde::Deserialize;
+use std::collections::HashMap;
 use std::path::Path;
 
 #[inline]
@@ -10,21 +12,23 @@ pub fn window_size(ctx: &Context) -> Vec2 {
     Vec2::new(size.width as f32, size.height as f32)
 }
 
-pub fn load_image<P>(ctx: &Context, path: P) -> GameResult<Image>
+pub fn load_image<P>(_ctx: &Context, path: P) -> GameResult<Image>
 where
     P: AsRef<Path>,
 {
-    let _ = ctx;
-    let path = path.as_ref();
+    fn inner(path: &Path) -> GameResult<Image> {
+        match image::open(path) {
+            Ok(image) => Ok(Image::new(image.into_rgba8())),
+            Err(error) => match error {
+                ImageError::IoError(error) => {
+                    Err(GameErrorKind::IoError(error).into_error_with_path(path))
+                }
+                error => Err(GameErrorKind::ImageError(error).into_error()),
+            },
+        }
+    }
 
-    image::open(path).map(|image| Image::new(image.to_rgba8())).map_err(|error| {
-        Box::new(match error {
-            ImageError::IoError(error) => {
-                GameError::FileError(FileError::new(path.to_path_buf(), error))
-            }
-            _ => GameError::ImageError(error),
-        })
-    })
+    inner(path.as_ref())
 }
 
 pub fn load_texure<P>(ctx: &Context, path: P) -> GameResult<Texture>
@@ -35,26 +39,56 @@ where
     Ok(Texture::new(&image, &ctx.graphics.device, &ctx.graphics.queue))
 }
 
-pub fn load_font<P>(ctx: &Context, path: P) -> GameResult<Font>
+pub fn load_sprite_sheet<P>(ctx: &Context, path: P) -> GameResult<SpriteSheet>
 where
     P: AsRef<Path>,
 {
-    fn inner(_ctx: &Context, path: &Path) -> GameResult<Font> {
-        let data = match std::fs::read(path) {
-            Ok(data) => data,
-            Err(error) => {
-                return Err(Box::new(GameError::FileError(FileError::new(
-                    path.to_path_buf(),
-                    error,
-                ))))
-            }
-        };
+    #[derive(Deserialize)]
+    struct SerializedSpriteSheet {
+        texture: String,
+        sprites: HashMap<String, Vec<(u32, u32, u32, u32)>>,
+    }
 
-        let font_vec = glyph_brush::ab_glyph::FontVec::try_from_vec(data).expect("TODO");
-        Ok(Font::new(font_vec))
+    fn inner(ctx: &Context, path: &Path) -> GameResult<SpriteSheet> {
+        let data = std::fs::read_to_string(path)
+            .map_err(|e| GameErrorKind::IoError(e).into_error_with_path(path))?;
+
+        let mut serialized_sprite_sheet = ron::from_str::<SerializedSpriteSheet>(&data)
+            .map_err(|e| GameErrorKind::RonError(e).into_error_with_path(path))?;
+
+        let texture = load_texure(ctx, &serialized_sprite_sheet.texture)?;
+        let mut sprite_sheet_builder = SpriteSheet::builder(texture);
+
+        for (name, bounds) in serialized_sprite_sheet.sprites.drain() {
+            let bounds = bounds
+                .iter()
+                .map(|&(x, y, width, height)| SpriteBounds::new(x, y, width, height))
+                .collect::<Vec<_>>();
+
+            sprite_sheet_builder.add_sprites(name, bounds);
+        }
+
+        Ok(sprite_sheet_builder.build())
     }
 
     inner(ctx, path.as_ref())
+}
+
+pub fn load_font<P>(_ctx: &Context, path: P) -> GameResult<Font>
+where
+    P: AsRef<Path>,
+{
+    fn inner(path: &Path) -> GameResult<Font> {
+        let data = std::fs::read(path)
+            .map_err(|e| GameErrorKind::IoError(e).into_error_with_path(path))?;
+
+        let font_vec = glyph_brush::ab_glyph::FontVec::try_from_vec(data)
+            .map_err(|e| GameErrorKind::FontError(e).into_error_with_path(path))?;
+
+        Ok(Font::new(font_vec))
+    }
+
+    inner(path.as_ref())
 }
 
 pub(crate) fn display(ctx: &mut Context, mut frame: Frame) {

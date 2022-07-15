@@ -1,6 +1,6 @@
 use crate::graphics::Texture;
-use std::collections::hash_map::Entry;
 use std::collections::HashMap;
+use std::ops::Range;
 use std::sync::Arc;
 
 #[derive(Clone, Copy, Debug)]
@@ -12,6 +12,7 @@ pub struct SpriteBounds {
 }
 
 impl SpriteBounds {
+    #[inline]
     pub const fn new(x: u32, y: u32, width: u32, height: u32) -> Self {
         Self { x, y, width, height }
     }
@@ -19,52 +20,53 @@ impl SpriteBounds {
 
 pub struct SpriteSheetBuilder {
     texture: Texture,
-    sprite_bounds: Vec<SpriteBounds>,
-    sprite_indexes: HashMap<String, usize>,
+    sprites: HashMap<String, Vec<SpriteBounds>>,
 }
 
 impl SpriteSheetBuilder {
+    #[inline]
     fn new(texture: Texture) -> Self {
-        let sprite_bounds = vec![SpriteBounds::new(0, 0, texture.width(), texture.height())];
-        Self { texture, sprite_bounds, sprite_indexes: Default::default() }
+        Self { texture, sprites: Default::default() }
     }
 
-    pub fn add_sprite(&mut self, sprite_name: String, sprite_bounds: SpriteBounds) -> &mut Self {
-        match self.sprite_indexes.entry(sprite_name) {
-            Entry::Occupied(entry) => {
-                let prev_sprite_index = *entry.get();
-                self.sprite_bounds[prev_sprite_index] = sprite_bounds;
-            }
-            Entry::Vacant(entry) => {
-                let sprite_index = self.sprite_bounds.len();
-                entry.insert(sprite_index);
-                self.sprite_bounds.push(sprite_bounds);
-            }
-        }
+    #[inline]
+    pub fn add_sprite(&mut self, name: String, bounds: SpriteBounds) -> &mut Self {
+        self.sprites.insert(name, vec![bounds]);
+        self
+    }
 
+    #[inline]
+    pub fn add_sprites(&mut self, name: String, bounds: Vec<SpriteBounds>) -> &mut Self {
+        self.sprites.insert(name, bounds);
         self
     }
 
     pub fn build(&mut self) -> SpriteSheet {
-        let texture = self.texture.clone();
-        let sprite_bounds = vec![SpriteBounds::new(0, 0, texture.width(), texture.height())];
+        let data = {
+            let mut bounds =
+                vec![SpriteBounds::new(0, 0, self.texture.width(), self.texture.height())];
+            let mut ranges = HashMap::<String, Range<usize>>::new();
 
-        SpriteSheet {
-            texture,
-            data: Arc::new(SpriteSheetData {
-                sprite_bounds: std::mem::replace(&mut self.sprite_bounds, sprite_bounds),
-                sprite_indexes: std::mem::take(&mut self.sprite_indexes),
-            }),
-        }
+            for (sprite_name, sprite_bounds) in self.sprites.drain() {
+                let range = bounds.len()..(bounds.len() + sprite_bounds.len());
+                bounds.extend(sprite_bounds.iter().copied());
+                ranges.insert(sprite_name, range);
+            }
+
+            SpriteSheetData { bounds, ranges }
+        };
+
+        SpriteSheet { texture: self.texture.clone(), data: Arc::new(data) }
     }
 }
 
+#[derive(Debug)]
 struct SpriteSheetData {
-    sprite_bounds: Vec<SpriteBounds>,
-    sprite_indexes: HashMap<String, usize>,
+    bounds: Vec<SpriteBounds>,
+    ranges: HashMap<String, Range<usize>>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct SpriteSheet {
     texture: Texture,
     data: Arc<SpriteSheetData>,
@@ -78,12 +80,17 @@ impl SpriteSheet {
 
     #[inline]
     pub fn get_index(&self, sprite_name: &str) -> Option<usize> {
-        self.data.sprite_indexes.get(sprite_name).copied()
+        self.data.ranges.get(sprite_name).map(|range| range.start)
     }
 
     #[inline]
-    pub fn get_bounds(&self, sprite_index: usize) -> Option<&SpriteBounds> {
-        self.data.sprite_bounds.get(sprite_index)
+    pub fn get_range(&self, sprite_name: &str) -> Option<Range<usize>> {
+        self.data.ranges.get(sprite_name).cloned()
+    }
+
+    #[inline]
+    pub fn get_bounds(&self, index: usize) -> Option<&SpriteBounds> {
+        self.data.bounds.get(index)
     }
 
     #[inline]

@@ -1,5 +1,6 @@
 use crate::core::{
-    Config, Context, FpsLimiter, Game, GameBuilder, GameError, GameResult, ShouldYield,
+    Config, Context, FpsLimiter, Game, GameBuilder, GameError, GameErrorKind, GameResult,
+    ShouldYield,
 };
 use crate::graphics;
 use log::info;
@@ -17,7 +18,7 @@ where
         .with_title(config.window_title)
         .with_inner_size(Size::Physical(config.window_size.into()))
         .build(&event_loop)
-        .map_err(GameError::WindowError)?;
+        .map_err(|error| GameError::new(GameErrorKind::OsError(error), None))?;
 
     window.set_cursor_visible(config.cursor_visible);
 
