@@ -1,25 +1,15 @@
 use crate::core::Context;
-use crate::graphics::{Color, Drawable, Font, Text, Transform};
-use bytemuck::{Pod, Zeroable};
-use glam::{Vec2, Vec4};
+use crate::graphics::{Color, Drawable, Font, SpriteInstance, Text};
+use glam::Vec2;
 use glyph_brush::{BrushAction, BrushError, FontId as FontIndex, GlyphBrushBuilder};
 use rustc_hash::FxHashMap;
 
-type GlyphBrush = glyph_brush::GlyphBrush<TextVertex, Color, Font>;
-
-#[repr(C)]
-#[derive(Clone, Copy, Debug, Pod, Zeroable)]
-pub struct TextVertex {
-    pub position: Vec2,
-    pub tex_coords: Vec2,
-    pub linear_color: Vec4,
-}
+type GlyphBrush = glyph_brush::GlyphBrush<SpriteInstance, Color, Font>;
 
 pub struct TextBatch {
     fonts: FxHashMap<usize, FontIndex>,
     brush: GlyphBrush,
-    vertexes: Vec<TextVertex>,
-    indexes: Vec<u32>,
+    instances: Vec<SpriteInstance>,
     texture: Option<TextBatchTexture>,
     data: Option<TextBatchData>,
 }
@@ -29,8 +19,7 @@ impl Default for TextBatch {
         Self {
             fonts: Default::default(),
             brush: GlyphBrushBuilder::using_fonts(vec![]).build(),
-            vertexes: Default::default(),
-            indexes: Default::default(),
+            instances: Default::default(),
             texture: Default::default(),
             data: Default::default(),
         }
@@ -70,13 +59,10 @@ impl Drawable for TextBatch {
             println!();
         };
 
-        let into_vertex = |_vertex: glyph_brush::GlyphVertex<Color>| TextVertex {
-            position: Vec2::ZERO,
-            tex_coords: Vec2::ZERO,
-            linear_color: Vec4::ONE,
-        };
+        let into_instance =
+            |_instance: glyph_brush::GlyphVertex<Color>| -> SpriteInstance { todo!() };
 
-        match self.brush.process_queued(update_texture, into_vertex) {
+        match self.brush.process_queued(update_texture, into_instance) {
             Ok(BrushAction::Draw(_vertexes)) => {}
             Ok(BrushAction::ReDraw) => {}
             Err(BrushError::TextureTooSmall { suggested: (_width, _height) }) => {}
@@ -91,9 +77,9 @@ pub struct TextDrawer<'a> {
 }
 
 impl<'a> TextDrawer<'a> {
-    pub fn draw(&mut self, text: &Text, transform: &Transform) {
+    pub fn draw(&mut self, text: &Text, position: Vec2) {
         let section = glyph_brush::Section {
-            screen_position: transform.translation.into(),
+            screen_position: position.into(),
             bounds: text.bounds.into(),
             layout: text.layout,
             text: text
