@@ -1,5 +1,5 @@
 use crate::core::Context;
-use crate::graphics::{Color, Drawable, Font, SpriteInstance, Text};
+use crate::graphics::{Color, Drawable, Font, SpriteInstance, Text, TextInstance};
 use glam::Vec2;
 use glyph_brush::{BrushAction, BrushError, FontId as FontIndex, GlyphBrushBuilder};
 use rustc_hash::FxHashMap;
@@ -104,6 +104,6 @@ struct TextBatchTexture {
 }
 
 struct TextBatchData {
-    vertexes: wgpu::Buffer,
-    indexes: wgpu::Buffer,
+    instances: wgpu::Buffer,
+    instances_cap: usize,
 }

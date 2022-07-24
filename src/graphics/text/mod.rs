@@ -2,6 +2,9 @@ mod font;
 mod text;
 mod text_batch;
 mod text_pipeline;
+mod font_atlas;
+
+pub(crate) use self::font_atlas::*;
 
 pub use self::font::*;
 pub use self::text::*;
