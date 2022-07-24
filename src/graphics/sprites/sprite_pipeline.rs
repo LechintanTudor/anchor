@@ -61,7 +61,7 @@ impl SpritePipeline {
 
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("sprite_pipeline_shader"),
-            source: wgpu::ShaderSource::Wgsl(include_str!("shaders/sprite.wgsl").into()),
+            source: wgpu::ShaderSource::Wgsl(include_str!("sprite.wgsl").into()),
         });
 
         let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {

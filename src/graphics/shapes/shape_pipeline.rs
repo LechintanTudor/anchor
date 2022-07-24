@@ -45,7 +45,7 @@ impl ShapePipeline {
 
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("flat"),
-            source: wgpu::ShaderSource::Wgsl(include_str!("shaders/shape.wgsl").into()),
+            source: wgpu::ShaderSource::Wgsl(include_str!("shape.wgsl").into()),
         });
 
         let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
