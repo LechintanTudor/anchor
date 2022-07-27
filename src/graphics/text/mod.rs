@@ -1,8 +1,8 @@
 mod font;
+mod font_atlas;
 mod text;
 mod text_batch;
 mod text_pipeline;
-mod font_atlas;
 
 pub(crate) use self::font_atlas::*;
 

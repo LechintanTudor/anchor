@@ -4,6 +4,7 @@ mod consts;
 mod context;
 mod frame;
 mod image;
+mod old_raw_window_handle_wrapper;
 mod projection;
 mod shapes;
 mod sprites;
@@ -12,6 +13,7 @@ mod texture;
 mod transform;
 
 pub(crate) use self::context::*;
+pub(crate) use self::old_raw_window_handle_wrapper::*;
 
 pub use glam::f32::{Vec2, Vec4};
 
