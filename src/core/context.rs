@@ -1,8 +1,8 @@
-pub use winit;
-pub use winit::window::Window;
-
 use crate::graphics::GraphicsContext;
 use crate::input::InputContext;
+
+pub use winit;
+pub use winit::window::Window;
 
 pub struct Context {
     pub(crate) should_exit: bool,

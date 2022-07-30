@@ -19,7 +19,7 @@ impl Image {
     }
 
     #[inline]
-    pub fn bytes(&self) -> &[u8] {
+    pub fn data(&self) -> &[u8] {
         self.0.as_raw()
     }
 }
