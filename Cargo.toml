@@ -5,8 +5,7 @@ edition = "2021"
 
 [dependencies]
 bytemuck = { version = "1", features = ["derive"] }
-fontdue = "0.7"
-glam = { version = "0.20", features = ["bytemuck"] }
+glam = { version = "0.21", features = ["bytemuck"] }
 glyph_brush = "0.7"
 image = "0.24"
 log = "0.4"

@@ -1,5 +1,5 @@
 use crate::graphics::{Color, Font};
-use glam::{const_vec2, Vec2};
+use glam::Vec2;
 
 pub use glyph_brush::{BuiltInLineBreaker as LineBreaker, HorizontalAlign, VerticalAlign};
 pub type TextLayout = glyph_brush::Layout<LineBreaker>;
@@ -34,7 +34,7 @@ impl Default for Text {
         Self {
             sections: Default::default(),
             layout: Default::default(),
-            bounds: const_vec2!([f32::INFINITY, f32::INFINITY]),
+            bounds: Vec2::new(f32::INFINITY, f32::INFINITY),
         }
     }
 }
