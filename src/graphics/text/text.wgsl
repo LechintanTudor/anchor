@@ -54,11 +54,11 @@ fn vs_main(@builtin(vertex_index) i: u32, instance: Instance) -> Vertex {
 
 @fragment
 fn fs_main(vertex: Vertex) -> @location(0) vec4<f32> {
-    let texture_sample = textureSample(
+    let texture_sample = vec4(1.0, 1.0, 1.0, textureSample(
         sprite_sheet,
         sprite_sheet_sampler,
         vertex.tex_coords
-    );
+    ).r);
 
     return texture_sample * vertex.linear_color;
 }

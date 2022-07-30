@@ -2,7 +2,7 @@ use crate::glam::{Vec2, Vec4};
 use bytemuck::{Pod, Zeroable};
 
 #[repr(C)]
-#[derive(Clone, Copy, Pod, Zeroable)]
+#[derive(Clone, Copy, Pod, Zeroable, Default)]
 pub struct TextInstance {
     pub size: Vec2,
     pub translation: Vec2,
