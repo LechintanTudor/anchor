@@ -12,8 +12,14 @@ pub struct Text {
 }
 
 impl Text {
-    pub fn from_section(section: TextSection) -> Self {
-        Self { sections: vec![section], ..Default::default() }
+    pub fn simple<S>(content: S, font: Font, font_size: f32, color: Color) -> Self
+    where
+        S: Into<String>,
+    {
+        Self {
+            sections: vec![TextSection::new(content, font, font_size, color)],
+            ..Default::default()
+        }
     }
 
     #[inline]

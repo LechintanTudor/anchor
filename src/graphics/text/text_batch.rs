@@ -1,5 +1,5 @@
 use crate::core::Context;
-use crate::graphics::{self, Color, Drawable, Font, Projection, Text, TextInstance};
+use crate::graphics::{self, Color, Drawable, Font, GlyphInstance, Projection, Text};
 use glam::{Vec2, Vec4};
 use glyph_brush::{BrushAction, BrushError, FontId as FontIndex, GlyphBrushBuilder};
 use rustc_hash::FxHashMap;
@@ -8,7 +8,7 @@ use wgpu::util::DeviceExt;
 const INITIAL_DRAW_CACHE_SIZE: u32 = 256;
 
 type Bounds = glyph_brush::Rectangle<u32>;
-type GlyphBrush = glyph_brush::GlyphBrush<TextInstance, Color, Font>;
+type GlyphBrush = glyph_brush::GlyphBrush<GlyphInstance, Color, Font>;
 type RawGlyphInstance<'a> = glyph_brush::GlyphVertex<'a, Color>;
 
 struct TextBatchData {
@@ -137,109 +137,110 @@ impl TextBatch {
 
 impl Drawable for TextBatch {
     fn prepare(&mut self, ctx: &mut Context) {
-        let update_texture = |bounds: Bounds, data: &[u8]| {
-            let texture = self.texture.get_or_insert_with(|| {
-                // Reset bind group when texture changes
-                self.bind_group = None;
-
-                TextTextureData::new(
-                    INITIAL_DRAW_CACHE_SIZE,
-                    INITIAL_DRAW_CACHE_SIZE,
-                    &ctx.graphics.device,
-                    &ctx.graphics.queue,
-                )
-            });
-
-            texture.write(bounds, data, &ctx.graphics.queue);
-        };
-
-        fn into_text_instance(instance: RawGlyphInstance) -> TextInstance {
-            let RawGlyphInstance { pixel_coords, tex_coords, extra: color, .. } = instance;
-
-            let size = Vec2::new(pixel_coords.width(), pixel_coords.height());
-            let translation = Vec2::new(pixel_coords.min.x, pixel_coords.min.y) + size / 2.0;
-            let tex_coords_edges =
-                Vec4::new(tex_coords.min.y, tex_coords.min.x, tex_coords.max.y, tex_coords.max.x);
-            let linear_color = color.to_linear_vec4();
-
-            TextInstance { size, translation, tex_coords_edges, linear_color }
-        }
-
         let device = &ctx.graphics.device;
         let queue = &ctx.graphics.queue;
         let projection = Projection::default().to_mat4(graphics::window_size(ctx));
 
-        match self.brush.process_queued(update_texture, into_text_instance) {
-            Ok(BrushAction::Draw(instances)) => {
-                if instances.is_empty() {
-                    if let Some(data) = self.data.as_mut() {
-                        data.instances_len = 0;
-                    }
+        loop {
+            let mut needs_reprocessing = false;
 
-                    return;
-                }
+            let update_texture = |bounds: Bounds, data: &[u8]| {
+                let texture = self.texture.get_or_insert_with(|| {
+                    // Reset bind group when texture changes
+                    self.bind_group = None;
 
-                let create_instance_buffer = |instances: &[TextInstance]| -> wgpu::Buffer {
-                    device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                        label: Some("text_batch_instance_buffer"),
-                        contents: bytemuck::cast_slice(instances),
-                        usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
-                    })
-                };
+                    TextTextureData::new(
+                        INITIAL_DRAW_CACHE_SIZE,
+                        INITIAL_DRAW_CACHE_SIZE,
+                        &device,
+                        &queue,
+                    )
+                });
 
-                match self.data.as_mut() {
-                    Some(data) => {
-                        if instances.len() <= data.instances_cap {
-                            queue.write_buffer(
-                                &data.instances,
-                                0,
-                                bytemuck::cast_slice(&instances),
-                            );
-                        } else {
-                            data.instances = create_instance_buffer(&instances);
-                            data.instances_cap = instances.len();
+                texture.write(bounds, data, &queue);
+            };
+
+            match self.brush.process_queued(update_texture, into_glyph_instance) {
+                Ok(BrushAction::Draw(instances)) => {
+                    if instances.is_empty() {
+                        if let Some(data) = self.data.as_mut() {
+                            data.instances_len = 0;
                         }
 
-                        data.instances_len = instances.len();
-
-                        queue.write_buffer(&data.projection, 0, bytemuck::bytes_of(&projection));
+                        return;
                     }
-                    None => {
-                        let projection =
-                            device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                                label: Some("text_batch_projection_buffer"),
-                                contents: bytemuck::bytes_of(&projection),
-                                usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+
+                    let create_instance_buffer = |instances: &[GlyphInstance]| -> wgpu::Buffer {
+                        device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                            label: Some("text_batch_instance_buffer"),
+                            contents: bytemuck::cast_slice(instances),
+                            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+                        })
+                    };
+
+                    match self.data.as_mut() {
+                        Some(data) => {
+                            if instances.len() <= data.instances_cap {
+                                queue.write_buffer(
+                                    &data.instances,
+                                    0,
+                                    bytemuck::cast_slice(&instances),
+                                );
+                            } else {
+                                data.instances = create_instance_buffer(&instances);
+                                data.instances_cap = instances.len();
+                            }
+
+                            data.instances_len = instances.len();
+
+                            queue.write_buffer(
+                                &data.projection,
+                                0,
+                                bytemuck::bytes_of(&projection),
+                            );
+                        }
+                        None => {
+                            let projection =
+                                device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                                    label: Some("text_batch_projection_buffer"),
+                                    contents: bytemuck::bytes_of(&projection),
+                                    usage: wgpu::BufferUsages::UNIFORM
+                                        | wgpu::BufferUsages::COPY_DST,
+                                });
+
+                            let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+                                address_mode_u: wgpu::AddressMode::ClampToEdge,
+                                address_mode_v: wgpu::AddressMode::ClampToEdge,
+                                address_mode_w: wgpu::AddressMode::ClampToEdge,
+                                mag_filter: wgpu::FilterMode::Linear,
+                                min_filter: wgpu::FilterMode::Linear,
+                                ..Default::default()
                             });
 
-                        let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
-                            address_mode_u: wgpu::AddressMode::ClampToEdge,
-                            address_mode_v: wgpu::AddressMode::ClampToEdge,
-                            address_mode_w: wgpu::AddressMode::ClampToEdge,
-                            mag_filter: wgpu::FilterMode::Linear,
-                            min_filter: wgpu::FilterMode::Linear,
-                            mipmap_filter: wgpu::FilterMode::Nearest,
-                            ..Default::default()
-                        });
-
-                        self.data = Some(TextBatchData {
-                            instances: create_instance_buffer(&instances),
-                            instances_cap: instances.len(),
-                            instances_len: instances.len(),
-                            projection,
-                            sampler,
-                        });
+                            self.data = Some(TextBatchData {
+                                instances: create_instance_buffer(&instances),
+                                instances_cap: instances.len(),
+                                instances_len: instances.len(),
+                                projection,
+                                sampler,
+                            });
+                        }
                     }
                 }
-            }
-            Ok(BrushAction::ReDraw) => {
-                if let Some(data) = self.data.as_mut() {
-                    queue.write_buffer(&data.projection, 0, bytemuck::bytes_of(&projection));
+                Ok(BrushAction::ReDraw) => {
+                    if let Some(data) = self.data.as_mut() {
+                        queue.write_buffer(&data.projection, 0, bytemuck::bytes_of(&projection));
+                    }
+                }
+                Err(BrushError::TextureTooSmall { suggested: (width, height) }) => {
+                    self.brush.resize_texture(width, height);
+                    self.texture = Some(TextTextureData::new(width, height, device, queue));
+                    needs_reprocessing = true;
                 }
             }
-            Err(BrushError::TextureTooSmall { suggested: (width, height) }) => {
-                self.texture = Some(TextTextureData::new(width, height, device, queue));
-                todo!("Call process queued again");
+
+            if !needs_reprocessing {
+                break;
             }
         }
 
@@ -253,13 +254,25 @@ impl Drawable for TextBatch {
         };
 
         let instances_size =
-            (std::mem::size_of::<TextInstance>() * data.instances_len) as wgpu::BufferAddress;
+            (std::mem::size_of::<GlyphInstance>() * data.instances_len) as wgpu::BufferAddress;
 
         pass.set_pipeline(&ctx.graphics.text_pipeline.pipeline);
         pass.set_bind_group(0, bind_group, &[]);
         pass.set_vertex_buffer(0, data.instances.slice(..instances_size));
         pass.draw(0..6, 0..(data.instances_len as u32));
     }
+}
+
+fn into_glyph_instance(instance: RawGlyphInstance) -> GlyphInstance {
+    let RawGlyphInstance { pixel_coords, tex_coords, extra: color, .. } = instance;
+
+    let size = Vec2::new(pixel_coords.width(), pixel_coords.height());
+    let translation = Vec2::new(pixel_coords.min.x, pixel_coords.min.y) + size / 2.0;
+    let tex_coords_edges =
+        Vec4::new(tex_coords.min.y, tex_coords.min.x, tex_coords.max.y, tex_coords.max.x);
+    let linear_color = color.to_linear_vec4();
+
+    GlyphInstance { size, translation, tex_coords_edges, linear_color }
 }
 
 pub struct TextDrawer<'a> {

@@ -3,7 +3,7 @@ use bytemuck::{Pod, Zeroable};
 
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable, Default)]
-pub struct TextInstance {
+pub struct GlyphInstance {
     pub size: Vec2,
     pub translation: Vec2,
     pub tex_coords_edges: Vec4,
@@ -67,7 +67,7 @@ impl TextPipeline {
                 module: &shader,
                 entry_point: "vs_main",
                 buffers: &[wgpu::VertexBufferLayout {
-                    array_stride: std::mem::size_of::<TextInstance>() as wgpu::BufferAddress,
+                    array_stride: std::mem::size_of::<GlyphInstance>() as wgpu::BufferAddress,
                     step_mode: wgpu::VertexStepMode::Instance,
                     attributes: &wgpu::vertex_attr_array![
                         0 => Float32x2, // size
