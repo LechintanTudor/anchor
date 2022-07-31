@@ -1,6 +1,6 @@
-use crate::core::{Context, GameResult};
 use crate::graphics::{self, Color};
 use crate::input::Key;
+use crate::platform::{Context, GameResult};
 
 #[allow(unused_variables)]
 pub trait Game

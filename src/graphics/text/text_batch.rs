@@ -1,5 +1,5 @@
-use crate::core::Context;
 use crate::graphics::{self, Color, Drawable, Font, GlyphInstance, Projection, Text};
+use crate::platform::Context;
 use glam::{Vec2, Vec4};
 use glyph_brush::{BrushAction, BrushError, FontId as FontIndex, GlyphBrushBuilder};
 use rustc_hash::FxHashMap;

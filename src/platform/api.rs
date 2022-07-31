@@ -1,4 +1,4 @@
-use crate::core::{Config, Context, GameErrorKind, GameResult, Window};
+use crate::platform::{Config, Context, GameErrorKind, GameResult, Window};
 use std::path::Path;
 
 pub fn load_config<P>(path: P) -> GameResult<Config>

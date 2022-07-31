@@ -1,6 +1,6 @@
-use crate::core::Context;
 use crate::graphics;
 use crate::graphics::{Drawable, Projection, Shape, ShapeVertex, Transform};
+use crate::platform::Context;
 use wgpu::util::DeviceExt;
 
 #[derive(Default)]

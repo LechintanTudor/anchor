@@ -1,4 +1,4 @@
-use crate::core::Context;
+use crate::platform::Context;
 
 pub trait Drawable {
     fn prepare(&mut self, ctx: &mut Context);

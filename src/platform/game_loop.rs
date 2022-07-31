@@ -1,4 +1,4 @@
-use crate::core::{
+use crate::platform::{
     Config, Context, FpsLimiter, Game, GameBuilder, GameError, GameErrorKind, GameResult,
     ShouldYield,
 };
