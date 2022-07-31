@@ -174,8 +174,6 @@ impl<'a> SpriteDrawer<'a> {
             .size
             .unwrap_or_else(|| Vec2::new(sprite_bounds.width as f32, sprite_bounds.height as f32));
 
-        let anchor = Vec2::new(sprite.anchor.x, -sprite.anchor.y);
-
         let (scale_rotation_col_0, scale_rotation_col_1, translation) = {
             let affine_transform = transform.to_affine2();
 
@@ -212,17 +210,15 @@ impl<'a> SpriteDrawer<'a> {
             Vec4::new(top, left, bottom, right)
         };
 
-        let linear_color = sprite.color.to_linear_vec4();
-
         let instance = SpriteInstance {
             sprite_sheet_size,
             size,
-            anchor,
+            anchor: sprite.anchor,
             scale_rotation_col_0,
             scale_rotation_col_1,
             translation,
             absolute_tex_coords_edges,
-            linear_color,
+            linear_color: sprite.color.to_linear_vec4(),
         };
 
         self.batch.instances.push(instance);

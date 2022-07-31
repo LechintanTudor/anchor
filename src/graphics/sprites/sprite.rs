@@ -1,4 +1,5 @@
-use crate::graphics::{Color, ANCHOR_CENTER};
+use crate::graphics::anchors::ANCHOR_CENTER;
+use crate::graphics::Color;
 use glam::Vec2;
 
 #[derive(Clone, Copy, Default, Debug)]

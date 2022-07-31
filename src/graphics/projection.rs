@@ -1,4 +1,5 @@
-use crate::graphics::{Transform, ANCHOR_TOP_LEFT};
+use crate::graphics::anchors::ANCHOR_TOP_LEFT;
+use crate::graphics::Transform;
 use glam::{Mat4, Vec2};
 
 #[derive(Clone, Copy, Debug)]
@@ -25,9 +26,9 @@ impl Camera {
     pub fn to_mat4(&self, window_size: Vec2) -> Mat4 {
         let size = self.size.unwrap_or(window_size);
 
-        let top = size.y * (-0.5 + self.anchor.y);
+        let top = size.y * (-0.5 - self.anchor.y);
         let left = size.x * (-0.5 - self.anchor.x);
-        let bottom = size.y * (0.5 + self.anchor.y);
+        let bottom = size.y * (0.5 - self.anchor.y);
         let right = size.x * (0.5 - self.anchor.x);
 
         Mat4::orthographic_rh(left, right, bottom, top, 0.0, 1.0)
