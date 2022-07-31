@@ -41,7 +41,7 @@ impl GraphicsContext {
         let (device, queue) = adapter
             .request_device(
                 &wgpu::DeviceDescriptor {
-                    label: None,
+                    label: Some("graphics_context_device"),
                     features: wgpu::Features::default(),
                     limits: wgpu::Limits::default(),
                 },
@@ -50,7 +50,11 @@ impl GraphicsContext {
             .await
             .expect("No suitable graphics device found");
 
-        let surface_format = surface.get_supported_formats(&adapter)[0];
+        let surface_format = surface
+            .get_supported_formats(&adapter)
+            .first()
+            .copied()
+            .expect("No suitable surface format found");
 
         let surface_config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,

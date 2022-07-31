@@ -2,7 +2,6 @@ use crate::core::{
     Config, Context, FpsLimiter, Game, GameBuilder, GameError, GameErrorKind, GameResult,
     ShouldYield,
 };
-
 use log::info;
 use winit::dpi::Size;
 use winit::event::{ElementState, Event, StartCause, WindowEvent};
