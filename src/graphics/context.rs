@@ -1,10 +1,16 @@
 use crate::graphics::{OldRawWindowHandleWrapper, ShapePipeline, SpritePipeline, TextPipeline};
 use winit::window::Window;
 
+pub(crate) struct SurfaceTexture {
+    pub texture: wgpu::SurfaceTexture,
+    pub texture_view: wgpu::TextureView,
+}
+
 pub(crate) struct GraphicsContext {
     pub(crate) surface: wgpu::Surface,
     pub(crate) surface_format: wgpu::TextureFormat,
     pub(crate) surface_config: wgpu::SurfaceConfiguration,
+    pub(crate) surface_texture: Option<SurfaceTexture>,
     pub(crate) device: wgpu::Device,
     pub(crate) queue: wgpu::Queue,
     pub(crate) shape_pipeline: ShapePipeline,
@@ -69,6 +75,7 @@ impl GraphicsContext {
             shape_pipeline,
             sprite_pipeline,
             text_pipeline,
+            surface_texture: Default::default(),
         }
     }
 
@@ -78,5 +85,19 @@ impl GraphicsContext {
             self.surface_config.height = height;
             self.surface.configure(&self.device, &self.surface_config);
         }
+    }
+
+    pub(crate) fn update_surface_texture(&mut self) {
+        let texture = match self.surface.get_current_texture() {
+            Ok(texture) => texture,
+            Err(wgpu::SurfaceError::Lost) => {
+                self.surface.configure(&self.device, &self.surface_config);
+                return;
+            }
+            Err(_) => return,
+        };
+        let texture_view = texture.texture.create_view(&wgpu::TextureViewDescriptor::default());
+
+        self.surface_texture = Some(SurfaceTexture { texture, texture_view });
     }
 }

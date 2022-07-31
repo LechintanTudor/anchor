@@ -2,7 +2,7 @@ use crate::core::{
     Config, Context, FpsLimiter, Game, GameBuilder, GameError, GameErrorKind, GameResult,
     ShouldYield,
 };
-use crate::graphics;
+
 use log::info;
 use winit::dpi::Size;
 use winit::event::{ElementState, Event, StartCause, WindowEvent};
@@ -86,22 +86,22 @@ where
                 while fps_limiter.update() {
                     if let Err(error) = game.update(ctx) {
                         handle_error(&error, control_flow);
-                        return;
                     }
 
                     updated = true;
                 }
 
                 if updated {
-                    let frame = match game.draw(ctx) {
-                        Ok(frame) => frame,
-                        Err(error) => {
-                            handle_error(&error, control_flow);
-                            return;
-                        }
-                    };
+                    ctx.graphics.update_surface_texture();
 
-                    graphics::display(ctx, frame);
+                    if let Err(error) = game.draw(ctx) {
+                        handle_error(&error, control_flow);
+                    }
+
+                    if let Some(surface_texture) = ctx.graphics.surface_texture.take() {
+                        surface_texture.texture.present();
+                    }
+
                     ctx.input.keyboard.on_frame_end();
                 }
             }
@@ -115,5 +115,5 @@ where
 
 fn handle_error(error: &GameError, control_flow: &mut ControlFlow) {
     println!("{}", error);
-    *control_flow = ControlFlow::Exit;
+    control_flow.set_exit();
 }

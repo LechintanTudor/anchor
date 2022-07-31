@@ -20,13 +20,11 @@ impl Texture {
         let width = image.width();
         let height = image.height();
 
-        let size = wgpu::Extent3d { width, height, depth_or_array_layers: 1 };
-
         let texture = device.create_texture_with_data(
             queue,
             &wgpu::TextureDescriptor {
                 label: None,
-                size,
+                size: wgpu::Extent3d { width, height, depth_or_array_layers: 1 },
                 mip_level_count: 1,
                 sample_count: 1,
                 dimension: wgpu::TextureDimension::D2,

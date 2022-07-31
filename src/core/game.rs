@@ -1,5 +1,5 @@
 use crate::core::{Context, GameResult};
-use crate::graphics::Frame;
+use crate::graphics::{self, Color};
 use crate::input::Key;
 
 #[allow(unused_variables)]
@@ -17,8 +17,9 @@ where
         Ok(())
     }
 
-    fn draw(&mut self, ctx: &mut Context) -> GameResult<Frame> {
-        Ok(Frame::default())
+    fn draw(&mut self, ctx: &mut Context) -> GameResult<()> {
+        graphics::display(ctx, Color::BLACK, &mut []);
+        Ok(())
     }
 }
 

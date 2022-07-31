@@ -47,6 +47,11 @@ impl SpriteBatch {
     pub fn resume(&mut self) -> SpriteDrawer {
         SpriteDrawer { batch: self }
     }
+
+    #[inline]
+    pub fn sprite_sheet(&self) -> &SpriteSheet {
+        &self.sprite_sheet
+    }
 }
 
 impl Drawable for SpriteBatch {

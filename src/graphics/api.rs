@@ -1,5 +1,5 @@
 use crate::core::{Context, GameErrorKind, GameResult};
-use crate::graphics::{Font, Frame, Image, SpriteBounds, SpriteSheet, Texture};
+use crate::graphics::{Color, Drawable, Font, Image, SpriteBounds, SpriteSheet, Texture};
 use glam::Vec2;
 use image::ImageError;
 use serde::Deserialize;
@@ -91,44 +91,39 @@ where
     inner(path.as_ref())
 }
 
-pub(crate) fn display(ctx: &mut Context, mut frame: Frame) {
-    let output = match ctx.graphics.surface.get_current_texture() {
-        Ok(output) => output,
-        Err(wgpu::SurfaceError::Lost) => {
-            ctx.graphics.surface.configure(&ctx.graphics.device, &ctx.graphics.surface_config);
-            return;
-        }
-        _ => return,
+pub fn display(ctx: &mut Context, clear_color: Color, drawables: &mut [&mut dyn Drawable]) {
+    let surface_texture = match ctx.graphics.surface_texture.take() {
+        Some(surface_texture) => surface_texture,
+        None => return,
     };
-    let output_view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
 
-    for drawable in frame.drawables.iter_mut() {
+    for drawable in drawables.iter_mut() {
         drawable.prepare(ctx);
     }
 
-    let mut encoder =
-        ctx.graphics.device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+    let mut encoder = ctx.graphics.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+        label: Some("display_command_buffer"),
+    });
 
     {
         let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: None,
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                view: &output_view,
+                view: &surface_texture.texture_view,
                 resolve_target: None,
                 ops: wgpu::Operations {
-                    load: wgpu::LoadOp::Clear(frame.clear_color.into()),
+                    load: wgpu::LoadOp::Clear(clear_color.into()),
                     store: true,
                 },
             })],
             depth_stencil_attachment: None,
         });
 
-        for drawable in frame.drawables.iter_mut() {
+        for drawable in drawables.iter_mut() {
             drawable.draw(ctx, &mut pass);
         }
     }
 
-    let command_buffer = encoder.finish();
-    ctx.graphics.queue.submit(Some(command_buffer));
-    output.present();
+    ctx.graphics.queue.submit(Some(encoder.finish()));
+    ctx.graphics.surface_texture = Some(surface_texture);
 }
