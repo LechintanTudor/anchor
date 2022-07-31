@@ -281,8 +281,28 @@ pub struct TextDrawer<'a> {
 
 impl<'a> TextDrawer<'a> {
     pub fn draw(&mut self, text: &Text, position: Vec2) {
+        use crate::graphics::{HorizontalAlign, VerticalAlign};
+
+        let position = {
+            let (h_align, v_align) = text.aligns();
+
+            let x_anchor = match h_align {
+                HorizontalAlign::Center => 0.0,
+                HorizontalAlign::Left => 0.5,
+                HorizontalAlign::Right => -0.5,
+            };
+
+            let y_anchor = match v_align {
+                VerticalAlign::Center => 0.0,
+                VerticalAlign::Top => 0.5,
+                VerticalAlign::Bottom => -0.5,
+            };
+
+            (position.x - x_anchor * text.bounds.x, position.y - y_anchor * text.bounds.y)
+        };
+
         let section = glyph_brush::Section {
-            screen_position: position.into(),
+            screen_position: position,
             bounds: text.bounds.into(),
             layout: text.layout,
             text: text

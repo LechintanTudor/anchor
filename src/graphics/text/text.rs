@@ -1,8 +1,10 @@
 use crate::graphics::{Color, Font};
 use glam::Vec2;
 
-pub use glyph_brush::{BuiltInLineBreaker as LineBreaker, HorizontalAlign, VerticalAlign};
+pub type LineBreaker = glyph_brush::BuiltInLineBreaker;
 pub type TextLayout = glyph_brush::Layout<LineBreaker>;
+pub type HorizontalAlign = glyph_brush::HorizontalAlign;
+pub type VerticalAlign = glyph_brush::VerticalAlign;
 
 #[derive(Clone)]
 pub struct Text {
@@ -26,6 +28,14 @@ impl Text {
     pub fn add_section(&mut self, section: TextSection) -> &mut Self {
         self.sections.push(section);
         self
+    }
+
+    #[inline]
+    pub(crate) fn aligns(&self) -> (HorizontalAlign, VerticalAlign) {
+        match self.layout {
+            TextLayout::SingleLine { h_align, v_align, .. } => (h_align, v_align),
+            TextLayout::Wrap { h_align, v_align, .. } => (h_align, v_align),
+        }
     }
 }
 
