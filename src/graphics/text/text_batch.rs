@@ -264,12 +264,62 @@ impl Drawable for TextBatch {
 }
 
 fn into_glyph_instance(instance: RawGlyphInstance) -> GlyphInstance {
-    let RawGlyphInstance { pixel_coords, tex_coords, extra: color, .. } = instance;
+    use glyph_brush::ab_glyph::{point, Rect};
 
-    let size = Vec2::new(pixel_coords.width(), pixel_coords.height());
-    let translation = Vec2::new(pixel_coords.min.x, pixel_coords.min.y) + size / 2.0;
-    let tex_coords_edges =
-        Vec4::new(tex_coords.min.y, tex_coords.min.x, tex_coords.max.y, tex_coords.max.x);
+    let RawGlyphInstance {
+        pixel_coords: glyph_bounds,
+        tex_coords,
+        extra: color,
+        bounds: text_bounds,
+    } = instance;
+
+    let min_x_outside_pixels = (text_bounds.min.x - glyph_bounds.min.x).max(0.0);
+    let min_y_outside_pixels = (text_bounds.min.y - glyph_bounds.min.y).max(0.0);
+    let max_x_outside_pixels = (glyph_bounds.max.x - text_bounds.max.x).max(0.0);
+    let max_y_outside_pixels = (glyph_bounds.max.y - text_bounds.max.y).max(0.0);
+
+    let size = Vec2::new(
+        glyph_bounds.width() - min_x_outside_pixels - max_x_outside_pixels,
+        glyph_bounds.height() - min_y_outside_pixels - max_y_outside_pixels,
+    );
+
+    let bounds = Rect {
+        min: point(
+            glyph_bounds.min.x - min_x_outside_pixels,
+            glyph_bounds.min.y - min_y_outside_pixels,
+        ),
+        max: point(
+            glyph_bounds.max.x - max_x_outside_pixels,
+            glyph_bounds.max.y - max_y_outside_pixels,
+        ),
+    };
+
+    let translation = Vec2::new(bounds.min.x, bounds.min.y) + size / 2.0;
+
+    let tex_coords_edges = {
+        #[inline]
+        fn scale_between(min: f32, value: f32, max: f32) -> f32 {
+            (value - min) / (max - min)
+        }
+
+        let min_x_scale = scale_between(glyph_bounds.min.x, bounds.min.x, glyph_bounds.max.x);
+        let min_y_scale = scale_between(glyph_bounds.min.y, bounds.min.y, glyph_bounds.max.y);
+        let max_x_scale = scale_between(glyph_bounds.min.x, bounds.max.x, glyph_bounds.max.x);
+        let max_y_scale = scale_between(glyph_bounds.min.y, bounds.max.y, glyph_bounds.max.y);
+
+        #[inline]
+        fn from_to_scaled(from: f32, to: f32, scale: f32) -> f32 {
+            from + (to - from) * scale
+        }
+
+        Vec4::new(
+            from_to_scaled(tex_coords.min.y, tex_coords.max.y, min_y_scale),
+            from_to_scaled(tex_coords.min.x, tex_coords.max.x, min_x_scale),
+            from_to_scaled(tex_coords.min.y, tex_coords.max.y, max_y_scale),
+            from_to_scaled(tex_coords.min.x, tex_coords.max.x, max_x_scale),
+        )
+    };
+
     let linear_color = color.to_linear_vec4();
 
     GlyphInstance { size, translation, tex_coords_edges, linear_color }
