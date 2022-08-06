@@ -285,8 +285,8 @@ fn into_glyph_instance(instance: RawGlyphInstance) -> GlyphInstance {
 
     let bounds = Rect {
         min: point(
-            glyph_bounds.min.x - min_x_outside_pixels,
-            glyph_bounds.min.y - min_y_outside_pixels,
+            glyph_bounds.min.x + min_x_outside_pixels,
+            glyph_bounds.min.y + min_y_outside_pixels,
         ),
         max: point(
             glyph_bounds.max.x - max_x_outside_pixels,
@@ -294,7 +294,7 @@ fn into_glyph_instance(instance: RawGlyphInstance) -> GlyphInstance {
         ),
     };
 
-    let translation = Vec2::new(bounds.min.x, bounds.min.y) + size / 2.0;
+    let translation = Vec2::new(bounds.min.x + bounds.max.x, bounds.min.y + bounds.max.y) / 2.0;
 
     let tex_coords_edges = {
         #[inline]
