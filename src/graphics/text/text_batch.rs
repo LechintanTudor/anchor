@@ -336,19 +336,22 @@ impl<'a> TextDrawer<'a> {
         let position = {
             let (h_align, v_align) = text.aligns();
 
-            let x_anchor = match h_align {
+            let h_align_anchor = match h_align {
                 HorizontalAlign::Center => 0.0,
                 HorizontalAlign::Left => 0.5,
                 HorizontalAlign::Right => -0.5,
             };
 
-            let y_anchor = match v_align {
+            let v_align_anchor = match v_align {
                 VerticalAlign::Center => 0.0,
                 VerticalAlign::Top => 0.5,
                 VerticalAlign::Bottom => -0.5,
             };
 
-            (position.x - x_anchor * text.bounds.x, position.y - y_anchor * text.bounds.y)
+            (
+                position.x - (h_align_anchor + text.anchor.x) * text.bounds.x,
+                position.y - (v_align_anchor + text.anchor.y) * text.bounds.y,
+            )
         };
 
         let section = glyph_brush::Section {

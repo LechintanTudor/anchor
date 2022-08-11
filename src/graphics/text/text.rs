@@ -1,4 +1,4 @@
-use crate::graphics::{Color, Font};
+use crate::graphics::{self, Color, Font};
 use glam::Vec2;
 
 pub type LineBreaker = glyph_brush::BuiltInLineBreaker;
@@ -11,6 +11,7 @@ pub struct Text {
     pub sections: Vec<TextSection>,
     pub layout: TextLayout,
     pub bounds: Vec2,
+    pub anchor: Vec2,
 }
 
 impl Text {
@@ -45,6 +46,7 @@ impl Default for Text {
             sections: Default::default(),
             layout: Default::default(),
             bounds: Vec2::new(f32::INFINITY, f32::INFINITY),
+            anchor: graphics::ANCHOR_CENTER,
         }
     }
 }

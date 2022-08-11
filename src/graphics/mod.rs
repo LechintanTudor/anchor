@@ -19,6 +19,7 @@ pub use glam::f32::{Vec2, Vec4};
 
 pub use self::api::*;
 pub use self::color::*;
+pub use self::consts::anchors::*;
 pub use self::consts::*;
 pub use self::drawable::*;
 pub use self::image::*;
