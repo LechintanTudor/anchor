@@ -3,11 +3,14 @@ use bytemuck::{Pod, Zeroable};
 
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable, Default)]
-pub struct GlyphInstance {
-    pub size: Vec2,
-    pub translation: Vec2,
+pub(crate) struct GlyphInstance {
+    pub bounds_edges: Vec4,
     pub tex_coords_edges: Vec4,
     pub linear_color: Vec4,
+    pub scale_rotation_col_0: Vec2,
+    pub scale_rotation_col_1: Vec2,
+    pub translation: Vec2,
+    pub _padding: Vec2,
 }
 
 pub struct TextPipeline {
@@ -70,10 +73,12 @@ impl TextPipeline {
                     array_stride: std::mem::size_of::<GlyphInstance>() as wgpu::BufferAddress,
                     step_mode: wgpu::VertexStepMode::Instance,
                     attributes: &wgpu::vertex_attr_array![
-                        0 => Float32x2, // size
-                        1 => Float32x2, // translation
-                        2 => Float32x4, // tex_coords_edges
-                        3 => Float32x4, // linear_color
+                        0 => Float32x4, // bounds_edges
+                        1 => Float32x4, // tex_coords_edges,
+                        2 => Float32x4, // linear_color,
+                        3 => Float32x2, // scale_rotation_col_0
+                        4 => Float32x2, // scale_rotation_col_1
+                        5 => Float32x2, // translation
                     ],
                 }],
             },

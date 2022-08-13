@@ -4,8 +4,10 @@ mod text_batch;
 mod text_pipeline;
 
 pub(crate) mod glyph_instance_converter;
+pub(crate) mod glyph_texture;
 
 pub(crate) use self::glyph_instance_converter::*;
+pub(crate) use self::glyph_texture::*;
 
 pub use self::font::*;
 pub use self::text::*;

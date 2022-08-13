@@ -1,8 +1,10 @@
 struct Instance {
-    @location(0) size: vec2<f32>,
-    @location(1) translation: vec2<f32>,
-    @location(2) tex_coords_edges: vec4<f32>,
-    @location(3) linear_color: vec4<f32>,
+    @location(0) bounds_edges: vec4<f32>,
+    @location(1) tex_coords_edges: vec4<f32>,
+    @location(2) linear_color: vec4<f32>,
+    @location(3) scale_rotation_col_0: vec2<f32>,
+    @location(4) scale_rotation_col_1: vec2<f32>,
+    @location(5) translation: vec2<f32>,
 }
 
 struct Vertex {
@@ -11,22 +13,13 @@ struct Vertex {
     @location(1) linear_color: vec4<f32>,
 }
 
-var<private> TEX_COORDS_EDGE_INDEXES: array<array<u32, 2>, 6> = array<array<u32, 2>, 6>(
+var<private> EDGE_INDEXES: array<array<u32, 2>, 6> = array<array<u32, 2>, 6>(
     array<u32, 2>(1u, 0u), // left, top
     array<u32, 2>(1u, 2u), // left, bottom
     array<u32, 2>(3u, 0u), // right, top
     array<u32, 2>(3u, 0u), // right, top
     array<u32, 2>(1u, 2u), // left, bottom
     array<u32, 2>(3u, 2u), // right, bottom
-);
-
-var<private> CORNERS: array<vec2<f32>, 6> = array<vec2<f32>, 6>(
-    vec2<f32>(-0.5, -0.5), // left, top
-    vec2<f32>(-0.5, 0.5),  // left, bottom
-    vec2<f32>(0.5, -0.5),  // right, top
-    vec2<f32>(0.5, -0.5),  // right, top
-    vec2<f32>(-0.5, 0.5),  // left, bottom
-    vec2<f32>(0.5, 0.5),   // right, bottom
 );
 
 @group(0) @binding(0)
@@ -40,13 +33,24 @@ var sprite_sheet_sampler: sampler;
 
 @vertex
 fn vs_main(@builtin(vertex_index) i: u32, instance: Instance) -> Vertex {
-    let absolute_position = instance.translation + instance.size * CORNERS[i];
+    let edge_indexes = EDGE_INDEXES[i];
+
+    let scale_rotation_matrix = mat2x2<f32>(
+        instance.scale_rotation_col_0,
+        instance.scale_rotation_col_1,
+    );
+
+    let untransformed_position = vec2<f32>(
+        instance.bounds_edges[edge_indexes[0]],
+        instance.bounds_edges[edge_indexes[1]],
+    );
+
+    let absolute_position = scale_rotation_matrix * untransformed_position + instance.translation;
     let position = projection * vec4<f32>(absolute_position, 0.0, 1.0);
 
-    let tex_coords_edge_indexes = TEX_COORDS_EDGE_INDEXES[i];
     let tex_coords = vec2<f32>(
-        instance.tex_coords_edges[tex_coords_edge_indexes[0]],
-        instance.tex_coords_edges[tex_coords_edge_indexes[1]],
+        instance.tex_coords_edges[edge_indexes[0]],
+        instance.tex_coords_edges[edge_indexes[1]],
     );
 
     return Vertex(position, tex_coords, instance.linear_color);

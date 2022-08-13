@@ -1,14 +1,16 @@
-use crate::graphics::{self, Color, Drawable, Font, GlyphInstance, Projection, Text};
+use crate::graphics::{
+    self, Drawable, Font, GlyphInstance, GlyphTexture, GlyphTextureBounds, Projection,
+    RawGlyphInstanceData, Text, Transform,
+};
 use crate::platform::Context;
-use glam::{Vec2, Vec4};
+use glam::Vec2;
 use glyph_brush::{BrushAction, BrushError, FontId as FontIndex, GlyphBrushBuilder};
 use rustc_hash::FxHashMap;
 use wgpu::util::DeviceExt;
 
 const INITIAL_DRAW_CACHE_SIZE: u32 = 256;
 
-type Bounds = glyph_brush::Rectangle<u32>;
-type GlyphBrush = glyph_brush::GlyphBrush<GlyphInstance, Color, Font>;
+type GlyphBrush = glyph_brush::GlyphBrush<GlyphInstance, RawGlyphInstanceData, Font>;
 
 struct TextBatchData {
     instances: wgpu::Buffer,
@@ -18,64 +20,10 @@ struct TextBatchData {
     sampler: wgpu::Sampler,
 }
 
-struct TextTextureData {
-    texture: wgpu::Texture,
-    texture_view: wgpu::TextureView,
-}
-
-impl TextTextureData {
-    fn new(width: u32, height: u32, device: &wgpu::Device, queue: &wgpu::Queue) -> Self {
-        assert!(width != 0 && height != 0);
-
-        let data = vec![0_u8; (width * height) as usize];
-
-        let texture = device.create_texture_with_data(
-            queue,
-            &wgpu::TextureDescriptor {
-                label: Some("text_batch_texture"),
-                size: wgpu::Extent3d { width, height, depth_or_array_layers: 1 },
-                mip_level_count: 1,
-                sample_count: 1,
-                dimension: wgpu::TextureDimension::D2,
-                format: wgpu::TextureFormat::R8Unorm,
-                usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
-            },
-            &data,
-        );
-
-        let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
-
-        Self { texture, texture_view }
-    }
-
-    fn write(&mut self, bounds: Bounds, data: &[u8], queue: &wgpu::Queue) {
-        let (offset_x, offset_y, width, height) =
-            (bounds.min[0], bounds.min[1], bounds.width(), bounds.height());
-
-        assert!(data.len() == (width * height) as usize);
-
-        queue.write_texture(
-            wgpu::ImageCopyTexture {
-                texture: &self.texture,
-                mip_level: 0,
-                origin: wgpu::Origin3d::ZERO,
-                aspect: wgpu::TextureAspect::All,
-            },
-            data,
-            wgpu::ImageDataLayout {
-                offset: (offset_y * width + offset_x) as u64,
-                bytes_per_row: std::num::NonZeroU32::new(width),
-                rows_per_image: std::num::NonZeroU32::new(height),
-            },
-            wgpu::Extent3d { width, height, depth_or_array_layers: 1 },
-        );
-    }
-}
-
 pub struct TextBatch {
     fonts: FxHashMap<usize, FontIndex>,
     brush: GlyphBrush,
-    texture: Option<TextTextureData>,
+    texture: Option<GlyphTexture>,
     data: Option<TextBatchData>,
     bind_group: Option<wgpu::BindGroup>,
 }
@@ -83,7 +31,9 @@ pub struct TextBatch {
 impl Default for TextBatch {
     fn default() -> Self {
         let brush_builder = GlyphBrushBuilder::using_fonts(vec![])
-            .initial_cache_size((INITIAL_DRAW_CACHE_SIZE, INITIAL_DRAW_CACHE_SIZE));
+            .initial_cache_size((INITIAL_DRAW_CACHE_SIZE, INITIAL_DRAW_CACHE_SIZE))
+            .cache_glyph_positioning(false)
+            .draw_cache_position_tolerance(1.0);
 
         Self {
             fonts: Default::default(),
@@ -143,12 +93,12 @@ impl Drawable for TextBatch {
         loop {
             let mut needs_reprocessing = false;
 
-            let update_texture = |bounds: Bounds, data: &[u8]| {
+            let update_texture = |bounds: GlyphTextureBounds, data: &[u8]| {
                 let texture = self.texture.get_or_insert_with(|| {
                     // Reset bind group when texture changes
                     self.bind_group = None;
 
-                    TextTextureData::new(
+                    GlyphTexture::new(
                         INITIAL_DRAW_CACHE_SIZE,
                         INITIAL_DRAW_CACHE_SIZE,
                         &device,
@@ -233,7 +183,7 @@ impl Drawable for TextBatch {
                 }
                 Err(BrushError::TextureTooSmall { suggested: (width, height) }) => {
                     self.brush.resize_texture(width, height);
-                    self.texture = Some(TextTextureData::new(width, height, device, queue));
+                    self.texture = Some(GlyphTexture::new(width, height, device, queue));
                     needs_reprocessing = true;
                 }
             }
@@ -267,8 +217,10 @@ pub struct TextDrawer<'a> {
 }
 
 impl<'a> TextDrawer<'a> {
-    pub fn draw(&mut self, text: &Text, position: Vec2) {
+    pub fn draw(&mut self, text: &Text, tranform: &Transform) {
         use crate::graphics::{HorizontalAlign, VerticalAlign};
+
+        let affine = tranform.to_affine2();
 
         let position = {
             let (h_align, v_align) = text.aligns();
@@ -286,8 +238,8 @@ impl<'a> TextDrawer<'a> {
             };
 
             (
-                position.x - (h_align_anchor + text.anchor.x) * text.bounds.x,
-                position.y - (v_align_anchor + text.anchor.y) * text.bounds.y,
+                -(h_align_anchor + text.anchor.x) * text.bounds.x,
+                -(v_align_anchor + text.anchor.y) * text.bounds.y,
             )
         };
 
@@ -302,7 +254,7 @@ impl<'a> TextDrawer<'a> {
                     text: &section.content,
                     scale: glyph_brush::ab_glyph::PxScale::from(section.font_size),
                     font_id: self.batch.get_or_insert_font(&section.font),
-                    extra: section.color,
+                    extra: RawGlyphInstanceData { affine, color: section.color, pivot: Vec2::ZERO },
                 })
                 .collect(),
         };

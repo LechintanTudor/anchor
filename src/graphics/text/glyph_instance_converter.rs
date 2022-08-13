@@ -1,16 +1,32 @@
 use crate::graphics::{Color, GlyphInstance};
-use glam::{Vec2, Vec4};
+use glam::{Affine2, Vec2, Vec4};
+use std::hash::{Hash, Hasher};
 
-pub(crate) type RawGlyphInstance<'a> = glyph_brush::GlyphVertex<'a, Color>;
+#[derive(Clone, PartialEq)]
+pub(crate) struct RawGlyphInstanceData {
+    pub color: Color,
+    pub affine: Affine2,
+    pub pivot: Vec2,
+}
+
+impl Hash for RawGlyphInstanceData {
+    fn hash<H>(&self, state: &mut H)
+    where
+        H: Hasher,
+    {
+        69.hash(state);
+    }
+}
+
+pub(crate) type RawGlyphInstance<'a> = glyph_brush::GlyphVertex<'a, RawGlyphInstanceData>;
 
 pub(crate) fn into_glyph_instance(instance: RawGlyphInstance) -> GlyphInstance {
-    let text_bounds = instance.bounds;
-    let glyph_bounds = instance.pixel_coords;
+    let RawGlyphInstance { pixel_coords, bounds, .. } = instance;
 
-    let min_x_outside_pixels = (text_bounds.min.x - glyph_bounds.min.x).max(0.0);
-    let min_y_outside_pixels = (text_bounds.min.y - glyph_bounds.min.y).max(0.0);
-    let max_x_outside_pixels = (glyph_bounds.max.x - text_bounds.max.x).max(0.0);
-    let max_y_outside_pixels = (glyph_bounds.max.y - text_bounds.max.y).max(0.0);
+    let min_x_outside_pixels = (bounds.min.x - pixel_coords.min.x).max(0.0);
+    let min_y_outside_pixels = (bounds.min.y - pixel_coords.min.y).max(0.0);
+    let max_x_outside_pixels = (pixel_coords.max.x - bounds.max.x).max(0.0);
+    let max_y_outside_pixels = (pixel_coords.max.y - bounds.max.y).max(0.0);
 
     let glyph_fully_visible =
         (min_x_outside_pixels, min_y_outside_pixels, max_x_outside_pixels, max_y_outside_pixels)
@@ -30,20 +46,24 @@ pub(crate) fn into_glyph_instance(instance: RawGlyphInstance) -> GlyphInstance {
 }
 
 fn into_unclipped_glyph_instance(instance: RawGlyphInstance) -> GlyphInstance {
-    let RawGlyphInstance { pixel_coords: glyph_bounds, tex_coords, extra: color, .. } = instance;
+    let RawGlyphInstance { pixel_coords, tex_coords, extra, .. } = instance;
+    let &RawGlyphInstanceData { color, affine, pivot: _ } = extra;
 
-    let size = Vec2::new(glyph_bounds.width(), glyph_bounds.height());
-
-    let translation =
-        Vec2::new(glyph_bounds.min.x + glyph_bounds.max.x, glyph_bounds.min.y + glyph_bounds.max.y)
-            / 2.0;
+    let bounds_edges =
+        Vec4::new(pixel_coords.min.y, pixel_coords.min.x, pixel_coords.max.y, pixel_coords.max.x);
 
     let tex_coords_edges =
         Vec4::new(tex_coords.min.y, tex_coords.min.x, tex_coords.max.y, tex_coords.max.x);
 
-    let linear_color = color.to_linear_vec4();
-
-    GlyphInstance { size, translation, tex_coords_edges, linear_color }
+    GlyphInstance {
+        bounds_edges,
+        tex_coords_edges,
+        linear_color: color.to_linear_vec4(),
+        scale_rotation_col_0: affine.matrix2.col(0),
+        scale_rotation_col_1: affine.matrix2.col(1),
+        translation: affine.translation,
+        ..Default::default()
+    }
 }
 
 fn into_clipped_glyph_instance(
@@ -53,27 +73,15 @@ fn into_clipped_glyph_instance(
     max_x_outside_pixels: f32,
     max_y_outside_pixels: f32,
 ) -> GlyphInstance {
-    use glyph_brush::ab_glyph::{point, Rect};
+    let RawGlyphInstance { pixel_coords, tex_coords, bounds: _, extra } = instance;
+    let &RawGlyphInstanceData { color, affine, pivot: _ } = extra;
 
-    let RawGlyphInstance { pixel_coords: glyph_bounds, tex_coords, extra: color, .. } = instance;
-
-    let size = Vec2::new(
-        glyph_bounds.width() - min_x_outside_pixels - max_x_outside_pixels,
-        glyph_bounds.height() - min_y_outside_pixels - max_y_outside_pixels,
+    let bounds_edges = Vec4::new(
+        pixel_coords.min.y + min_y_outside_pixels,
+        pixel_coords.min.x + min_x_outside_pixels,
+        pixel_coords.max.y - max_y_outside_pixels,
+        pixel_coords.max.x - max_x_outside_pixels,
     );
-
-    let bounds = Rect {
-        min: point(
-            glyph_bounds.min.x + min_x_outside_pixels,
-            glyph_bounds.min.y + min_y_outside_pixels,
-        ),
-        max: point(
-            glyph_bounds.max.x - max_x_outside_pixels,
-            glyph_bounds.max.y - max_y_outside_pixels,
-        ),
-    };
-
-    let translation = Vec2::new(bounds.min.x + bounds.max.x, bounds.min.y + bounds.max.y) / 2.0;
 
     let tex_coords_edges = {
         fn scale_between(min: f32, value: f32, max: f32) -> f32 {
@@ -84,10 +92,10 @@ fn into_clipped_glyph_instance(
             from + (to - from) * scale
         }
 
-        let min_x_scale = scale_between(glyph_bounds.min.x, bounds.min.x, glyph_bounds.max.x);
-        let min_y_scale = scale_between(glyph_bounds.min.y, bounds.min.y, glyph_bounds.max.y);
-        let max_x_scale = scale_between(glyph_bounds.min.x, bounds.max.x, glyph_bounds.max.x);
-        let max_y_scale = scale_between(glyph_bounds.min.y, bounds.max.y, glyph_bounds.max.y);
+        let min_y_scale = scale_between(pixel_coords.min.y, bounds_edges[0], pixel_coords.max.y);
+        let min_x_scale = scale_between(pixel_coords.min.x, bounds_edges[1], pixel_coords.max.x);
+        let max_y_scale = scale_between(pixel_coords.min.y, bounds_edges[2], pixel_coords.max.y);
+        let max_x_scale = scale_between(pixel_coords.min.x, bounds_edges[3], pixel_coords.max.x);
 
         Vec4::new(
             from_to_scaled(tex_coords.min.y, tex_coords.max.y, min_y_scale),
@@ -97,7 +105,13 @@ fn into_clipped_glyph_instance(
         )
     };
 
-    let linear_color = color.to_linear_vec4();
-
-    GlyphInstance { size, translation, tex_coords_edges, linear_color }
+    GlyphInstance {
+        bounds_edges,
+        tex_coords_edges,
+        linear_color: color.to_linear_vec4(),
+        scale_rotation_col_0: affine.matrix2.col(0),
+        scale_rotation_col_1: affine.matrix2.col(1),
+        translation: affine.translation,
+        ..Default::default()
+    }
 }
