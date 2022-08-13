@@ -1,5 +1,4 @@
-use crate::graphics::anchors::ANCHOR_CENTER;
-use crate::graphics::Color;
+use crate::graphics::{self, Color};
 use glam::Vec2;
 
 #[derive(Clone, Copy, Default, Debug)]
@@ -19,7 +18,7 @@ impl Sprite {
         flip_x: false,
         flip_y: false,
         size: None,
-        anchor: ANCHOR_CENTER,
+        anchor: graphics::ANCHOR_CENTER,
     };
 
     #[inline]

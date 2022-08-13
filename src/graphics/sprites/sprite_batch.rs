@@ -174,15 +174,7 @@ impl<'a> SpriteDrawer<'a> {
             .size
             .unwrap_or_else(|| Vec2::new(sprite_bounds.width as f32, sprite_bounds.height as f32));
 
-        let (scale_rotation_col_0, scale_rotation_col_1, translation) = {
-            let affine_transform = transform.to_affine2();
-
-            (
-                affine_transform.matrix2.col(0),
-                affine_transform.matrix2.col(1),
-                affine_transform.translation,
-            )
-        };
+        let affine = transform.to_affine2();
 
         let absolute_tex_coords_edges = {
             let (left, right) = {
@@ -214,9 +206,9 @@ impl<'a> SpriteDrawer<'a> {
             sprite_sheet_size,
             size,
             anchor: sprite.anchor,
-            scale_rotation_col_0,
-            scale_rotation_col_1,
-            translation,
+            scale_rotation_col_0: affine.matrix2.col(0),
+            scale_rotation_col_1: affine.matrix2.col(1),
+            translation: affine.translation,
             absolute_tex_coords_edges,
             linear_color: sprite.color.to_linear_vec4(),
         };

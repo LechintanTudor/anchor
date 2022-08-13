@@ -1,7 +1,5 @@
-use glam::Vec2;
-
 pub mod anchors {
-    use super::*;
+    use glam::Vec2;
 
     pub const ANCHOR_TOP_LEFT: Vec2 = Vec2::new(-0.5, -0.5);
     pub const ANCHOR_TOP_CENTER: Vec2 = Vec2::new(0.0, -0.5);
