@@ -6,6 +6,7 @@ pub struct SmallVecSet<T, const N: usize> {
 }
 
 impl<T, const N: usize> Default for SmallVecSet<T, N> {
+    #[inline]
     fn default() -> Self {
         Self { values: Default::default() }
     }
@@ -24,10 +25,12 @@ where
         }
     }
 
+    #[inline]
     pub fn contains(&self, value: &T) -> bool {
         self.values.iter().any(|prev_value| prev_value == value)
     }
 
+    #[inline]
     pub fn as_slice(&self) -> &[T] {
         &self.values
     }
@@ -43,10 +46,12 @@ where
         false
     }
 
+    #[inline]
     pub fn clear(&mut self) {
         self.values.clear();
     }
 
+    #[inline]
     pub fn drain(&mut self) -> Drain<[T; N]> {
         self.values.drain(..)
     }

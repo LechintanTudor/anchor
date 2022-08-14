@@ -1,4 +1,4 @@
-use crate::graphics::{OldRawWindowHandleWrapper, ShapePipeline, SpritePipeline, TextPipeline};
+use crate::graphics::{ShapePipeline, SpritePipeline, TextPipeline};
 use winit::window::Window;
 
 pub(crate) struct SurfaceTexture {
@@ -27,7 +27,7 @@ impl GraphicsContext {
         let (window_width, window_height) = window.inner_size().into();
 
         let instance = wgpu::Instance::new(wgpu::Backends::PRIMARY);
-        let surface = unsafe { instance.create_surface(&OldRawWindowHandleWrapper(window)) };
+        let surface = unsafe { instance.create_surface(window) };
 
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
