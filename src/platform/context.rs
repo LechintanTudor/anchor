@@ -17,4 +17,10 @@ impl Context {
 
         Self { should_exit: false, window, input: Default::default(), graphics }
     }
+
+    pub(crate) fn take_should_exit(&mut self) -> bool {
+        let should_exit = self.should_exit;
+        self.should_exit = false;
+        should_exit
+    }
 }

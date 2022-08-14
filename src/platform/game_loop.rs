@@ -1,11 +1,12 @@
 use crate::platform::{
-    Config, Context, FpsLimiter, Game, GameBuilder, GameError, GameErrorKind, GameResult,
-    ShouldYield,
+    Config, Context, FpsLimiter, Game, GameBuilder, GameError, GameErrorKind, GameErrorOrigin,
+    GameResult, ShouldYield,
 };
+use glam::DVec2;
 use log::info;
 use winit::dpi::Size;
-use winit::event::{ElementState, Event, StartCause, WindowEvent};
-use winit::event_loop::{ControlFlow, EventLoop};
+use winit::event::{DeviceEvent, ElementState, Event, StartCause, WindowEvent};
+use winit::event_loop::EventLoop;
 use winit::window::WindowBuilder;
 
 pub(crate) fn run<G>(config: Config, game_builder: G) -> GameResult<()>
@@ -33,9 +34,19 @@ where
             Event::NewEvents(StartCause::Init) => {
                 info!("Starting Anchor...");
             }
+            Event::DeviceEvent { event, .. } => match event {
+                DeviceEvent::MouseMotion { delta, .. } => {
+                    let delta = DVec2::new(delta.0, delta.1);
+                    game.on_mouse_motion(ctx, delta);
+                }
+                _ => (),
+            },
             Event::WindowEvent { event, .. } => match event {
                 WindowEvent::CloseRequested => {
-                    *control_flow = ControlFlow::Exit;
+                    if game.on_exit_requested(ctx) {
+                        control_flow.set_exit();
+                        return;
+                    }
                 }
                 WindowEvent::Resized(size) => {
                     let (width, height) = (size.width, size.height);
@@ -56,6 +67,14 @@ where
                         }
                     }
                 }
+                WindowEvent::MouseInput { state, button, .. } => match state {
+                    ElementState::Pressed => {
+                        game.on_mouse_button_pressed(ctx, button);
+                    }
+                    ElementState::Released => {
+                        game.on_mouse_button_released(ctx, button);
+                    }
+                },
                 WindowEvent::CursorEntered { .. } => {
                     ctx.input.cursor.hovers_window = true;
                 }
@@ -63,7 +82,9 @@ where
                     ctx.input.cursor.hovers_window = false;
                 }
                 WindowEvent::CursorMoved { position, .. } => {
-                    ctx.input.cursor.last_position = position.into();
+                    let position = DVec2::new(position.x, position.y);
+                    ctx.input.cursor.last_position = position;
+                    game.on_cursor_moved(ctx, position);
                 }
                 WindowEvent::Focused(false) => {
                     ctx.input.keyboard.on_focus_lost();
@@ -71,8 +92,8 @@ where
                 _ => (),
             },
             Event::MainEventsCleared => {
-                if ctx.should_exit {
-                    *control_flow = ControlFlow::Exit;
+                if ctx.take_should_exit() && game.on_exit_requested(ctx) {
+                    control_flow.set_exit();
                     return;
                 }
 
@@ -84,7 +105,10 @@ where
 
                 while fps_limiter.update() {
                     if let Err(error) = game.update(ctx) {
-                        handle_error(&error, control_flow);
+                        if game.on_error(ctx, GameErrorOrigin::Update, error) {
+                            control_flow.set_exit_with_code(1);
+                            return;
+                        }
                     }
 
                     updated = true;
@@ -94,7 +118,10 @@ where
                     ctx.graphics.update_surface_texture();
 
                     if let Err(error) = game.draw(ctx) {
-                        handle_error(&error, control_flow);
+                        if game.on_error(ctx, GameErrorOrigin::Draw, error) {
+                            control_flow.set_exit_with_code(2);
+                            return;
+                        }
                     }
 
                     if let Some(surface_texture) = ctx.graphics.surface_texture.take() {
@@ -110,9 +137,4 @@ where
             _ => (),
         }
     });
-}
-
-fn handle_error(error: &GameError, control_flow: &mut ControlFlow) {
-    println!("{}", error);
-    control_flow.set_exit();
 }

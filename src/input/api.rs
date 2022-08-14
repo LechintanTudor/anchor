@@ -1,6 +1,6 @@
 use crate::input::Key;
 use crate::platform::Context;
-use glam::Vec2;
+use glam::DVec2;
 
 #[inline]
 pub fn is_key_pressed(ctx: &Context, key: Key) -> bool {
@@ -33,17 +33,13 @@ pub fn just_released_keys(ctx: &Context) -> &[Key] {
 }
 
 #[inline]
-pub fn cursor_position(ctx: &Context) -> Option<Vec2> {
-    ctx.input
-        .cursor
-        .position()
-        .map(|(cursor_x, cursor_y)| Vec2::new(cursor_x as f32, cursor_y as f32))
+pub fn cursor_position(ctx: &Context) -> Option<DVec2> {
+    ctx.input.cursor.position()
 }
 
 #[inline]
-pub fn last_cursor_position(ctx: &Context) -> Vec2 {
-    let (cursor_x, cursor_y) = ctx.input.cursor.last_position;
-    Vec2::new(cursor_x as f32, cursor_y as f32)
+pub fn last_cursor_position(ctx: &Context) -> DVec2 {
+    ctx.input.cursor.last_position
 }
 
 #[inline]
