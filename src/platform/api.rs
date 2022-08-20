@@ -7,10 +7,10 @@ where
 {
     fn inner(path: &Path) -> GameResult<Config> {
         let data = std::fs::read_to_string(path)
-            .map_err(|e| GameErrorKind::IoError(e).into_error_with_path(path))?;
+            .map_err(|e| GameErrorKind::IoError(e).into_error().with_source_path(path))?;
 
         let config = ron::from_str::<Config>(&data)
-            .map_err(|e| GameErrorKind::RonError(e).into_error_with_path(path))?;
+            .map_err(|e| GameErrorKind::RonError(e).into_error().with_source_path(path))?;
 
         Ok(config)
     }

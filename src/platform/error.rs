@@ -5,7 +5,6 @@ use std::error::Error;
 use std::fmt;
 use std::io::Error as IoError;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
 use winit::error::OsError;
 
 pub type GameResult<T> = Result<T, GameError>;
@@ -13,16 +12,24 @@ pub type GameResult<T> = Result<T, GameError>;
 #[derive(Debug)]
 struct GameErrorData {
     kind: GameErrorKind,
-    path: Option<PathBuf>,
+    source_path_chain: Vec<PathBuf>,
 }
 
-#[derive(Clone, Debug)]
-pub struct GameError(Arc<GameErrorData>);
+#[derive(Debug)]
+pub struct GameError(Box<GameErrorData>);
 
 impl GameError {
     #[inline]
-    pub fn new(kind: GameErrorKind, path: Option<PathBuf>) -> Self {
-        Self(Arc::new(GameErrorData { kind, path }))
+    pub fn new(kind: GameErrorKind) -> Self {
+        Self(Box::new(GameErrorData { kind, source_path_chain: vec![] }))
+    }
+
+    pub fn with_source_path<P>(mut self, path: P) -> Self
+    where
+        P: Into<PathBuf>,
+    {
+        self.0.source_path_chain.push(path.into());
+        self
     }
 
     #[inline]
@@ -31,19 +38,37 @@ impl GameError {
     }
 
     #[inline]
-    pub fn path(&self) -> Option<&Path> {
-        self.0.path.as_deref()
+    pub fn source_path_chain(&self) -> PathChainIter {
+        PathChainIter(self.0.source_path_chain.iter())
+    }
+}
+
+impl Error for GameError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match &self.0.kind {
+            GameErrorKind::OsError(e) => Some(e),
+            GameErrorKind::IoError(e) => Some(e),
+            GameErrorKind::RonError(e) => Some(e),
+            GameErrorKind::ImageError(e) => Some(e),
+            GameErrorKind::FontError(e) => Some(e),
+            GameErrorKind::OtherError(e) => Some(Box::as_ref(e) as _),
+        }
     }
 }
 
 impl fmt::Display for GameError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self.0.path.as_deref() {
-            Some(path) => {
-                write!(f, "error originating from file \"{}\": {}", path.display(), self.0.kind)
+        writeln!(f, "{}", self.0.kind)?;
+
+        if let Some((path, parent_paths)) = self.0.source_path_chain.split_first() {
+            writeln!(f, "    error originating from '{}'", path.display())?;
+
+            for parent_path in parent_paths {
+                writeln!(f, "        referenced in '{}'", parent_path.display())?;
             }
-            None => fmt::Display::fmt(&self.0.kind, f),
         }
+
+        Ok(())
     }
 }
 
@@ -73,13 +98,17 @@ impl fmt::Display for GameErrorKind {
 impl GameErrorKind {
     #[inline]
     pub fn into_error(self) -> GameError {
-        GameError::new(self, None)
+        GameError::new(self)
     }
+}
 
-    pub fn into_error_with_path<P>(self, path: P) -> GameError
-    where
-        P: Into<PathBuf>,
-    {
-        GameError::new(self, Some(path.into()))
+pub struct PathChainIter<'a>(std::slice::Iter<'a, PathBuf>);
+
+impl<'a> Iterator for PathChainIter<'a> {
+    type Item = &'a Path;
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.next().map(PathBuf::as_path)
     }
 }
