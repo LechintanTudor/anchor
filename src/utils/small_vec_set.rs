@@ -1,7 +1,7 @@
 use smallvec::{Drain, SmallVec};
 
 #[derive(Debug)]
-pub struct SmallVecSet<T, const N: usize> {
+pub(crate) struct SmallVecSet<T, const N: usize> {
     values: SmallVec<[T; N]>,
 }
 

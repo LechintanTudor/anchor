@@ -74,9 +74,11 @@ where
                 }
                 WindowEvent::MouseInput { state, button, .. } => match state {
                     ElementState::Pressed => {
+                        ctx.input.mouse.on_button_pressed(button);
                         game.on_mouse_button_pressed(ctx, button);
                     }
                     ElementState::Released => {
+                        ctx.input.mouse.on_button_released(button);
                         game.on_mouse_button_released(ctx, button);
                     }
                 },
@@ -93,6 +95,7 @@ where
                 }
                 WindowEvent::Focused(false) => {
                     ctx.input.keyboard.on_focus_lost();
+                    ctx.input.mouse.on_focus_lost();
                 }
                 _ => (),
             },
@@ -137,6 +140,7 @@ where
                 }
 
                 ctx.input.keyboard.on_frame_end();
+                ctx.input.mouse.on_frame_end();
 
                 if !ctx.vsync {
                     while !ctx.timer.end_frame() {

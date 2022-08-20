@@ -1,6 +1,7 @@
 use crate::input::Key;
 use crate::platform::Context;
 use glam::DVec2;
+use winit::event::MouseButton;
 
 #[inline]
 pub fn is_key_pressed(ctx: &Context, key: Key) -> bool {
@@ -30,6 +31,36 @@ pub fn just_pressed_keys(ctx: &Context) -> &[Key] {
 #[inline]
 pub fn just_released_keys(ctx: &Context) -> &[Key] {
     ctx.input.keyboard.just_released_keys()
+}
+
+#[inline]
+pub fn is_mouse_button_pressed(ctx: &Context, button: MouseButton) -> bool {
+    ctx.input.mouse.is_button_pressed(button)
+}
+
+#[inline]
+pub fn was_mouse_button_just_pressed(ctx: &Context, button: MouseButton) -> bool {
+    ctx.input.mouse.was_button_just_pressed(button)
+}
+
+#[inline]
+pub fn was_mouse_button_just_released(ctx: &Context, button: MouseButton) -> bool {
+    ctx.input.mouse.was_button_just_released(button)
+}
+
+#[inline]
+pub fn pressed_mouse_buttons(ctx: &Context) -> &[MouseButton] {
+    ctx.input.mouse.pressed_buttons()
+}
+
+#[inline]
+pub fn just_pressed_mouse_buttons(ctx: &Context) -> &[MouseButton] {
+    ctx.input.mouse.just_pressed_buttons()
+}
+
+#[inline]
+pub fn just_released_mouse_buttons(ctx: &Context) -> &[MouseButton] {
+    ctx.input.mouse.just_released_buttons()
 }
 
 #[inline]
