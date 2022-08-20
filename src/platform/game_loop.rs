@@ -1,33 +1,38 @@
-use crate::platform::{
-    Config, Context, FpsLimiter, Game, GameBuilder, GameError, GameErrorKind, GameErrorOrigin,
-    GameResult, ShouldYield,
-};
+use crate::platform::{Config, Context, Game, GameBuilder, GameError, GameResult};
 use glam::DVec2;
 use log::info;
-use winit::dpi::Size;
 use winit::event::{DeviceEvent, ElementState, Event, StartCause, WindowEvent};
-use winit::event_loop::EventLoop;
-use winit::window::WindowBuilder;
+use winit::event_loop::{ControlFlow, EventLoop};
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum FramePhase {
+    Update,
+    FixedUpdate,
+    LateUpdate,
+    Draw,
+}
+
+impl FramePhase {
+    pub const fn error_exit_code(&self) -> i32 {
+        match self {
+            Self::Update => 1,
+            Self::FixedUpdate => 2,
+            Self::LateUpdate => 3,
+            Self::Draw => 4,
+        }
+    }
+}
 
 pub(crate) fn run<G>(config: Config, game_builder: G) -> GameResult<()>
 where
     G: GameBuilder,
 {
     let event_loop = EventLoop::new();
-    let window = WindowBuilder::new()
-        .with_title(config.window_title)
-        .with_inner_size(Size::Physical(config.window_size.into()))
-        .build(&event_loop)
-        .map_err(|error| GameError::new(GameErrorKind::OsError(error), None))?;
-
-    window.set_cursor_visible(config.cursor_visible);
-
-    let mut ctx = Context::new(window);
-
+    let mut ctx = Context::new(&event_loop, config)?;
     let mut game = game_builder.build(&mut ctx)?;
-    let mut fps_limiter = FpsLimiter::new(60, 3);
 
     event_loop.run(move |event, _event_loop, control_flow| {
+        let game = &mut game;
         let ctx = &mut ctx;
 
         match event {
@@ -92,43 +97,51 @@ where
                 _ => (),
             },
             Event::MainEventsCleared => {
+                ctx.timer.start_frame();
+
                 if ctx.take_should_exit() && game.on_exit_requested(ctx) {
                     control_flow.set_exit();
                     return;
                 }
 
-                if fps_limiter.begin() == ShouldYield::Yes {
-                    std::thread::yield_now();
+                if let Err(error) = game.update(ctx) {
+                    if handle_error(game, ctx, FramePhase::Update, error, control_flow) {
+                        return;
+                    }
                 }
 
-                let mut updated = false;
-
-                while fps_limiter.update() {
-                    if let Err(error) = game.update(ctx) {
-                        if game.on_error(ctx, GameErrorOrigin::Update, error) {
-                            control_flow.set_exit_with_code(1);
+                while ctx.timer.fixed_update() {
+                    if let Err(error) = game.fixed_update(ctx) {
+                        if handle_error(game, ctx, FramePhase::FixedUpdate, error, control_flow) {
                             return;
                         }
                     }
-
-                    updated = true;
                 }
 
-                if updated {
-                    ctx.graphics.update_surface_texture();
-
-                    if let Err(error) = game.draw(ctx) {
-                        if game.on_error(ctx, GameErrorOrigin::Draw, error) {
-                            control_flow.set_exit_with_code(2);
-                            return;
-                        }
+                if let Err(error) = game.late_update(ctx) {
+                    if handle_error(game, ctx, FramePhase::LateUpdate, error, control_flow) {
+                        return;
                     }
+                }
 
-                    if let Some(surface_texture) = ctx.graphics.surface_texture.take() {
-                        surface_texture.texture.present();
+                ctx.graphics.update_surface_texture();
+
+                if let Err(error) = game.draw(ctx) {
+                    if handle_error(game, ctx, FramePhase::Draw, error, control_flow) {
+                        return;
                     }
+                }
 
-                    ctx.input.keyboard.on_frame_end();
+                if let Some(surface_texture) = ctx.graphics.surface_texture.take() {
+                    surface_texture.texture.present();
+                }
+
+                ctx.input.keyboard.on_frame_end();
+
+                if !ctx.vsync {
+                    while !ctx.timer.end_frame() {
+                        std::thread::yield_now();
+                    }
                 }
             }
             Event::LoopDestroyed => {
@@ -137,4 +150,22 @@ where
             _ => (),
         }
     });
+}
+
+fn handle_error<G>(
+    game: &mut G,
+    ctx: &mut Context,
+    phase: FramePhase,
+    error: GameError,
+    control_flow: &mut ControlFlow,
+) -> bool
+where
+    G: Game,
+{
+    if game.on_error(ctx, phase, error) {
+        control_flow.set_exit_with_code(phase.error_exit_code());
+        true
+    } else {
+        false
+    }
 }

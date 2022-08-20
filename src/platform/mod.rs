@@ -2,12 +2,12 @@ mod api;
 mod config;
 mod context;
 mod error;
-mod fps_limiter;
 mod game;
 mod game_loop;
+mod timer;
 
-pub(crate) use self::fps_limiter::*;
 pub(crate) use self::game_loop::*;
+pub(crate) use self::timer::*;
 
 pub use self::api::*;
 pub use self::config::*;

@@ -1,6 +1,6 @@
 use crate::graphics::{self, Color};
 use crate::input::Key;
-use crate::platform::{Context, GameError, GameErrorOrigin, GameResult};
+use crate::platform::{Context, FramePhase, GameError, GameResult};
 use glam::DVec2;
 use winit::event::MouseButton;
 
@@ -15,8 +15,8 @@ where
         true
     }
 
-    fn on_error(&mut self, ctx: &mut Context, origin: GameErrorOrigin, error: GameError) -> bool {
-        eprintln!("{:?}: {}", origin, error);
+    fn on_error(&mut self, ctx: &mut Context, phase: FramePhase, error: GameError) -> bool {
+        eprintln!("{:?}: {}", phase, error);
         true
     }
 
@@ -33,6 +33,14 @@ where
     fn on_cursor_moved(&mut self, ctx: &mut Context, position: DVec2) {}
 
     fn update(&mut self, ctx: &mut Context) -> GameResult<()> {
+        Ok(())
+    }
+
+    fn fixed_update(&mut self, ctx: &mut Context) -> GameResult<()> {
+        Ok(())
+    }
+
+    fn late_update(&mut self, ctx: &mut Context) -> GameResult<()> {
         Ok(())
     }
 

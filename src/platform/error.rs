@@ -10,12 +10,6 @@ use winit::error::OsError;
 
 pub type GameResult<T> = Result<T, GameError>;
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum GameErrorOrigin {
-    Update,
-    Draw,
-}
-
 #[derive(Debug)]
 struct GameErrorData {
     kind: GameErrorKind,

@@ -19,11 +19,11 @@ pub(crate) struct GraphicsContext {
 }
 
 impl GraphicsContext {
-    pub(crate) fn new(window: &Window) -> Self {
-        pollster::block_on(Self::new_async(window))
+    pub(crate) fn new(window: &Window, vsync: bool) -> Self {
+        pollster::block_on(Self::new_async(window, vsync))
     }
 
-    async fn new_async(window: &Window) -> Self {
+    async fn new_async(window: &Window, vsync: bool) -> Self {
         let (window_width, window_height) = window.inner_size().into();
 
         let instance = wgpu::Instance::new(wgpu::Backends::PRIMARY);
@@ -56,12 +56,15 @@ impl GraphicsContext {
             .copied()
             .expect("No suitable surface format found");
 
+        let present_mode =
+            if vsync { wgpu::PresentMode::AutoVsync } else { wgpu::PresentMode::AutoNoVsync };
+
         let surface_config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
             format: surface_format,
             width: window_width,
             height: window_height,
-            present_mode: wgpu::PresentMode::Fifo,
+            present_mode,
         };
 
         surface.configure(&device, &surface_config);
