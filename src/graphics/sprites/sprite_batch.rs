@@ -44,11 +44,6 @@ impl SpriteBatch {
     }
 
     #[inline]
-    pub fn resume(&mut self) -> SpriteDrawer {
-        SpriteDrawer { batch: self }
-    }
-
-    #[inline]
     pub fn sprite_sheet(&self) -> &SpriteSheet {
         &self.sprite_sheet
     }
@@ -176,7 +171,7 @@ impl<'a> SpriteDrawer<'a> {
 
         let affine = transform.to_affine2();
 
-        let absolute_tex_coords_edges = {
+        let pixel_tex_coords_edges = {
             let (left, right) = {
                 let left = sprite_bounds.x as f32;
                 let right = (sprite_bounds.x + sprite_bounds.width) as f32;
@@ -209,7 +204,7 @@ impl<'a> SpriteDrawer<'a> {
             scale_rotation_col_0: affine.matrix2.col(0),
             scale_rotation_col_1: affine.matrix2.col(1),
             translation: affine.translation,
-            absolute_tex_coords_edges,
+            pixel_tex_coords_edges,
             linear_color: sprite.color.to_linear_vec4(),
         };
 

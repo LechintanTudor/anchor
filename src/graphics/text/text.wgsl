@@ -8,7 +8,7 @@ struct Instance {
 }
 
 struct Vertex {
-    @builtin(position) position: vec4<f32>,
+    @builtin(position) clip_position: vec4<f32>,
     @location(0) tex_coords: vec2<f32>,
     @location(1) linear_color: vec4<f32>,
 }
@@ -34,26 +34,21 @@ var sprite_sheet_sampler: sampler;
 @vertex
 fn vs_main(@builtin(vertex_index) i: u32, instance: Instance) -> Vertex {
     let edge_indexes = EDGE_INDEXES[i];
-
-    let scale_rotation_matrix = mat2x2<f32>(
-        instance.scale_rotation_col_0,
-        instance.scale_rotation_col_1,
-    );
+    let scale_rotation = mat2x2<f32>(instance.scale_rotation_col_0, instance.scale_rotation_col_1);
 
     let untransformed_position = vec2<f32>(
         instance.bounds_edges[edge_indexes[0]],
         instance.bounds_edges[edge_indexes[1]],
     );
-
-    let absolute_position = scale_rotation_matrix * untransformed_position + instance.translation;
-    let position = projection * vec4<f32>(absolute_position, 0.0, 1.0);
+    let position = scale_rotation * untransformed_position + instance.translation;
+    let clip_position = projection * vec4<f32>(position, 0.0, 1.0);
 
     let tex_coords = vec2<f32>(
         instance.tex_coords_edges[edge_indexes[0]],
         instance.tex_coords_edges[edge_indexes[1]],
     );
 
-    return Vertex(position, tex_coords, instance.linear_color);
+    return Vertex(clip_position, tex_coords, instance.linear_color);
 }
 
 @fragment

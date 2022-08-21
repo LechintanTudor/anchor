@@ -45,12 +45,6 @@ impl ShapeBatch {
     #[inline]
     pub fn begin(&mut self) -> ShapeDrawer {
         self.instances.clear();
-
-        ShapeDrawer { batch: self }
-    }
-
-    #[inline]
-    pub fn resume(&mut self) -> ShapeDrawer {
         ShapeDrawer { batch: self }
     }
 }

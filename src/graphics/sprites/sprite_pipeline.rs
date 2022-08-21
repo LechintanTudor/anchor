@@ -10,7 +10,7 @@ pub struct SpriteInstance {
     pub scale_rotation_col_0: Vec2,
     pub scale_rotation_col_1: Vec2,
     pub translation: Vec2,
-    pub absolute_tex_coords_edges: Vec4,
+    pub pixel_tex_coords_edges: Vec4,
     pub linear_color: Vec4,
 }
 
@@ -80,7 +80,7 @@ impl SpritePipeline {
                         3 => Float32x2, // scale_rotation_col_0
                         4 => Float32x2, // scale_rotation_col_1
                         5 => Float32x2, // translation
-                        6 => Float32x4, // absolute_tex_coords_edges
+                        6 => Float32x4, // pixel_tex_coords_edges
                         7 => Float32x4, // linear_color
                     ],
                 }],

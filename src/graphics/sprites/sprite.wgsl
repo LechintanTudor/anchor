@@ -5,17 +5,17 @@ struct Instance {
     @location(3) scale_rotation_col_0: vec2<f32>,
     @location(4) scale_rotation_col_1: vec2<f32>,
     @location(5) translation: vec2<f32>,
-    @location(6) absolute_tex_coords_edges: vec4<f32>, // top, left, bottom, right
+    @location(6) pixel_tex_coords_edges: vec4<f32>, // top, left, bottom, right
     @location(7) linear_color: vec4<f32>,
 }
 
 struct Vertex {
-    @builtin(position) position: vec4<f32>,
+    @builtin(position) clip_position: vec4<f32>,
     @location(0) tex_coords: vec2<f32>,
     @location(1) linear_color: vec4<f32>,
 }
 
-var<private> TEX_COORDS_EDGE_INDEXES: array<array<u32, 2>, 6> = array<array<u32, 2>, 6>(
+var<private> EDGE_INDEXES: array<array<u32, 2>, 6> = array<array<u32, 2>, 6>(
     array<u32, 2>(1u, 0u), // left, top
     array<u32, 2>(1u, 2u), // left, bottom
     array<u32, 2>(3u, 0u), // right, top
@@ -44,30 +44,20 @@ var sprite_sheet_sampler: sampler;
 
 @vertex
 fn vs_main(@builtin(vertex_index) i: u32, instance: Instance) -> Vertex {
-    var position: vec4<f32>;
+    let scale_rotation = mat2x2<f32>(instance.scale_rotation_col_0, instance.scale_rotation_col_1);
+    let position = scale_rotation
+        * (instance.size * (CORNERS[i] - instance.anchor))
+        + instance.translation;
+    let clip_position = projection * vec4<f32>(position, 0.0, 1.0);
+    
+    let edge_indexes = EDGE_INDEXES[i];
+    let pixel_tex_coords = vec2<f32>(
+        instance.pixel_tex_coords_edges[edge_indexes[0]],
+        instance.pixel_tex_coords_edges[edge_indexes[1]],
+    );
+    let tex_coords = pixel_tex_coords / instance.sprite_sheet_size;
 
-    {
-        let scale_rotation_matrix = mat2x2<f32>(
-            instance.scale_rotation_col_0,
-            instance.scale_rotation_col_1,
-        );
-        let relative_position = instance.size * (CORNERS[i] - instance.anchor);
-        let absolute_position = (scale_rotation_matrix * relative_position + instance.translation);
-        position = projection * vec4<f32>(absolute_position, 0.0, 1.0);
-    }
-
-    var tex_coords: vec2<f32>;
-
-    {
-        let tex_coords_edge_indexes = TEX_COORDS_EDGE_INDEXES[i];
-        let absolute_tex_coords_edges = vec2<f32>(
-            instance.absolute_tex_coords_edges[tex_coords_edge_indexes[0]],
-            instance.absolute_tex_coords_edges[tex_coords_edge_indexes[1]],
-        );
-        tex_coords = absolute_tex_coords_edges / instance.sprite_sheet_size;
-    }
-
-    return Vertex(position, tex_coords, instance.linear_color);
+    return Vertex(clip_position, tex_coords, instance.linear_color);
 }
 
 @fragment
