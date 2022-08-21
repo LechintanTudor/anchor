@@ -1,18 +1,21 @@
 use bytemuck::{Pod, Zeroable};
 use glam::{Vec2, Vec4};
+use std::mem;
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Pod, Zeroable)]
+pub struct ShapeInstance {
+    pub scale_rotation_col_0: Vec2,
+    pub scale_rotation_col_1: Vec2,
+    pub translation: Vec2,
+    pub pixel_anchor: Vec2,
+    pub linear_color: Vec4,
+}
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Pod, Zeroable)]
 pub struct ShapeVertex {
     pub position: Vec2,
-    _padding: [f32; 2],
-    pub linear_color: Vec4,
-}
-
-impl ShapeVertex {
-    pub const fn new(position: Vec2, linear_color: Vec4) -> Self {
-        Self { position, _padding: [0.0; 2], linear_color }
-    }
 }
 
 pub struct ShapePipeline {
@@ -44,32 +47,36 @@ impl ShapePipeline {
         });
 
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: Some("flat"),
+            label: Some("shape"),
             source: wgpu::ShaderSource::Wgsl(include_str!("shape.wgsl").into()),
         });
 
         let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("flat"),
+            label: Some("shape"),
             layout: Some(&pipeline_layout),
             vertex: wgpu::VertexState {
                 module: &shader,
                 entry_point: "vs_main",
-                buffers: &[wgpu::VertexBufferLayout {
-                    array_stride: std::mem::size_of::<ShapeVertex>() as wgpu::BufferAddress,
-                    step_mode: wgpu::VertexStepMode::Vertex,
-                    attributes: &[
-                        wgpu::VertexAttribute {
-                            format: wgpu::VertexFormat::Float32x2,
-                            offset: 0,
-                            shader_location: 0,
-                        },
-                        wgpu::VertexAttribute {
-                            format: wgpu::VertexFormat::Float32x4,
-                            offset: 16,
-                            shader_location: 1,
-                        },
-                    ],
-                }],
+                buffers: &[
+                    wgpu::VertexBufferLayout {
+                        array_stride: mem::size_of::<ShapeVertex>() as wgpu::BufferAddress,
+                        step_mode: wgpu::VertexStepMode::Vertex,
+                        attributes: &wgpu::vertex_attr_array![
+                            0 => Float32x2, // position
+                        ],
+                    },
+                    wgpu::VertexBufferLayout {
+                        array_stride: mem::size_of::<ShapeInstance>() as wgpu::BufferAddress,
+                        step_mode: wgpu::VertexStepMode::Instance,
+                        attributes: &wgpu::vertex_attr_array![
+                            1 => Float32x2, // scale_rotation_col_0
+                            2 => Float32x2, // scale_rotation_col_1
+                            3 => Float32x2, // translation
+                            4 => Float32x2, // pixel_anchor
+                            5 => Float32x4, // linear_color
+                        ],
+                    },
+                ],
             },
             primitive: wgpu::PrimitiveState {
                 topology: wgpu::PrimitiveTopology::TriangleList,

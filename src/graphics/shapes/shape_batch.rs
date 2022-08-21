@@ -1,30 +1,38 @@
-use crate::graphics;
-use crate::graphics::{Drawable, Projection, Shape, ShapeVertex, Transform};
+use crate::graphics::{self, Color, Drawable, Projection, Shape, ShapeInstance, Transform};
 use crate::platform::Context;
+use glam::Vec2;
+use std::mem;
 use wgpu::util::DeviceExt;
 
-#[derive(Default)]
 pub struct ShapeBatch {
-    vertexes: Vec<ShapeVertex>,
-    indexes: Vec<u32>,
+    shape: Shape,
+    instances: Vec<ShapeInstance>,
     projection: Projection,
     data: Option<ShapeBatchData>,
     needs_sync: bool,
 }
 
 struct ShapeBatchData {
-    vertexes: wgpu::Buffer,
-    vertexes_capacity: usize,
-    indexes: wgpu::Buffer,
-    indexes_capacity: usize,
+    instances: wgpu::Buffer,
+    instances_capacity: usize,
     projection: wgpu::Buffer,
     bind_group: wgpu::BindGroup,
 }
 
 impl ShapeBatch {
+    pub fn new(shape: Shape) -> ShapeBatch {
+        Self {
+            shape,
+            instances: Vec::new(),
+            projection: Default::default(),
+            data: None,
+            needs_sync: false,
+        }
+    }
+
     #[inline]
-    pub fn new() -> ShapeBatch {
-        Default::default()
+    pub fn set_shape(&mut self, shape: Shape) {
+        self.shape = shape;
     }
 
     pub fn set_projection<P>(&mut self, projection: P)
@@ -34,9 +42,9 @@ impl ShapeBatch {
         self.projection = projection.into();
     }
 
+    #[inline]
     pub fn begin(&mut self) -> ShapeDrawer {
-        self.vertexes.clear();
-        self.indexes.clear();
+        self.instances.clear();
 
         ShapeDrawer { batch: self }
     }
@@ -49,7 +57,7 @@ impl ShapeBatch {
 
 impl Drawable for ShapeBatch {
     fn prepare(&mut self, ctx: &mut Context) {
-        if self.vertexes.is_empty() {
+        if self.instances.is_empty() {
             return;
         }
 
@@ -58,37 +66,26 @@ impl Drawable for ShapeBatch {
 
         let projection = self.projection.to_mat4(graphics::window_size(ctx));
 
-        let create_vertex_buffer = |vertexes: &[ShapeVertex]| {
+        let create_instance_buffer = |instances: &[ShapeInstance]| {
             device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: Some("shape_batch_vertex_buffer"),
-                contents: bytemuck::cast_slice(vertexes),
+                label: Some("shape_batch_instance_buffer"),
+                contents: bytemuck::cast_slice(instances),
                 usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
-            })
-        };
-
-        let create_index_buffer = |indexes: &[u32]| {
-            device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: Some("shape_batch_index_buffer"),
-                contents: bytemuck::cast_slice(indexes),
-                usage: wgpu::BufferUsages::INDEX | wgpu::BufferUsages::COPY_DST,
             })
         };
 
         match self.data.as_mut() {
             Some(data) => {
                 if self.needs_sync {
-                    if self.vertexes.len() <= data.vertexes_capacity {
-                        queue.write_buffer(&data.vertexes, 0, bytemuck::cast_slice(&self.vertexes))
+                    if self.instances.len() <= data.instances_capacity {
+                        queue.write_buffer(
+                            &data.instances,
+                            0,
+                            bytemuck::cast_slice(&self.instances),
+                        )
                     } else {
-                        data.vertexes = create_vertex_buffer(&self.vertexes);
-                        data.vertexes_capacity = self.vertexes.len();
-                    }
-
-                    if self.indexes.len() <= data.indexes_capacity {
-                        queue.write_buffer(&data.indexes, 0, bytemuck::cast_slice(&self.indexes));
-                    } else {
-                        data.indexes = create_index_buffer(&self.indexes);
-                        data.indexes_capacity = self.indexes.len();
+                        data.instances = create_instance_buffer(&self.instances);
+                        data.instances_capacity = self.instances.len();
                     }
 
                     self.needs_sync = false;
@@ -113,10 +110,8 @@ impl Drawable for ShapeBatch {
                 });
 
                 self.data = Some(ShapeBatchData {
-                    vertexes: create_vertex_buffer(&self.vertexes),
-                    vertexes_capacity: self.vertexes.len(),
-                    indexes: create_index_buffer(&self.indexes),
-                    indexes_capacity: self.indexes.len(),
+                    instances: create_instance_buffer(&self.instances),
+                    instances_capacity: self.instances.len(),
                     projection,
                     bind_group,
                 });
@@ -126,22 +121,26 @@ impl Drawable for ShapeBatch {
 
     fn draw<'a>(&'a mut self, ctx: &'a Context, pass: &mut wgpu::RenderPass<'a>) {
         let data = match self.data.as_mut() {
-            Some(data) if !self.vertexes.is_empty() => data,
+            Some(data) if !self.instances.is_empty() => data,
             _ => return,
         };
 
-        let vertexes_slice_len: wgpu::BufferAddress =
-            (self.vertexes.len() * std::mem::size_of::<ShapeVertex>()) as wgpu::BufferAddress;
-
-        let indexes_slice_len: wgpu::BufferAddress =
-            (self.indexes.len() * std::mem::size_of::<u32>()) as wgpu::BufferAddress;
+        let instance_slice_len =
+            (self.instances.len() * mem::size_of::<ShapeInstance>()) as wgpu::BufferAddress;
 
         pass.set_pipeline(&ctx.graphics.shape_pipeline.pipeline);
         pass.set_bind_group(0, &data.bind_group, &[]);
-        pass.set_vertex_buffer(0, data.vertexes.slice(..vertexes_slice_len));
-        pass.set_index_buffer(data.indexes.slice(..indexes_slice_len), wgpu::IndexFormat::Uint32);
-        pass.draw_indexed(0..self.indexes.len() as u32, 0, 0..1);
+        pass.set_vertex_buffer(0, self.shape.vertexes());
+        pass.set_index_buffer(self.shape.indexes(), wgpu::IndexFormat::Uint32);
+        pass.set_vertex_buffer(1, data.instances.slice(..instance_slice_len));
+        pass.draw_indexed(0..self.shape.index_count() as u32, 0, 0..self.instances.len() as u32);
     }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct ShapeParams {
+    pub pixel_anchor: Vec2,
+    pub color: Color,
 }
 
 pub struct ShapeDrawer<'a> {
@@ -149,19 +148,16 @@ pub struct ShapeDrawer<'a> {
 }
 
 impl<'a> ShapeDrawer<'a> {
-    pub fn draw<S>(&mut self, shape: &S, transform: &Transform)
-    where
-        S: Shape,
-    {
-        let base_index =
-            u32::try_from(self.batch.vertexes.len()).expect("ShapeBatch index overflow");
-        self.batch.indexes.extend(shape.indexes().map(|index| base_index + index));
+    pub fn draw(&mut self, shape_params: &ShapeParams, transform: &Transform) {
+        let affine = transform.to_affine2();
 
-        let transform = transform.to_affine2();
-        self.batch.vertexes.extend(shape.vertexes().map(|mut vertex| {
-            vertex.position = transform.transform_point2(vertex.position);
-            vertex
-        }));
+        self.batch.instances.push(ShapeInstance {
+            scale_rotation_col_0: affine.matrix2.col(0),
+            scale_rotation_col_1: affine.matrix2.col(1),
+            translation: affine.translation,
+            pixel_anchor: shape_params.pixel_anchor,
+            linear_color: shape_params.color.to_linear_vec4(),
+        });
 
         self.batch.needs_sync = true;
     }
