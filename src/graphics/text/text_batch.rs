@@ -218,12 +218,15 @@ pub struct TextDrawer<'a> {
 
 impl<'a> TextDrawer<'a> {
     pub fn draw(&mut self, text: &Text, tranform: &Transform) {
-        use crate::graphics::{HorizontalAlign, VerticalAlign};
+        use glyph_brush::{HorizontalAlign, Layout, VerticalAlign};
 
-        let affine = tranform.to_affine2();
+        let layout = text.layout();
 
         let position = {
-            let (h_align, v_align) = text.aligns();
+            let (h_align, v_align) = match layout {
+                Layout::SingleLine { h_align, v_align, .. } => (h_align, v_align),
+                Layout::Wrap { h_align, v_align, .. } => (h_align, v_align),
+            };
 
             let h_align_anchor = match h_align {
                 HorizontalAlign::Center => 0.0,
@@ -246,15 +249,19 @@ impl<'a> TextDrawer<'a> {
         let section = glyph_brush::Section {
             screen_position: position,
             bounds: text.bounds.into(),
-            layout: text.layout,
+            layout,
             text: text
                 .sections
                 .iter()
                 .map(|section| glyph_brush::Text {
                     text: &section.content,
-                    scale: glyph_brush::ab_glyph::PxScale::from(section.font_size),
+                    scale: section.font_size.into(),
                     font_id: self.batch.get_or_insert_font(&section.font),
-                    extra: RawGlyphInstanceData { affine, color: section.color, pivot: Vec2::ZERO },
+                    extra: RawGlyphInstanceData {
+                        affine: tranform.to_affine2(),
+                        color: section.color,
+                        pivot: Vec2::ZERO,
+                    },
                 })
                 .collect(),
         };

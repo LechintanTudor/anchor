@@ -137,6 +137,17 @@ pub struct ShapeParams {
     pub color: Color,
 }
 
+impl Default for ShapeParams {
+    #[inline]
+    fn default() -> Self {
+        Self::DEFAULT
+    }
+}
+
+impl ShapeParams {
+    pub const DEFAULT: Self = Self { pixel_anchor: Vec2::splat(0.0), color: Color::WHITE };
+}
+
 pub struct ShapeDrawer<'a> {
     batch: &'a mut ShapeBatch,
 }

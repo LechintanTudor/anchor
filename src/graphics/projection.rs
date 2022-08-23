@@ -1,5 +1,4 @@
-use crate::graphics::anchors::ANCHOR_TOP_LEFT;
-use crate::graphics::Transform;
+use crate::graphics::{self, Transform};
 use glam::{Mat4, Vec2};
 
 #[derive(Clone, Copy, Debug)]
@@ -16,7 +15,7 @@ impl Default for Camera {
 }
 
 impl Camera {
-    pub const DEFAULT: Self = Self { size: None, anchor: ANCHOR_TOP_LEFT };
+    pub const DEFAULT: Self = Self { size: None, anchor: graphics::ANCHOR_TOP_LEFT };
 
     #[inline]
     pub const fn new(size: Option<Vec2>, anchor: Vec2) -> Self {
