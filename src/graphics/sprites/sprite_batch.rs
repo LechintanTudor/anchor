@@ -144,9 +144,12 @@ impl Drawable for SpriteBatch {
         let instances_size =
             (std::mem::size_of::<SpriteInstance>() * self.instances.len()) as wgpu::BufferAddress;
 
+        let viewport = self.projection.camera.viewport_bounds(graphics::window_size(ctx));
+
         pass.set_pipeline(&ctx.graphics.sprite_pipeline.pipeline);
         pass.set_bind_group(0, &data.bind_group, &[]);
         pass.set_vertex_buffer(0, data.instances.slice(..instances_size));
+        pass.set_viewport(viewport.0, viewport.1, viewport.2, viewport.3, 0.0, 1.0);
         pass.draw(0..6, 0..(self.instances.len() as u32));
     }
 }

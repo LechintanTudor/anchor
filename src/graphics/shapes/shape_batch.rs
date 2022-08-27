@@ -122,11 +122,14 @@ impl Drawable for ShapeBatch {
         let instance_slice_len =
             (self.instances.len() * mem::size_of::<ShapeInstance>()) as wgpu::BufferAddress;
 
+        let viewport = self.projection.camera.viewport_bounds(graphics::window_size(ctx));
+
         pass.set_pipeline(&ctx.graphics.shape_pipeline.pipeline);
         pass.set_bind_group(0, &data.bind_group, &[]);
         pass.set_vertex_buffer(0, self.shape.vertexes());
         pass.set_index_buffer(self.shape.indexes(), wgpu::IndexFormat::Uint32);
         pass.set_vertex_buffer(1, data.instances.slice(..instance_slice_len));
+        pass.set_viewport(viewport.0, viewport.1, viewport.2, viewport.3, 0.0, 1.0);
         pass.draw_indexed(0..self.shape.index_count() as u32, 0, 0..self.instances.len() as u32);
     }
 }

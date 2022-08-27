@@ -3,7 +3,6 @@ use crate::graphics::{
     RawGlyphInstanceData, Text, Transform,
 };
 use crate::platform::Context;
-use glam::Vec2;
 use glyph_brush::{BrushAction, BrushError, FontId as FontIndex, GlyphBrushBuilder};
 use rustc_hash::FxHashMap;
 use wgpu::util::DeviceExt;
@@ -23,6 +22,7 @@ struct TextBatchData {
 pub struct TextBatch {
     fonts: FxHashMap<usize, FontIndex>,
     brush: GlyphBrush,
+    projection: Projection,
     texture: Option<GlyphTexture>,
     data: Option<TextBatchData>,
     bind_group: Option<wgpu::BindGroup>,
@@ -32,12 +32,13 @@ impl Default for TextBatch {
     fn default() -> Self {
         let brush_builder = GlyphBrushBuilder::using_fonts(vec![])
             .initial_cache_size((INITIAL_DRAW_CACHE_SIZE, INITIAL_DRAW_CACHE_SIZE))
-            .cache_glyph_positioning(false)
-            .draw_cache_position_tolerance(1.0);
+            .draw_cache_position_tolerance(1.0)
+            .cache_glyph_positioning(false);
 
         Self {
             fonts: Default::default(),
             brush: brush_builder.build(),
+            projection: Default::default(),
             texture: Default::default(),
             data: Default::default(),
             bind_group: Default::default(),
@@ -46,6 +47,13 @@ impl Default for TextBatch {
 }
 
 impl TextBatch {
+    pub fn set_projection<P>(&mut self, projection: P)
+    where
+        P: Into<Projection>,
+    {
+        self.projection = projection.into();
+    }
+
     #[inline]
     pub fn begin(&mut self) -> TextDrawer {
         TextDrawer { batch: self }
@@ -88,7 +96,7 @@ impl Drawable for TextBatch {
     fn prepare(&mut self, ctx: &mut Context) {
         let device = &ctx.graphics.device;
         let queue = &ctx.graphics.queue;
-        let projection = Projection::default().to_mat4(graphics::window_size(ctx));
+        let projection = self.projection.to_mat4(graphics::window_size(ctx));
 
         loop {
             let mut needs_reprocessing = false;
@@ -101,12 +109,12 @@ impl Drawable for TextBatch {
                     GlyphTexture::new(
                         INITIAL_DRAW_CACHE_SIZE,
                         INITIAL_DRAW_CACHE_SIZE,
-                        &device,
-                        &queue,
+                        device,
+                        queue,
                     )
                 });
 
-                texture.write(bounds, data, &queue);
+                texture.write(bounds, data, queue);
             };
 
             match self.brush.process_queued(update_texture, graphics::into_glyph_instance) {
@@ -205,9 +213,12 @@ impl Drawable for TextBatch {
         let instances_size =
             (std::mem::size_of::<GlyphInstance>() * data.instances_len) as wgpu::BufferAddress;
 
+        let viewport = self.projection.camera.viewport_bounds(graphics::window_size(ctx));
+
         pass.set_pipeline(&ctx.graphics.text_pipeline.pipeline);
         pass.set_bind_group(0, bind_group, &[]);
         pass.set_vertex_buffer(0, data.instances.slice(..instances_size));
+        pass.set_viewport(viewport.0, viewport.1, viewport.2, viewport.3, 0.0, 1.0);
         pass.draw(0..6, 0..(data.instances_len as u32));
     }
 }
@@ -260,7 +271,6 @@ impl<'a> TextDrawer<'a> {
                     extra: RawGlyphInstanceData {
                         affine: tranform.to_affine2(),
                         color: section.color,
-                        pivot: Vec2::ZERO,
                     },
                 })
                 .collect(),

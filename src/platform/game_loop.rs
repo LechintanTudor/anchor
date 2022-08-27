@@ -50,7 +50,6 @@ where
                 WindowEvent::CloseRequested => {
                     if game.on_exit_requested(ctx) {
                         control_flow.set_exit();
-                        return;
                     }
                 }
                 WindowEvent::Resized(size) => {

@@ -1,12 +1,35 @@
 use crate::graphics::{Color, GlyphInstance};
-use glam::{Affine2, Vec2, Vec4};
+use glam::{Affine2, Vec4};
+use ordered_float::OrderedFloat;
 use std::hash::{Hash, Hasher};
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone)]
 pub(crate) struct RawGlyphInstanceData {
     pub color: Color,
     pub affine: Affine2,
-    pub pivot: Vec2,
+}
+
+impl RawGlyphInstanceData {
+    fn to_ordered_float_array(&self) -> [OrderedFloat<f32>; 10] {
+        [
+            OrderedFloat(self.color.r),
+            OrderedFloat(self.color.g),
+            OrderedFloat(self.color.b),
+            OrderedFloat(self.color.a),
+            OrderedFloat(self.affine.matrix2.col(0).x),
+            OrderedFloat(self.affine.matrix2.col(0).y),
+            OrderedFloat(self.affine.matrix2.col(1).x),
+            OrderedFloat(self.affine.matrix2.col(1).y),
+            OrderedFloat(self.affine.translation.x),
+            OrderedFloat(self.affine.translation.y),
+        ]
+    }
+}
+
+impl PartialEq for RawGlyphInstanceData {
+    fn eq(&self, other: &Self) -> bool {
+        self.to_ordered_float_array() == other.to_ordered_float_array()
+    }
 }
 
 impl Hash for RawGlyphInstanceData {
@@ -14,7 +37,7 @@ impl Hash for RawGlyphInstanceData {
     where
         H: Hasher,
     {
-        69.hash(state);
+        self.to_ordered_float_array().hash(state);
     }
 }
 
@@ -47,7 +70,7 @@ pub(crate) fn into_glyph_instance(instance: RawGlyphInstance) -> GlyphInstance {
 
 fn into_unclipped_glyph_instance(instance: RawGlyphInstance) -> GlyphInstance {
     let RawGlyphInstance { pixel_coords, tex_coords, extra, .. } = instance;
-    let &RawGlyphInstanceData { color, affine, pivot: _ } = extra;
+    let &RawGlyphInstanceData { color, affine } = extra;
 
     let bounds_edges =
         Vec4::new(pixel_coords.min.y, pixel_coords.min.x, pixel_coords.max.y, pixel_coords.max.x);
@@ -73,8 +96,8 @@ fn into_clipped_glyph_instance(
     max_x_outside_pixels: f32,
     max_y_outside_pixels: f32,
 ) -> GlyphInstance {
-    let RawGlyphInstance { pixel_coords, tex_coords, bounds: _, extra } = instance;
-    let &RawGlyphInstanceData { color, affine, pivot: _ } = extra;
+    let RawGlyphInstance { pixel_coords, tex_coords, extra, .. } = instance;
+    let &RawGlyphInstanceData { color, affine } = extra;
 
     let bounds_edges = Vec4::new(
         pixel_coords.min.y + min_y_outside_pixels,

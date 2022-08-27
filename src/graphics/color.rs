@@ -1,6 +1,5 @@
 use bytemuck::{Pod, Zeroable};
 use glam::Vec4;
-use std::hash::{Hash, Hasher};
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Pod, Zeroable)]
@@ -15,22 +14,6 @@ impl Default for Color {
     #[inline]
     fn default() -> Self {
         Self::WHITE
-    }
-}
-
-impl PartialEq for Color {
-    #[inline]
-    fn eq(&self, other: &Self) -> bool {
-        bytemuck::bytes_of(self) == bytemuck::bytes_of(other)
-    }
-}
-
-impl Hash for Color {
-    fn hash<H>(&self, state: &mut H)
-    where
-        H: Hasher,
-    {
-        bytemuck::bytes_of(self).hash(state)
     }
 }
 

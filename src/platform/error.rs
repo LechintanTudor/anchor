@@ -1,6 +1,6 @@
 use glyph_brush::ab_glyph::InvalidFont as FontError;
 use image::ImageError;
-use ron::error::Error as RonError;
+use ron::error::SpannedError as RonError;
 use std::error::Error;
 use std::fmt;
 use std::io::Error as IoError;

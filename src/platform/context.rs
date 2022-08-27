@@ -25,7 +25,7 @@ impl Context {
         let window = WindowBuilder::new()
             .with_title(config.window_title)
             .with_inner_size(WindowSize::Physical(config.window_size.into()))
-            .build(&event_loop)
+            .build(event_loop)
             .map_err(|error| GameError::new(GameErrorKind::OsError(error)))?;
 
         window.set_cursor_visible(config.cursor_visible);

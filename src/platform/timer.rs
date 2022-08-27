@@ -52,12 +52,6 @@ impl Timer {
     }
 
     pub fn end_frame(&self) -> bool {
-        let frame_duration = Instant::now() - self.frame_start_time;
-
-        if frame_duration >= self.target_frame_duration {
-            true
-        } else {
-            false
-        }
+        Instant::now() - self.frame_start_time >= self.target_frame_duration
     }
 }
