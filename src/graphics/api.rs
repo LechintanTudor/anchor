@@ -1,4 +1,7 @@
-use crate::graphics::{Color, Drawable, Font, Image, Shape, SpriteBounds, SpriteSheet, Texture};
+use crate::graphics::{
+    Color, Drawable, Font, Image, Projection, ProjectionBuilder, Shape, SpriteBounds, SpriteSheet,
+    Texture,
+};
 use crate::platform::{Context, GameErrorKind, GameResult};
 use glam::Vec2;
 use image::ImageError;
@@ -109,6 +112,20 @@ where
     }
 
     inner(path.as_ref())
+}
+
+pub fn set_default_projection_builder<P>(ctx: &mut Context, projection_builder: P)
+where
+    P: ProjectionBuilder,
+{
+    let default_projection = projection_builder.build_projection(window_size(ctx));
+    ctx.graphics.default_projection_builder = Box::new(projection_builder);
+    ctx.graphics.default_projection = default_projection;
+}
+
+#[inline]
+pub fn default_projection(ctx: &Context) -> Projection {
+    ctx.graphics.default_projection
 }
 
 pub fn display(ctx: &mut Context, clear_color: Color, drawables: &mut [&mut dyn Drawable]) {

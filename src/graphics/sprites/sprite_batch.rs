@@ -1,4 +1,3 @@
-use crate::graphics;
 use crate::graphics::{Drawable, Projection, Sprite, SpriteInstance, SpriteSheet, Transform};
 use crate::platform::Context;
 use glam::{Vec2, Vec4};
@@ -14,7 +13,7 @@ struct SpriteBatchData {
 pub struct SpriteBatch {
     sprite_sheet: SpriteSheet,
     instances: Vec<SpriteInstance>,
-    projection: Projection,
+    projection: Option<Projection>,
     data: Option<SpriteBatchData>,
     needs_sync: bool,
 }
@@ -24,16 +23,14 @@ impl SpriteBatch {
         Self {
             sprite_sheet,
             instances: Default::default(),
-            projection: Default::default(),
+            projection: None,
             data: None,
             needs_sync: false,
         }
     }
 
-    pub fn set_projection<P>(&mut self, projection: P)
-    where
-        P: Into<Projection>,
-    {
+    #[inline]
+    pub fn set_projection(&mut self, projection: Option<Projection>) {
         self.projection = projection.into();
     }
 
@@ -58,7 +55,8 @@ impl Drawable for SpriteBatch {
         let device = &ctx.graphics.device;
         let queue = &ctx.graphics.queue;
 
-        let projection = self.projection.to_mat4(graphics::window_size(ctx));
+        let projection_matrix =
+            self.projection.unwrap_or(ctx.graphics.default_projection).to_mat4();
 
         let create_instance_buffer = |instances: &[SpriteInstance]| {
             device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -85,12 +83,12 @@ impl Drawable for SpriteBatch {
                     self.needs_sync = false;
                 }
 
-                queue.write_buffer(&data.projection, 0, bytemuck::bytes_of(&projection));
+                queue.write_buffer(&data.projection, 0, bytemuck::bytes_of(&projection_matrix));
             }
             None => {
                 let projection = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
                     label: Some("sprite_batch_projection_buffer"),
-                    contents: bytemuck::bytes_of(&projection),
+                    contents: bytemuck::bytes_of(&projection_matrix),
                     usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
                 });
 
@@ -144,12 +142,12 @@ impl Drawable for SpriteBatch {
         let instances_size =
             (std::mem::size_of::<SpriteInstance>() * self.instances.len()) as wgpu::BufferAddress;
 
-        let viewport = self.projection.camera.viewport_bounds(graphics::window_size(ctx));
+        let viewport = self.projection.unwrap_or(ctx.graphics.default_projection).viewport;
 
         pass.set_pipeline(&ctx.graphics.sprite_pipeline.pipeline);
         pass.set_bind_group(0, &data.bind_group, &[]);
         pass.set_vertex_buffer(0, data.instances.slice(..instances_size));
-        pass.set_viewport(viewport.0, viewport.1, viewport.2, viewport.3, 0.0, 1.0);
+        pass.set_viewport(viewport.x, viewport.y, viewport.w, viewport.h, 0.0, 1.0);
         pass.draw(0..6, 0..(self.instances.len() as u32));
     }
 }

@@ -22,7 +22,7 @@ struct TextBatchData {
 pub struct TextBatch {
     fonts: FxHashMap<usize, FontIndex>,
     brush: GlyphBrush,
-    projection: Projection,
+    projection: Option<Projection>,
     texture: Option<GlyphTexture>,
     data: Option<TextBatchData>,
     bind_group: Option<wgpu::BindGroup>,
@@ -38,19 +38,17 @@ impl Default for TextBatch {
         Self {
             fonts: Default::default(),
             brush: brush_builder.build(),
-            projection: Default::default(),
-            texture: Default::default(),
-            data: Default::default(),
-            bind_group: Default::default(),
+            projection: None,
+            texture: None,
+            data: None,
+            bind_group: None,
         }
     }
 }
 
 impl TextBatch {
-    pub fn set_projection<P>(&mut self, projection: P)
-    where
-        P: Into<Projection>,
-    {
+    #[inline]
+    pub fn set_projection(&mut self, projection: Option<Projection>) {
         self.projection = projection.into();
     }
 
@@ -96,7 +94,9 @@ impl Drawable for TextBatch {
     fn prepare(&mut self, ctx: &mut Context) {
         let device = &ctx.graphics.device;
         let queue = &ctx.graphics.queue;
-        let projection = self.projection.to_mat4(graphics::window_size(ctx));
+
+        let projection_matrix =
+            self.projection.unwrap_or(ctx.graphics.default_projection).to_mat4();
 
         loop {
             let mut needs_reprocessing = false;
@@ -153,14 +153,14 @@ impl Drawable for TextBatch {
                             queue.write_buffer(
                                 &data.projection,
                                 0,
-                                bytemuck::bytes_of(&projection),
+                                bytemuck::bytes_of(&projection_matrix),
                             );
                         }
                         None => {
                             let projection =
                                 device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
                                     label: Some("text_batch_projection_buffer"),
-                                    contents: bytemuck::bytes_of(&projection),
+                                    contents: bytemuck::bytes_of(&projection_matrix),
                                     usage: wgpu::BufferUsages::UNIFORM
                                         | wgpu::BufferUsages::COPY_DST,
                                 });
@@ -186,7 +186,11 @@ impl Drawable for TextBatch {
                 }
                 Ok(BrushAction::ReDraw) => {
                     if let Some(data) = self.data.as_mut() {
-                        queue.write_buffer(&data.projection, 0, bytemuck::bytes_of(&projection));
+                        queue.write_buffer(
+                            &data.projection,
+                            0,
+                            bytemuck::bytes_of(&projection_matrix),
+                        );
                     }
                 }
                 Err(BrushError::TextureTooSmall { suggested: (width, height) }) => {
@@ -213,12 +217,12 @@ impl Drawable for TextBatch {
         let instances_size =
             (std::mem::size_of::<GlyphInstance>() * data.instances_len) as wgpu::BufferAddress;
 
-        let viewport = self.projection.camera.viewport_bounds(graphics::window_size(ctx));
+        let viewport = self.projection.unwrap_or(ctx.graphics.default_projection).viewport;
 
         pass.set_pipeline(&ctx.graphics.text_pipeline.pipeline);
         pass.set_bind_group(0, bind_group, &[]);
         pass.set_vertex_buffer(0, data.instances.slice(..instances_size));
-        pass.set_viewport(viewport.0, viewport.1, viewport.2, viewport.3, 0.0, 1.0);
+        pass.set_viewport(viewport.x, viewport.y, viewport.w, viewport.h, 0.0, 1.0);
         pass.draw(0..6, 0..(data.instances_len as u32));
     }
 }

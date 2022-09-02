@@ -1,102 +1,41 @@
 use crate::graphics::{self, Transform};
 use glam::{Mat4, Vec2};
 
-#[derive(Clone, Copy, Default, Debug)]
-pub enum CameraSize {
-    #[default]
-    Fill,
-    Fixed {
-        size: Vec2,
-    },
-    Scale {
-        aspect_ratio: f32,
-    },
-}
-
-impl CameraSize {
-    pub fn camera_size(&self, window_size: Vec2) -> Vec2 {
-        match *self {
-            Self::Fill => window_size,
-            Self::Fixed { size } => size,
-            Self::Scale { aspect_ratio } => fit_aspect_ratio(aspect_ratio, window_size),
-        }
-    }
-
-    pub fn letterbox_viewport_size(&self, window_size: Vec2) -> Vec2 {
-        match *self {
-            Self::Fill => window_size,
-            Self::Fixed { size } => fit_aspect_ratio(size.x / size.y, window_size),
-            Self::Scale { aspect_ratio } => fit_aspect_ratio(aspect_ratio, window_size),
-        }
-    }
-}
-
-fn fit_aspect_ratio(aspect_ratio: f32, window_size: Vec2) -> Vec2 {
-    let width = window_size.y * aspect_ratio;
-
-    if width <= window_size.x {
-        Vec2::new(width, window_size.y)
-    } else {
-        Vec2::new(window_size.x, window_size.x / aspect_ratio)
-    }
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, Default, Debug)]
-pub enum CameraViewport {
-    #[default]
-    Letterbox,
-    Crop,
-    Stretch,
-}
-
 #[derive(Clone, Copy, Debug)]
 pub struct Camera {
-    pub size: CameraSize,
-    pub viewport: CameraViewport,
+    pub size: Vec2,
     pub anchor: Vec2,
 }
 
-impl Default for Camera {
-    #[inline]
-    fn default() -> Self {
-        Self::DEFAULT
-    }
-}
-
 impl Camera {
-    pub const DEFAULT: Self = Self {
-        size: CameraSize::Fill,
-        viewport: CameraViewport::Letterbox,
-        anchor: graphics::ANCHOR_CENTER,
-    };
-
-    pub fn to_mat4(&self, window_size: Vec2) -> Mat4 {
-        let size = self.size.camera_size(window_size);
-
-        let top = size.y * (-0.5 - self.anchor.y);
-        let left = size.x * (-0.5 - self.anchor.x);
-        let bottom = size.y * (0.5 - self.anchor.y);
-        let right = size.x * (0.5 - self.anchor.x);
+    pub fn to_mat4(&self) -> Mat4 {
+        let top = self.size.y * (-0.5 - self.anchor.y);
+        let left = self.size.x * (-0.5 - self.anchor.x);
+        let bottom = self.size.y * (0.5 - self.anchor.y);
+        let right = self.size.x * (0.5 - self.anchor.x);
 
         Mat4::orthographic_rh(left, right, bottom, top, 0.0, 1.0)
     }
+}
 
-    pub fn viewport_bounds(&self, window_size: Vec2) -> (f32, f32, f32, f32) {
-        match self.viewport {
-            CameraViewport::Letterbox => {
-                let viewport_size = self.size.letterbox_viewport_size(window_size);
-                let viewport_position = (window_size - viewport_size) / 2.0;
+#[derive(Clone, Copy, Debug)]
+pub struct Viewport {
+    pub x: f32,
+    pub y: f32,
+    pub w: f32,
+    pub h: f32,
+}
 
-                (viewport_position.x, viewport_position.y, viewport_size.x, viewport_size.y)
-            }
-            CameraViewport::Crop => {
-                let viewport_size = self.size.camera_size(window_size);
-                let viewport_position = (window_size - viewport_size) / 2.0;
+impl Viewport {
+    pub fn fixed(size: Vec2) -> Self {
+        Self { x: 0.0, y: 0.0, w: size.x, h: size.y }
+    }
 
-                (viewport_position.x, viewport_position.y, viewport_size.x, viewport_size.y)
-            }
-            CameraViewport::Stretch => (0.0, 0.0, window_size.x, window_size.y),
-        }
+    pub fn fit(aspect_ratio: f32, box_size: Vec2) -> Self {
+        let size = fit_aspect_ratio(aspect_ratio, box_size);
+        let position = (box_size - size) * 0.5;
+
+        Self { x: position.x, y: position.y, w: size.x, h: size.y }
     }
 }
 
@@ -104,39 +43,72 @@ impl Camera {
 pub struct Projection {
     pub camera: Camera,
     pub transform: Transform,
-}
-
-impl Default for Projection {
-    #[inline]
-    fn default() -> Self {
-        Self::DEFAULT
-    }
+    pub viewport: Viewport,
 }
 
 impl Projection {
-    pub const DEFAULT: Self = Self { camera: Camera::DEFAULT, transform: Transform::DEFAULT };
-
-    #[inline]
-    pub const fn new(camera: Camera, transform: Transform) -> Self {
-        Self { camera, transform }
-    }
-
-    #[inline]
-    pub fn to_mat4(&self, window_size: Vec2) -> Mat4 {
-        self.camera.to_mat4(window_size) * self.transform.to_mat4()
+    pub fn to_mat4(&self) -> Mat4 {
+        self.camera.to_mat4() * self.transform.to_mat4()
     }
 }
 
-impl From<Camera> for Projection {
-    #[inline]
-    fn from(camera: Camera) -> Self {
-        Self { camera, transform: Transform::DEFAULT }
+pub trait ProjectionBuilder: 'static {
+    fn build_projection(&self, window_size: Vec2) -> Projection;
+}
+
+impl<F> ProjectionBuilder for F
+where
+    F: Fn(Vec2) -> Projection + 'static,
+{
+    fn build_projection(&self, window_size: Vec2) -> Projection {
+        self(window_size)
     }
 }
 
-impl From<(Camera, Transform)> for Projection {
-    #[inline]
-    fn from((camera, transform): (Camera, Transform)) -> Self {
-        Self { camera, transform }
+pub fn projection_builder_fill() -> impl ProjectionBuilder {
+    |window_size: Vec2| -> Projection {
+        Projection {
+            camera: Camera { size: window_size, anchor: graphics::ANCHOR_CENTER },
+            transform: Transform::DEFAULT,
+            viewport: Viewport::fixed(window_size),
+        }
+    }
+}
+
+pub fn projection_builder_fixed(size: Vec2, keep_aspect_ratio: bool) -> impl ProjectionBuilder {
+    move |window_size: Vec2| -> Projection {
+        Projection {
+            camera: Camera { size, anchor: graphics::ANCHOR_CENTER },
+            transform: Transform::DEFAULT,
+            viewport: {
+                if keep_aspect_ratio {
+                    Viewport::fit(size.x / size.y, window_size)
+                } else {
+                    Viewport::fixed(window_size)
+                }
+            },
+        }
+    }
+}
+
+pub fn projection_builder_scaled(aspect_ratio: f32) -> impl ProjectionBuilder {
+    move |window_size: Vec2| -> Projection {
+        let camera_size = fit_aspect_ratio(aspect_ratio, window_size);
+
+        Projection {
+            camera: Camera { size: camera_size, anchor: graphics::ANCHOR_CENTER },
+            transform: Transform::DEFAULT,
+            viewport: Viewport::fit(aspect_ratio, window_size),
+        }
+    }
+}
+
+fn fit_aspect_ratio(aspect_ratio: f32, box_size: Vec2) -> Vec2 {
+    let width = box_size.y * aspect_ratio;
+
+    if width <= box_size.x {
+        Vec2::new(width, box_size.y)
+    } else {
+        Vec2::new(box_size.x, box_size.x / aspect_ratio)
     }
 }

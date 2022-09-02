@@ -1,4 +1,4 @@
-use crate::graphics::{self, Color, Drawable, Projection, Shape, ShapeInstance, Transform};
+use crate::graphics::{Color, Drawable, Projection, Shape, ShapeInstance, Transform};
 use crate::platform::Context;
 use glam::Vec2;
 use std::mem;
@@ -7,7 +7,7 @@ use wgpu::util::DeviceExt;
 pub struct ShapeBatch {
     shape: Shape,
     instances: Vec<ShapeInstance>,
-    projection: Projection,
+    projection: Option<Projection>,
     data: Option<ShapeBatchData>,
     needs_sync: bool,
 }
@@ -21,13 +21,7 @@ struct ShapeBatchData {
 
 impl ShapeBatch {
     pub fn new(shape: Shape) -> ShapeBatch {
-        Self {
-            shape,
-            instances: Vec::new(),
-            projection: Default::default(),
-            data: None,
-            needs_sync: false,
-        }
+        Self { shape, instances: Vec::new(), projection: None, data: None, needs_sync: false }
     }
 
     #[inline]
@@ -35,10 +29,8 @@ impl ShapeBatch {
         self.shape = shape;
     }
 
-    pub fn set_projection<P>(&mut self, projection: P)
-    where
-        P: Into<Projection>,
-    {
+    #[inline]
+    pub fn set_projection(&mut self, projection: Option<Projection>) {
         self.projection = projection.into();
     }
 
@@ -58,7 +50,8 @@ impl Drawable for ShapeBatch {
         let device = &ctx.graphics.device;
         let queue = &ctx.graphics.queue;
 
-        let projection = self.projection.to_mat4(graphics::window_size(ctx));
+        let projection_matrix =
+            self.projection.unwrap_or(ctx.graphics.default_projection).to_mat4();
 
         let create_instance_buffer = |instances: &[ShapeInstance]| {
             device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -85,12 +78,12 @@ impl Drawable for ShapeBatch {
                     self.needs_sync = false;
                 }
 
-                queue.write_buffer(&data.projection, 0, bytemuck::bytes_of(&projection));
+                queue.write_buffer(&data.projection, 0, bytemuck::bytes_of(&projection_matrix));
             }
             None => {
                 let projection = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
                     label: Some("shape_batch_projection_buffer"),
-                    contents: bytemuck::bytes_of(&projection),
+                    contents: bytemuck::bytes_of(&projection_matrix),
                     usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
                 });
 
@@ -122,14 +115,14 @@ impl Drawable for ShapeBatch {
         let instance_slice_len =
             (self.instances.len() * mem::size_of::<ShapeInstance>()) as wgpu::BufferAddress;
 
-        let viewport = self.projection.camera.viewport_bounds(graphics::window_size(ctx));
+        let viewport = self.projection.unwrap_or(ctx.graphics.default_projection).viewport;
 
         pass.set_pipeline(&ctx.graphics.shape_pipeline.pipeline);
         pass.set_bind_group(0, &data.bind_group, &[]);
         pass.set_vertex_buffer(0, self.shape.vertexes());
         pass.set_index_buffer(self.shape.indexes(), wgpu::IndexFormat::Uint32);
         pass.set_vertex_buffer(1, data.instances.slice(..instance_slice_len));
-        pass.set_viewport(viewport.0, viewport.1, viewport.2, viewport.3, 0.0, 1.0);
+        pass.set_viewport(viewport.x, viewport.y, viewport.w, viewport.h, 0.0, 1.0);
         pass.draw_indexed(0..self.shape.index_count() as u32, 0, 0..self.instances.len() as u32);
     }
 }

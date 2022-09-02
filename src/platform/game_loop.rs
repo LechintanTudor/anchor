@@ -54,7 +54,7 @@ where
                 }
                 WindowEvent::Resized(size) => {
                     let (width, height) = (size.width, size.height);
-                    ctx.graphics.reconfigure_surface(width, height);
+                    ctx.graphics.on_window_resized(width, height);
                     game.on_window_resized(ctx, width, height);
                 }
                 WindowEvent::KeyboardInput { input, .. } => {
