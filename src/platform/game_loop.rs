@@ -134,12 +134,11 @@ where
                     }
                 }
 
+                ctx.input.on_frame_end();
+
                 if let Some(surface_texture) = ctx.graphics.surface_texture.take() {
                     surface_texture.texture.present();
                 }
-
-                ctx.input.keyboard.on_frame_end();
-                ctx.input.mouse.on_frame_end();
 
                 if !ctx.vsync {
                     while !ctx.timer.end_frame() {

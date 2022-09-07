@@ -31,7 +31,8 @@ impl SpriteBatch {
 
     #[inline]
     pub fn set_projection(&mut self, projection: Option<Projection>) {
-        self.projection = projection.into();
+        self.projection = projection;
+        self.needs_sync = true;
     }
 
     #[inline]
@@ -47,7 +48,7 @@ impl SpriteBatch {
 }
 
 impl Drawable for SpriteBatch {
-    fn prepare(&mut self, ctx: &mut Context) {
+    fn prepare(&mut self, ctx: &Context, projection: Projection) {
         if self.instances.is_empty() {
             return;
         }
@@ -55,8 +56,7 @@ impl Drawable for SpriteBatch {
         let device = &ctx.graphics.device;
         let queue = &ctx.graphics.queue;
 
-        let projection_matrix =
-            self.projection.unwrap_or(ctx.graphics.default_projection).to_mat4();
+        let projection_matrix = projection.to_ortho_mat4();
 
         let create_instance_buffer = |instances: &[SpriteInstance]| {
             device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -133,7 +133,12 @@ impl Drawable for SpriteBatch {
         }
     }
 
-    fn draw<'a>(&'a mut self, ctx: &'a Context, pass: &mut wgpu::RenderPass<'a>) {
+    fn draw<'a>(
+        &'a mut self,
+        ctx: &'a Context,
+        projection: Projection,
+        pass: &mut wgpu::RenderPass<'a>,
+    ) {
         let data = match self.data.as_mut() {
             Some(data) if !self.instances.is_empty() => data,
             _ => return,
@@ -142,7 +147,7 @@ impl Drawable for SpriteBatch {
         let instances_size =
             (std::mem::size_of::<SpriteInstance>() * self.instances.len()) as wgpu::BufferAddress;
 
-        let viewport = self.projection.unwrap_or(ctx.graphics.default_projection).viewport;
+        let viewport = projection.viewport;
 
         pass.set_pipeline(&ctx.graphics.sprite_pipeline.pipeline);
         pass.set_bind_group(0, &data.bind_group, &[]);

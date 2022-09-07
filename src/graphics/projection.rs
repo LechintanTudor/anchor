@@ -1,4 +1,4 @@
-use crate::graphics::{self, Transform};
+use crate::graphics::Transform;
 use glam::{Mat4, Vec2};
 
 #[derive(Clone, Copy, Debug)]
@@ -8,7 +8,12 @@ pub struct Camera {
 }
 
 impl Camera {
-    pub fn to_mat4(&self) -> Mat4 {
+    #[inline]
+    pub fn new(size: Vec2, anchor: Vec2) -> Self {
+        Self { size, anchor }
+    }
+
+    pub fn to_ortho_mat4(&self) -> Mat4 {
         let top = self.size.y * (-0.5 - self.anchor.y);
         let left = self.size.x * (-0.5 - self.anchor.x);
         let bottom = self.size.y * (0.5 - self.anchor.y);
@@ -27,6 +32,12 @@ pub struct Viewport {
 }
 
 impl Viewport {
+    #[inline]
+    pub fn new(x: f32, y: f32, w: f32, h: f32) -> Self {
+        Self { x, y, w, h }
+    }
+
+    #[inline]
     pub fn fixed(size: Vec2) -> Self {
         Self { x: 0.0, y: 0.0, w: size.x, h: size.y }
     }
@@ -42,64 +53,19 @@ impl Viewport {
 #[derive(Clone, Copy, Debug)]
 pub struct Projection {
     pub camera: Camera,
-    pub transform: Transform,
+    pub camera_transform: Transform,
     pub viewport: Viewport,
 }
 
 impl Projection {
-    pub fn to_mat4(&self) -> Mat4 {
-        self.camera.to_mat4() * self.transform.to_mat4()
-    }
-}
+    pub fn to_ortho_mat4(&self) -> Mat4 {
+        let object_transform = Transform {
+            translation: -self.camera_transform.translation,
+            rotation: -self.camera_transform.rotation,
+            scale: self.camera_transform.scale,
+        };
 
-pub trait ProjectionBuilder: 'static {
-    fn build_projection(&self, window_size: Vec2) -> Projection;
-}
-
-impl<F> ProjectionBuilder for F
-where
-    F: Fn(Vec2) -> Projection + 'static,
-{
-    fn build_projection(&self, window_size: Vec2) -> Projection {
-        self(window_size)
-    }
-}
-
-pub fn projection_builder_fill() -> impl ProjectionBuilder {
-    |window_size: Vec2| -> Projection {
-        Projection {
-            camera: Camera { size: window_size, anchor: graphics::ANCHOR_CENTER },
-            transform: Transform::DEFAULT,
-            viewport: Viewport::fixed(window_size),
-        }
-    }
-}
-
-pub fn projection_builder_fixed(size: Vec2, keep_aspect_ratio: bool) -> impl ProjectionBuilder {
-    move |window_size: Vec2| -> Projection {
-        Projection {
-            camera: Camera { size, anchor: graphics::ANCHOR_CENTER },
-            transform: Transform::DEFAULT,
-            viewport: {
-                if keep_aspect_ratio {
-                    Viewport::fit(size.x / size.y, window_size)
-                } else {
-                    Viewport::fixed(window_size)
-                }
-            },
-        }
-    }
-}
-
-pub fn projection_builder_scaled(aspect_ratio: f32) -> impl ProjectionBuilder {
-    move |window_size: Vec2| -> Projection {
-        let camera_size = fit_aspect_ratio(aspect_ratio, window_size);
-
-        Projection {
-            camera: Camera { size: camera_size, anchor: graphics::ANCHOR_CENTER },
-            transform: Transform::DEFAULT,
-            viewport: Viewport::fit(aspect_ratio, window_size),
-        }
+        self.camera.to_ortho_mat4() * object_transform.to_mat4()
     }
 }
 

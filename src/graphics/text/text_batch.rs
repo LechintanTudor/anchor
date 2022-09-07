@@ -22,7 +22,6 @@ struct TextBatchData {
 pub struct TextBatch {
     fonts: FxHashMap<usize, FontIndex>,
     brush: GlyphBrush,
-    projection: Option<Projection>,
     texture: Option<GlyphTexture>,
     data: Option<TextBatchData>,
     bind_group: Option<wgpu::BindGroup>,
@@ -38,7 +37,6 @@ impl Default for TextBatch {
         Self {
             fonts: Default::default(),
             brush: brush_builder.build(),
-            projection: None,
             texture: None,
             data: None,
             bind_group: None,
@@ -47,11 +45,6 @@ impl Default for TextBatch {
 }
 
 impl TextBatch {
-    #[inline]
-    pub fn set_projection(&mut self, projection: Option<Projection>) {
-        self.projection = projection.into();
-    }
-
     #[inline]
     pub fn begin(&mut self) -> TextDrawer {
         TextDrawer { batch: self }
@@ -91,12 +84,11 @@ impl TextBatch {
 }
 
 impl Drawable for TextBatch {
-    fn prepare(&mut self, ctx: &mut Context) {
+    fn prepare(&mut self, ctx: &Context, projection: Projection) {
         let device = &ctx.graphics.device;
         let queue = &ctx.graphics.queue;
 
-        let projection_matrix =
-            self.projection.unwrap_or(ctx.graphics.default_projection).to_mat4();
+        let projection_matrix = projection.to_ortho_mat4();
 
         loop {
             let mut needs_reprocessing = false;
@@ -208,7 +200,12 @@ impl Drawable for TextBatch {
         self.recreate_bind_group(ctx);
     }
 
-    fn draw<'a>(&'a mut self, ctx: &'a Context, pass: &mut wgpu::RenderPass<'a>) {
+    fn draw<'a>(
+        &'a mut self,
+        ctx: &'a Context,
+        projection: Projection,
+        pass: &mut wgpu::RenderPass<'a>,
+    ) {
         let (bind_group, data) = match (self.bind_group.as_mut(), self.data.as_mut()) {
             (Some(bind_group), Some(data)) if data.instances_len != 0 => (bind_group, data),
             _ => return,
@@ -217,7 +214,7 @@ impl Drawable for TextBatch {
         let instances_size =
             (std::mem::size_of::<GlyphInstance>() * data.instances_len) as wgpu::BufferAddress;
 
-        let viewport = self.projection.unwrap_or(ctx.graphics.default_projection).viewport;
+        let viewport = projection.viewport;
 
         pass.set_pipeline(&ctx.graphics.text_pipeline.pipeline);
         pass.set_bind_group(0, bind_group, &[]);

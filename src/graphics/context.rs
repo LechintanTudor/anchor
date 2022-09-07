@@ -1,7 +1,4 @@
-use crate::graphics::{
-    self, Projection, ProjectionBuilder, ShapePipeline, SpritePipeline, TextPipeline,
-};
-use glam::Vec2;
+use crate::graphics::{ShapePipeline, SpritePipeline, TextPipeline};
 use winit::window::Window;
 
 pub(crate) struct SurfaceTexture {
@@ -19,8 +16,6 @@ pub(crate) struct GraphicsContext {
     pub(crate) shape_pipeline: ShapePipeline,
     pub(crate) sprite_pipeline: SpritePipeline,
     pub(crate) text_pipeline: TextPipeline,
-    pub(crate) default_projection_builder: Box<dyn ProjectionBuilder + 'static>,
-    pub(crate) default_projection: Projection,
 }
 
 impl GraphicsContext {
@@ -78,10 +73,6 @@ impl GraphicsContext {
         let sprite_pipeline = SpritePipeline::new(&device, surface_format);
         let text_pipeline = TextPipeline::new(&device, surface_format);
 
-        let window_size = Vec2::new(window_width as f32, window_height as f32);
-        let default_projection_builder = Box::new(graphics::projection_builder_fill());
-        let default_projection = default_projection_builder.build_projection(window_size);
-
         Self {
             surface,
             surface_format,
@@ -92,8 +83,6 @@ impl GraphicsContext {
             sprite_pipeline,
             text_pipeline,
             surface_texture: Default::default(),
-            default_projection_builder,
-            default_projection,
         }
     }
 
@@ -102,10 +91,6 @@ impl GraphicsContext {
             self.surface_config.width = width;
             self.surface_config.height = height;
             self.surface.configure(&self.device, &self.surface_config);
-
-            self.default_projection = self
-                .default_projection_builder
-                .build_projection(Vec2::new(width as f32, height as f32));
         }
     }
 

@@ -1,7 +1,4 @@
-use crate::graphics::{
-    Color, Drawable, Font, Image, Projection, ProjectionBuilder, Shape, SpriteBounds, SpriteSheet,
-    Texture,
-};
+use crate::graphics::{Color, Font, Image, Layer, Shape, SpriteBounds, SpriteSheet, Texture};
 use crate::platform::{Context, GameErrorKind, GameResult};
 use glam::Vec2;
 use image::ImageError;
@@ -114,28 +111,14 @@ where
     inner(path.as_ref())
 }
 
-pub fn set_default_projection_builder<P>(ctx: &mut Context, projection_builder: P)
-where
-    P: ProjectionBuilder,
-{
-    let default_projection = projection_builder.build_projection(window_size(ctx));
-    ctx.graphics.default_projection_builder = Box::new(projection_builder);
-    ctx.graphics.default_projection = default_projection;
-}
-
-#[inline]
-pub fn default_projection(ctx: &Context) -> Projection {
-    ctx.graphics.default_projection
-}
-
-pub fn display(ctx: &mut Context, clear_color: Color, drawables: &mut [&mut dyn Drawable]) {
+pub fn display(ctx: &mut Context, clear_color: Color, layers: &mut [Layer]) {
     let surface_texture = match ctx.graphics.surface_texture.take() {
         Some(surface_texture) => surface_texture,
         None => return,
     };
 
-    for drawable in drawables.iter_mut() {
-        drawable.prepare(ctx);
+    for layer in layers.iter_mut() {
+        layer.drawable.prepare(ctx, layer.projection);
     }
 
     let mut encoder = ctx.graphics.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
@@ -156,8 +139,8 @@ pub fn display(ctx: &mut Context, clear_color: Color, drawables: &mut [&mut dyn 
             depth_stencil_attachment: None,
         });
 
-        for drawable in drawables.iter_mut() {
-            drawable.draw(ctx, &mut pass);
+        for layer in layers.iter_mut() {
+            layer.drawable.draw(ctx, layer.projection, &mut pass);
         }
     }
 
