@@ -16,6 +16,7 @@ pub(crate) struct GraphicsContext {
     pub(crate) shape_pipeline: ShapePipeline,
     pub(crate) sprite_pipeline: SpritePipeline,
     pub(crate) text_pipeline: TextPipeline,
+    pub(crate) vsync: bool,
 }
 
 impl GraphicsContext {
@@ -77,12 +78,13 @@ impl GraphicsContext {
             surface,
             surface_format,
             surface_config,
+            surface_texture: None,
             device,
             queue,
             shape_pipeline,
             sprite_pipeline,
             text_pipeline,
-            surface_texture: Default::default(),
+            vsync,
         }
     }
 

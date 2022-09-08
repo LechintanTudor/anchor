@@ -3,6 +3,7 @@ pub(crate) mod utils;
 pub mod graphics;
 pub mod input;
 pub mod platform;
+pub mod time;
 
 use crate::platform::{Config, GameBuilder, GameResult};
 

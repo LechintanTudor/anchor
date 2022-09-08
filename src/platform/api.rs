@@ -1,4 +1,4 @@
-use crate::platform::{Config, Context, GameErrorKind, GameResult, Window};
+use crate::platform::{Config, Context, FramePhase, GameErrorKind, GameResult, Window};
 use std::path::Path;
 
 pub fn load_config<P>(path: P) -> GameResult<Config>
@@ -37,4 +37,9 @@ pub fn window_size(ctx: &Context) -> (u32, u32) {
 #[inline]
 pub fn set_cursor_visible(ctx: &Context, cursor_visible: bool) {
     ctx.window.set_cursor_visible(cursor_visible)
+}
+
+#[inline]
+pub fn frame_phase(ctx: &Context) -> FramePhase {
+    ctx.frame_phase
 }

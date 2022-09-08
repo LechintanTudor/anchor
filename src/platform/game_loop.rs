@@ -1,27 +1,8 @@
-use crate::platform::{Config, Context, Game, GameBuilder, GameError, GameResult};
+use crate::platform::{Config, Context, FramePhase, Game, GameBuilder, GameError, GameResult};
 use glam::DVec2;
 use log::info;
 use winit::event::{DeviceEvent, ElementState, Event, StartCause, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
-
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum FramePhase {
-    Update,
-    FixedUpdate,
-    LateUpdate,
-    Draw,
-}
-
-impl FramePhase {
-    pub const fn error_exit_code(&self) -> i32 {
-        match self {
-            Self::Update => 1,
-            Self::FixedUpdate => 2,
-            Self::LateUpdate => 3,
-            Self::Draw => 4,
-        }
-    }
-}
 
 pub(crate) fn run<G>(config: Config, game_builder: G) -> GameResult<()>
 where
@@ -38,6 +19,15 @@ where
         match event {
             Event::NewEvents(StartCause::Init) => {
                 info!("Starting Anchor...");
+            }
+            Event::NewEvents(_) => {
+                ctx.timer.start_frame();
+                ctx.frame_phase = FramePhase::Input;
+
+                if ctx.take_should_exit() && game.on_exit_requested(ctx) {
+                    control_flow.set_exit();
+                    return;
+                }
             }
             Event::DeviceEvent { event, .. } => match event {
                 DeviceEvent::MouseMotion { delta, .. } => {
@@ -99,19 +89,14 @@ where
                 _ => (),
             },
             Event::MainEventsCleared => {
-                ctx.timer.start_frame();
-
-                if ctx.take_should_exit() && game.on_exit_requested(ctx) {
-                    control_flow.set_exit();
-                    return;
-                }
-
+                ctx.frame_phase = FramePhase::Update;
                 if let Err(error) = game.update(ctx) {
                     if handle_error(game, ctx, FramePhase::Update, error, control_flow) {
                         return;
                     }
                 }
 
+                ctx.frame_phase = FramePhase::FixedUpdate;
                 while ctx.timer.fixed_update() {
                     if let Err(error) = game.fixed_update(ctx) {
                         if handle_error(game, ctx, FramePhase::FixedUpdate, error, control_flow) {
@@ -120,12 +105,14 @@ where
                     }
                 }
 
+                ctx.frame_phase = FramePhase::LateUpdate;
                 if let Err(error) = game.late_update(ctx) {
                     if handle_error(game, ctx, FramePhase::LateUpdate, error, control_flow) {
                         return;
                     }
                 }
 
+                ctx.frame_phase = FramePhase::Draw;
                 ctx.graphics.update_surface_texture();
 
                 if let Err(error) = game.draw(ctx) {
@@ -140,7 +127,7 @@ where
                     surface_texture.texture.present();
                 }
 
-                if !ctx.vsync {
+                if !ctx.graphics.vsync {
                     while !ctx.timer.end_frame() {
                         std::thread::yield_now();
                     }
