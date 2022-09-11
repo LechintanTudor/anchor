@@ -21,117 +21,22 @@ where
                 info!("Starting Anchor...");
             }
             Event::NewEvents(_) => {
-                ctx.timer.start_frame();
-                ctx.frame_phase = FramePhase::Input;
-
-                if ctx.take_should_exit() && game.on_exit_requested(ctx) {
-                    control_flow.set_exit();
-                    return;
-                }
+                on_frame_start(ctx, game, control_flow);
             }
-            Event::DeviceEvent { event, .. } => match event {
-                DeviceEvent::MouseMotion { delta, .. } => {
-                    let delta = DVec2::new(delta.0, delta.1);
-                    game.on_mouse_motion(ctx, delta);
-                }
-                _ => (),
-            },
-            Event::WindowEvent { event, .. } => match event {
-                WindowEvent::CloseRequested => {
-                    if game.on_exit_requested(ctx) {
-                        control_flow.set_exit();
-                    }
-                }
-                WindowEvent::Resized(size) => {
-                    let (width, height) = (size.width, size.height);
-                    ctx.graphics.on_window_resized(width, height);
-                    game.on_window_resized(ctx, width, height);
-                }
-                WindowEvent::KeyboardInput { input, .. } => {
-                    if let Some(key) = input.virtual_keycode {
-                        match input.state {
-                            ElementState::Pressed => {
-                                ctx.input.keyboard.on_key_pressed(key);
-                                game.on_key_pressed(ctx, key);
-                            }
-                            ElementState::Released => {
-                                ctx.input.keyboard.on_key_released(key);
-                                game.on_key_released(ctx, key);
-                            }
-                        }
-                    }
-                }
-                WindowEvent::MouseInput { state, button, .. } => match state {
-                    ElementState::Pressed => {
-                        ctx.input.mouse.on_button_pressed(button);
-                        game.on_mouse_button_pressed(ctx, button);
-                    }
-                    ElementState::Released => {
-                        ctx.input.mouse.on_button_released(button);
-                        game.on_mouse_button_released(ctx, button);
-                    }
-                },
-                WindowEvent::CursorEntered { .. } => {
-                    ctx.input.cursor.hovers_window = true;
-                }
-                WindowEvent::CursorLeft { .. } => {
-                    ctx.input.cursor.hovers_window = false;
-                }
-                WindowEvent::CursorMoved { position, .. } => {
-                    let position = DVec2::new(position.x, position.y);
-                    ctx.input.cursor.last_position = position;
-                    game.on_cursor_moved(ctx, position);
-                }
-                WindowEvent::Focused(false) => {
-                    ctx.input.keyboard.on_focus_lost();
-                    ctx.input.mouse.on_focus_lost();
-                }
-                _ => (),
-            },
+            Event::DeviceEvent { event, .. } => {
+                on_device_event(ctx, game, event);
+            }
+            Event::WindowEvent { event, .. } => {
+                on_window_event(ctx, game, event, control_flow);
+            }
             Event::MainEventsCleared => {
-                ctx.frame_phase = FramePhase::Update;
-                if let Err(error) = game.update(ctx) {
-                    if handle_error(game, ctx, FramePhase::Update, error, control_flow) {
-                        return;
-                    }
-                }
-
-                ctx.frame_phase = FramePhase::FixedUpdate;
-                while ctx.timer.fixed_update() {
-                    if let Err(error) = game.fixed_update(ctx) {
-                        if handle_error(game, ctx, FramePhase::FixedUpdate, error, control_flow) {
-                            return;
-                        }
-                    }
-                }
-
-                ctx.frame_phase = FramePhase::LateUpdate;
-                if let Err(error) = game.late_update(ctx) {
-                    if handle_error(game, ctx, FramePhase::LateUpdate, error, control_flow) {
-                        return;
-                    }
-                }
-
-                ctx.frame_phase = FramePhase::Draw;
-                ctx.graphics.update_surface_texture();
-
-                if let Err(error) = game.draw(ctx) {
-                    if handle_error(game, ctx, FramePhase::Draw, error, control_flow) {
-                        return;
-                    }
-                }
-
-                ctx.input.on_frame_end();
-
-                if let Some(surface_texture) = ctx.graphics.surface_texture.take() {
-                    surface_texture.texture.present();
-                }
-
-                if !ctx.graphics.vsync {
-                    while !ctx.timer.end_frame() {
-                        std::thread::yield_now();
-                    }
-                }
+                on_update(ctx, game, control_flow);
+            }
+            Event::RedrawRequested(_) => {
+                on_draw(ctx, game, control_flow);
+            }
+            Event::RedrawEventsCleared => {
+                on_frame_end(ctx);
             }
             Event::LoopDestroyed => {
                 info!("Shutting down Anchor...");
@@ -139,6 +44,135 @@ where
             _ => (),
         }
     });
+}
+
+fn on_frame_start(ctx: &mut Context, game: &mut impl Game, control_flow: &mut ControlFlow) {
+    ctx.timer.start_frame();
+    ctx.frame_phase = FramePhase::Input;
+
+    if ctx.take_should_exit() && game.on_exit_requested(ctx) {
+        control_flow.set_exit();
+    }
+}
+
+fn on_device_event(ctx: &mut Context, game: &mut impl Game, event: DeviceEvent) {
+    match event {
+        DeviceEvent::MouseMotion { delta, .. } => {
+            let delta = DVec2::new(delta.0, delta.1);
+            game.on_mouse_motion(ctx, delta);
+        }
+        _ => (),
+    }
+}
+
+fn on_window_event(
+    ctx: &mut Context,
+    game: &mut impl Game,
+    event: WindowEvent,
+    control_flow: &mut ControlFlow,
+) {
+    match event {
+        WindowEvent::CloseRequested => {
+            if game.on_exit_requested(ctx) {
+                control_flow.set_exit();
+            }
+        }
+        WindowEvent::Resized(size) => {
+            let (width, height) = (size.width, size.height);
+            ctx.graphics.on_window_resized(width, height);
+            game.on_window_resized(ctx, width, height);
+        }
+        WindowEvent::KeyboardInput { input, .. } => {
+            if let Some(key) = input.virtual_keycode {
+                match input.state {
+                    ElementState::Pressed => {
+                        ctx.input.keyboard.on_key_pressed(key);
+                        game.on_key_pressed(ctx, key);
+                    }
+                    ElementState::Released => {
+                        ctx.input.keyboard.on_key_released(key);
+                        game.on_key_released(ctx, key);
+                    }
+                }
+            }
+        }
+        WindowEvent::MouseInput { state, button, .. } => match state {
+            ElementState::Pressed => {
+                ctx.input.mouse.on_button_pressed(button);
+                game.on_mouse_button_pressed(ctx, button);
+            }
+            ElementState::Released => {
+                ctx.input.mouse.on_button_released(button);
+                game.on_mouse_button_released(ctx, button);
+            }
+        },
+        WindowEvent::CursorEntered { .. } => {
+            ctx.input.cursor.hovers_window = true;
+        }
+        WindowEvent::CursorLeft { .. } => {
+            ctx.input.cursor.hovers_window = false;
+        }
+        WindowEvent::CursorMoved { position, .. } => {
+            let position = DVec2::new(position.x, position.y);
+            ctx.input.cursor.last_position = position;
+            game.on_cursor_moved(ctx, position);
+        }
+        WindowEvent::Focused(false) => {
+            ctx.input.keyboard.on_focus_lost();
+            ctx.input.mouse.on_focus_lost();
+        }
+        _ => (),
+    }
+}
+
+fn on_update(ctx: &mut Context, game: &mut impl Game, control_flow: &mut ControlFlow) {
+    ctx.frame_phase = FramePhase::Update;
+    if let Err(error) = game.update(ctx) {
+        if handle_error(game, ctx, FramePhase::Update, error, control_flow) {
+            return;
+        }
+    }
+
+    ctx.frame_phase = FramePhase::FixedUpdate;
+    while ctx.timer.fixed_update() {
+        if let Err(error) = game.fixed_update(ctx) {
+            if handle_error(game, ctx, FramePhase::FixedUpdate, error, control_flow) {
+                return;
+            }
+        }
+    }
+
+    ctx.frame_phase = FramePhase::LateUpdate;
+    if let Err(error) = game.late_update(ctx) {
+        if handle_error(game, ctx, FramePhase::LateUpdate, error, control_flow) {
+            return;
+        }
+    }
+
+    ctx.window.request_redraw();
+}
+
+fn on_draw(ctx: &mut Context, game: &mut impl Game, control_flow: &mut ControlFlow) {
+    ctx.frame_phase = FramePhase::Draw;
+    ctx.graphics.update_surface_texture();
+
+    if let Err(error) = game.draw(ctx) {
+        if handle_error(game, ctx, FramePhase::Draw, error, control_flow) {
+            return;
+        }
+    }
+}
+
+fn on_frame_end(ctx: &mut Context) {
+    ctx.input.on_frame_end();
+
+    if let Some(surface_texture) = ctx.graphics.surface_texture.take() {
+        surface_texture.texture.present();
+    }
+
+    while !ctx.timer.end_frame() {
+        std::thread::yield_now();
+    }
 }
 
 fn handle_error<G>(

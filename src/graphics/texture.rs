@@ -4,6 +4,7 @@ use wgpu::util::DeviceExt;
 
 #[derive(Debug)]
 struct TextureData {
+    #[allow(dead_code)]
     texture: wgpu::Texture,
     texture_view: wgpu::TextureView,
 }

@@ -15,5 +15,5 @@ ron = "0.8"
 rustc-hash = "1.1"
 serde = { version = "1", features = ["derive"] }
 smallvec = { version = "1.9", features = ["const_generics", "const_new", "union"] }
-winit = "0.27.2"
-wgpu = "0.13"
+winit = "0.27.3"
+wgpu = "0.13.1"

@@ -8,7 +8,6 @@ pub(crate) struct SurfaceTexture {
 
 pub(crate) struct GraphicsContext {
     pub(crate) surface: wgpu::Surface,
-    pub(crate) surface_format: wgpu::TextureFormat,
     pub(crate) surface_config: wgpu::SurfaceConfiguration,
     pub(crate) surface_texture: Option<SurfaceTexture>,
     pub(crate) device: wgpu::Device,
@@ -16,7 +15,6 @@ pub(crate) struct GraphicsContext {
     pub(crate) shape_pipeline: ShapePipeline,
     pub(crate) sprite_pipeline: SpritePipeline,
     pub(crate) text_pipeline: TextPipeline,
-    pub(crate) vsync: bool,
 }
 
 impl GraphicsContext {
@@ -76,7 +74,6 @@ impl GraphicsContext {
 
         Self {
             surface,
-            surface_format,
             surface_config,
             surface_texture: None,
             device,
@@ -84,7 +81,6 @@ impl GraphicsContext {
             shape_pipeline,
             sprite_pipeline,
             text_pipeline,
-            vsync,
         }
     }
 
@@ -105,8 +101,8 @@ impl GraphicsContext {
             }
             Err(_) => return,
         };
-        let texture_view = texture.texture.create_view(&wgpu::TextureViewDescriptor::default());
 
+        let texture_view = texture.texture.create_view(&wgpu::TextureViewDescriptor::default());
         self.surface_texture = Some(SurfaceTexture { texture, texture_view });
     }
 }
