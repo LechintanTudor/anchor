@@ -1,6 +1,8 @@
-use crate::graphics::{Color, Font, Image, Layer, Shape, SpriteBounds, SpriteSheet, Texture};
+use crate::graphics::{
+    self, Color, Font, Image, Layer, Projection, Shape, SpriteBounds, SpriteSheet, Texture,
+};
 use crate::platform::{Context, GameErrorKind, GameResult};
-use glam::Vec2;
+use glam::{Vec2, Vec4};
 use image::ImageError;
 use serde::Deserialize;
 use std::collections::HashMap;
@@ -109,6 +111,31 @@ where
     }
 
     inner(path.as_ref())
+}
+
+pub fn window_to_world(ctx: &Context, projection: &Projection, window_coords: Vec2) -> Vec2 {
+    let ndc_window_coords = {
+        let normalized_window_coords = window_coords / graphics::window_size(ctx);
+        let ndc_window_coords = normalized_window_coords * 2.0 - Vec2::ONE;
+        Vec2::new(ndc_window_coords.x, -ndc_window_coords.y)
+    };
+
+    let inversed_projection_matrix = projection.to_ortho_mat4().inverse();
+    let ndc_window_coords = Vec4::new(ndc_window_coords.x, ndc_window_coords.y, 0.0, 1.0);
+    let world_coords = inversed_projection_matrix * ndc_window_coords;
+
+    Vec2::new(world_coords.x, world_coords.y)
+}
+
+pub fn world_to_window(ctx: &Context, projection: &Projection, world_coords: Vec2) -> Vec2 {
+    let normalized_window_coords = {
+        let world_coords = Vec4::new(world_coords.x, world_coords.y, 0.0, 1.0);
+        let ndc_world_coords = projection.to_ortho_mat4() * world_coords;
+        let ndc_world_coords = Vec2::new(ndc_world_coords.x, ndc_world_coords.y);
+        (ndc_world_coords + Vec2::ONE) * 0.5
+    };
+
+    graphics::window_size(ctx) * normalized_window_coords
 }
 
 pub fn display(ctx: &mut Context, clear_color: Color, layers: &mut [Layer]) {

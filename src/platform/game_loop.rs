@@ -161,17 +161,19 @@ fn on_draw(ctx: &mut Context, game: &mut impl Game, control_flow: &mut ControlFl
             return;
         }
     }
+
+    if let Some(surface_texture) = ctx.graphics.surface_texture.take() {
+        surface_texture.texture.present();
+    }
 }
 
 fn on_frame_end(ctx: &mut Context) {
     ctx.input.on_frame_end();
 
-    if let Some(surface_texture) = ctx.graphics.surface_texture.take() {
-        surface_texture.texture.present();
-    }
-
-    while !ctx.timer.end_frame() {
-        std::thread::yield_now();
+    if !ctx.graphics.vsync {
+        while !ctx.timer.end_frame() {
+            std::thread::yield_now();
+        }
     }
 }
 

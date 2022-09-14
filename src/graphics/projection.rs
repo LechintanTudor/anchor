@@ -1,4 +1,4 @@
-use crate::graphics::Transform;
+use crate::graphics::{self, Transform};
 use glam::{Mat4, Vec2};
 
 #[derive(Clone, Copy, Debug)]
@@ -58,6 +58,14 @@ pub struct Projection {
 }
 
 impl Projection {
+    pub fn fill(size: Vec2) -> Self {
+        Self {
+            camera: Camera::new(size, graphics::ANCHOR_CENTER),
+            camera_transform: Transform::DEFAULT,
+            viewport: Viewport::fixed(size),
+        }
+    }
+
     pub fn to_ortho_mat4(&self) -> Mat4 {
         let object_transform = Transform {
             translation: -self.camera_transform.translation,
