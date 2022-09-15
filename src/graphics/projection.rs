@@ -1,5 +1,5 @@
 use crate::graphics::{self, Transform};
-use glam::{Mat4, Vec2};
+use glam::{Mat4, Vec2, Vec4};
 
 #[derive(Clone, Copy, Debug)]
 pub struct Camera {
@@ -48,6 +48,24 @@ impl Viewport {
 
         Self { x: position.x, y: position.y, w: size.x, h: size.y }
     }
+
+    #[inline]
+    pub fn position(&self) -> Vec2 {
+        Vec2::new(self.x, self.y)
+    }
+
+    #[inline]
+    pub fn size(&self) -> Vec2 {
+        Vec2::new(self.w, self.h)
+    }
+
+    #[inline]
+    pub fn contains_position(&self, position: Vec2) -> bool {
+        self.x <= position.x
+            && position.x <= self.x + self.w
+            && self.y <= position.y
+            && position.y <= self.y + self.h
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -74,6 +92,26 @@ impl Projection {
         };
 
         self.camera.to_ortho_mat4() * object_transform.to_mat4()
+    }
+
+    pub fn window_to_world(&self, window_coords: Vec2) -> Vec2 {
+        let normalized_window_coords =
+            (window_coords - self.viewport.position()) / self.viewport.size();
+        let ndc_window_coords = normalized_window_coords * 2.0 - Vec2::ONE;
+        let ndc_window_coords = Vec2::new(ndc_window_coords.x, -ndc_window_coords.y);
+
+        let inversed_projection_matrix = self.to_ortho_mat4().inverse();
+        let ndc_window_coords = Vec4::from((ndc_window_coords, 0.0, 1.0));
+        let world_coords = inversed_projection_matrix * ndc_window_coords;
+
+        Vec2::new(world_coords.x, world_coords.y)
+    }
+
+    pub fn world_to_window(&self, world_coords: Vec2) -> Vec2 {
+        let ndc_world_coords = self.to_ortho_mat4() * Vec4::from((world_coords, 0.0, 1.0));
+        let ndc_world_coords = Vec2::new(ndc_world_coords.x, -ndc_world_coords.y);
+        let normalized_world_coords = (ndc_world_coords + Vec2::ONE) * 0.5;
+        normalized_world_coords * self.viewport.size() + self.viewport.position()
     }
 }
 
