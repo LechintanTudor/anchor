@@ -200,13 +200,8 @@ impl Drawable for TextBatch {
         self.recreate_bind_group(ctx);
     }
 
-    fn draw<'a>(
-        &'a mut self,
-        ctx: &'a Context,
-        projection: Projection,
-        pass: &mut wgpu::RenderPass<'a>,
-    ) {
-        let (bind_group, data) = match (self.bind_group.as_mut(), self.data.as_mut()) {
+    fn draw<'a>(&'a self, ctx: &'a Context, pass: &mut wgpu::RenderPass<'a>) {
+        let (bind_group, data) = match (self.bind_group.as_ref(), self.data.as_ref()) {
             (Some(bind_group), Some(data)) if data.instances_len != 0 => (bind_group, data),
             _ => return,
         };
@@ -214,12 +209,9 @@ impl Drawable for TextBatch {
         let instances_size =
             (std::mem::size_of::<GlyphInstance>() * data.instances_len) as wgpu::BufferAddress;
 
-        let viewport = projection.viewport;
-
         pass.set_pipeline(&ctx.graphics.text_pipeline.pipeline);
         pass.set_bind_group(0, bind_group, &[]);
         pass.set_vertex_buffer(0, data.instances.slice(..instances_size));
-        pass.set_viewport(viewport.x, viewport.y, viewport.w, viewport.h, 0.0, 1.0);
         pass.draw(0..6, 0..(data.instances_len as u32));
     }
 }

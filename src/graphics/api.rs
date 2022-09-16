@@ -140,7 +140,10 @@ pub fn display(ctx: &mut Context, clear_color: Color, layers: &mut [Layer]) {
         });
 
         for layer in layers.iter_mut() {
-            layer.drawable.draw(ctx, layer.projection, &mut pass);
+            let viewport = layer.projection.viewport;
+            pass.set_viewport(viewport.x, viewport.y, viewport.w, viewport.h, 0.0, 1.0);
+
+            layer.drawable.draw(ctx, &mut pass);
         }
     }
 

@@ -13,26 +13,13 @@ struct SpriteBatchData {
 pub struct SpriteBatch {
     sprite_sheet: SpriteSheet,
     instances: Vec<SpriteInstance>,
-    projection: Option<Projection>,
     data: Option<SpriteBatchData>,
     needs_sync: bool,
 }
 
 impl SpriteBatch {
     pub fn new(sprite_sheet: SpriteSheet) -> Self {
-        Self {
-            sprite_sheet,
-            instances: Default::default(),
-            projection: None,
-            data: None,
-            needs_sync: false,
-        }
-    }
-
-    #[inline]
-    pub fn set_projection(&mut self, projection: Option<Projection>) {
-        self.projection = projection;
-        self.needs_sync = true;
+        Self { sprite_sheet, instances: Vec::new(), data: None, needs_sync: false }
     }
 
     #[inline]
@@ -133,13 +120,8 @@ impl Drawable for SpriteBatch {
         }
     }
 
-    fn draw<'a>(
-        &'a mut self,
-        ctx: &'a Context,
-        projection: Projection,
-        pass: &mut wgpu::RenderPass<'a>,
-    ) {
-        let data = match self.data.as_mut() {
+    fn draw<'a>(&'a self, ctx: &'a Context, pass: &mut wgpu::RenderPass<'a>) {
+        let data = match self.data.as_ref() {
             Some(data) if !self.instances.is_empty() => data,
             _ => return,
         };
@@ -147,12 +129,9 @@ impl Drawable for SpriteBatch {
         let instances_size =
             (std::mem::size_of::<SpriteInstance>() * self.instances.len()) as wgpu::BufferAddress;
 
-        let viewport = projection.viewport;
-
         pass.set_pipeline(&ctx.graphics.sprite_pipeline.pipeline);
         pass.set_bind_group(0, &data.bind_group, &[]);
         pass.set_vertex_buffer(0, data.instances.slice(..instances_size));
-        pass.set_viewport(viewport.x, viewport.y, viewport.w, viewport.h, 0.0, 1.0);
         pass.draw(0..6, 0..(self.instances.len() as u32));
     }
 }

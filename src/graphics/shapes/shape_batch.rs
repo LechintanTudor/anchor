@@ -106,13 +106,8 @@ impl Drawable for ShapeBatch {
         }
     }
 
-    fn draw<'a>(
-        &'a mut self,
-        ctx: &'a Context,
-        projection: Projection,
-        pass: &mut wgpu::RenderPass<'a>,
-    ) {
-        let data = match self.data.as_mut() {
+    fn draw<'a>(&'a self, ctx: &'a Context, pass: &mut wgpu::RenderPass<'a>) {
+        let data = match self.data.as_ref() {
             Some(data) if !self.instances.is_empty() => data,
             _ => return,
         };
@@ -120,14 +115,11 @@ impl Drawable for ShapeBatch {
         let instance_slice_len =
             (self.instances.len() * mem::size_of::<ShapeInstance>()) as wgpu::BufferAddress;
 
-        let viewport = projection.viewport;
-
         pass.set_pipeline(&ctx.graphics.shape_pipeline.pipeline);
         pass.set_bind_group(0, &data.bind_group, &[]);
         pass.set_vertex_buffer(0, self.shape.vertexes());
         pass.set_index_buffer(self.shape.indexes(), wgpu::IndexFormat::Uint32);
         pass.set_vertex_buffer(1, data.instances.slice(..instance_slice_len));
-        pass.set_viewport(viewport.x, viewport.y, viewport.w, viewport.h, 0.0, 1.0);
         pass.draw_indexed(0..self.shape.index_count() as u32, 0, 0..self.instances.len() as u32);
     }
 }
