@@ -2,16 +2,9 @@ use crate::graphics::Image;
 use std::sync::Arc;
 use wgpu::util::DeviceExt;
 
-#[derive(Debug)]
-struct TextureData {
-    #[allow(dead_code)]
-    texture: wgpu::Texture,
-    texture_view: wgpu::TextureView,
-}
-
 #[derive(Clone, Debug)]
 pub struct Texture {
-    data: Arc<TextureData>,
+    view: Arc<wgpu::TextureView>,
     width: u32,
     height: u32,
 }
@@ -35,9 +28,9 @@ impl Texture {
             image.data(),
         );
 
-        let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+        let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
 
-        Self { data: Arc::new(TextureData { texture, texture_view }), width, height }
+        Self { view: Arc::new(view), width, height }
     }
 
     #[inline]
@@ -52,6 +45,6 @@ impl Texture {
 
     #[inline]
     pub fn view(&self) -> &wgpu::TextureView {
-        &self.data.texture_view
+        &self.view
     }
 }
