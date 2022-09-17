@@ -5,6 +5,7 @@ mod text_pipeline;
 
 pub(crate) mod glyph_instance_converter;
 pub(crate) mod glyph_texture;
+pub(crate) mod positioned_text;
 
 pub(crate) use self::glyph_instance_converter::*;
 pub(crate) use self::glyph_texture::*;

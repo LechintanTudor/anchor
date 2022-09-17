@@ -1,9 +1,11 @@
+use crate::graphics::positioned_text::{PositionedText, PositionedTextSection};
 use crate::graphics::{
-    self, Drawable, Font, GlyphInstance, GlyphTexture, GlyphTextureBounds, Projection,
+    self, BatchStatus, Drawable, Font, GlyphInstance, GlyphTexture, GlyphTextureBounds, Projection,
     RawGlyphInstanceData, Text, Transform,
 };
 use crate::platform::Context;
-use glyph_brush::{BrushAction, BrushError, FontId as FontIndex, GlyphBrushBuilder};
+use glam::Vec2;
+use glyph_brush::{BrushAction, BrushError, FontId, GlyphBrushBuilder};
 use rustc_hash::FxHashMap;
 use wgpu::util::DeviceExt;
 
@@ -20,8 +22,10 @@ struct TextBatchData {
 }
 
 pub struct TextBatch {
-    fonts: FxHashMap<usize, FontIndex>,
+    fonts: FxHashMap<usize, FontId>,
     brush: GlyphBrush,
+    positioned_texts: Vec<PositionedText>,
+    status: BatchStatus,
     texture: Option<GlyphTexture>,
     data: Option<TextBatchData>,
     bind_group: Option<wgpu::BindGroup>,
@@ -37,6 +41,8 @@ impl Default for TextBatch {
         Self {
             fonts: Default::default(),
             brush: brush_builder.build(),
+            positioned_texts: Vec::new(),
+            status: BatchStatus::Empty,
             texture: None,
             data: None,
             bind_group: None,
@@ -46,11 +52,58 @@ impl Default for TextBatch {
 
 impl TextBatch {
     #[inline]
-    pub fn begin(&mut self) -> TextDrawer {
-        TextDrawer { batch: self }
+    pub fn clear(&mut self) {
+        self.positioned_texts.clear();
+        self.status = BatchStatus::Empty;
     }
 
-    fn get_or_insert_font(&mut self, font: &Font) -> FontIndex {
+    pub fn draw(&mut self, text: &Text, tranform: &Transform) {
+        use glyph_brush::{HorizontalAlign, Layout, VerticalAlign};
+
+        let layout = text.layout();
+        let position = {
+            let (h_align, v_align) = match layout {
+                Layout::SingleLine { h_align, v_align, .. } => (h_align, v_align),
+                Layout::Wrap { h_align, v_align, .. } => (h_align, v_align),
+            };
+
+            let h_align_anchor = match h_align {
+                HorizontalAlign::Center => 0.0,
+                HorizontalAlign::Left => 0.5,
+                HorizontalAlign::Right => -0.5,
+            };
+
+            let v_align_anchor = match v_align {
+                VerticalAlign::Center => 0.0,
+                VerticalAlign::Top => 0.5,
+                VerticalAlign::Bottom => -0.5,
+            };
+
+            Vec2::new(
+                -(h_align_anchor + text.anchor.x) * text.bounds.x,
+                -(v_align_anchor + text.anchor.y) * text.bounds.y,
+            )
+        };
+
+        let affine = tranform.to_affine2();
+        let sections = text
+            .sections
+            .iter()
+            .map(|section| PositionedTextSection {
+                content: section.content.clone(),
+                font_id: self.get_or_insert_font(&section.font),
+                font_size: section.font_size,
+                affine,
+                color: section.color,
+            })
+            .collect();
+
+        let positioned_text = PositionedText { position, bounds: text.bounds, layout, sections };
+        self.positioned_texts.push(positioned_text);
+        self.status = BatchStatus::NonEmpty;
+    }
+
+    fn get_or_insert_font(&mut self, font: &Font) -> FontId {
         *self.fonts.entry(font.id()).or_insert_with(|| self.brush.add_font(font.clone()))
     }
 
@@ -85,13 +138,20 @@ impl TextBatch {
 
 impl Drawable for TextBatch {
     fn prepare(&mut self, ctx: &Context, projection: Projection) {
-        let device = &ctx.graphics.device;
-        let queue = &ctx.graphics.queue;
+        if self.status != BatchStatus::NonEmpty {
+            return;
+        }
+
+        for positioned_text in self.positioned_texts.iter() {
+            self.brush.queue(positioned_text.to_glyph_brush_section());
+        }
 
         let projection_matrix = projection.to_ortho_mat4();
 
         loop {
             let mut needs_reprocessing = false;
+            let device = &ctx.graphics.device;
+            let queue = &ctx.graphics.queue;
 
             let update_texture = |bounds: GlyphTextureBounds, data: &[u8]| {
                 let texture = self.texture.get_or_insert_with(|| {
@@ -111,14 +171,6 @@ impl Drawable for TextBatch {
 
             match self.brush.process_queued(update_texture, graphics::into_glyph_instance) {
                 Ok(BrushAction::Draw(instances)) => {
-                    if instances.is_empty() {
-                        if let Some(data) = self.data.as_mut() {
-                            data.instances_len = 0;
-                        }
-
-                        return;
-                    }
-
                     let create_instance_buffer = |instances: &[GlyphInstance]| -> wgpu::Buffer {
                         device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
                             label: Some("text_batch_instance_buffer"),
@@ -198,11 +250,16 @@ impl Drawable for TextBatch {
         }
 
         self.recreate_bind_group(ctx);
+        self.status = BatchStatus::Ready;
     }
 
     fn draw<'a>(&'a self, ctx: &'a Context, pass: &mut wgpu::RenderPass<'a>) {
+        if self.status != BatchStatus::Ready {
+            return;
+        }
+
         let (bind_group, data) = match (self.bind_group.as_ref(), self.data.as_ref()) {
-            (Some(bind_group), Some(data)) if data.instances_len != 0 => (bind_group, data),
+            (Some(bind_group), Some(data)) => (bind_group, data),
             _ => return,
         };
 
@@ -213,67 +270,5 @@ impl Drawable for TextBatch {
         pass.set_bind_group(0, bind_group, &[]);
         pass.set_vertex_buffer(0, data.instances.slice(..instances_size));
         pass.draw(0..6, 0..(data.instances_len as u32));
-    }
-}
-
-pub struct TextDrawer<'a> {
-    batch: &'a mut TextBatch,
-}
-
-impl<'a> TextDrawer<'a> {
-    pub fn draw(&mut self, text: &Text, tranform: &Transform) {
-        use glyph_brush::{HorizontalAlign, Layout, VerticalAlign};
-
-        let layout = text.layout();
-
-        let position = {
-            let (h_align, v_align) = match layout {
-                Layout::SingleLine { h_align, v_align, .. } => (h_align, v_align),
-                Layout::Wrap { h_align, v_align, .. } => (h_align, v_align),
-            };
-
-            let h_align_anchor = match h_align {
-                HorizontalAlign::Center => 0.0,
-                HorizontalAlign::Left => 0.5,
-                HorizontalAlign::Right => -0.5,
-            };
-
-            let v_align_anchor = match v_align {
-                VerticalAlign::Center => 0.0,
-                VerticalAlign::Top => 0.5,
-                VerticalAlign::Bottom => -0.5,
-            };
-
-            (
-                -(h_align_anchor + text.anchor.x) * text.bounds.x,
-                -(v_align_anchor + text.anchor.y) * text.bounds.y,
-            )
-        };
-
-        let section = glyph_brush::Section {
-            screen_position: position,
-            bounds: text.bounds.into(),
-            layout,
-            text: text
-                .sections
-                .iter()
-                .map(|section| glyph_brush::Text {
-                    text: &section.content,
-                    scale: section.font_size.into(),
-                    font_id: self.batch.get_or_insert_font(&section.font),
-                    extra: RawGlyphInstanceData {
-                        affine: tranform.to_affine2(),
-                        color: section.color,
-                    },
-                })
-                .collect(),
-        };
-
-        self.batch.brush.queue(section);
-    }
-
-    #[inline]
-    pub fn finish(self) -> &'a mut TextBatch {
-        self.batch
     }
 }
