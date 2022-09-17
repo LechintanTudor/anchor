@@ -1,4 +1,6 @@
-use crate::graphics::{Drawable, Projection, Sprite, SpriteInstance, SpriteSheet, Transform};
+use crate::graphics::{
+    BatchStatus, Drawable, Projection, Sprite, SpriteInstance, SpriteSheet, Transform,
+};
 use crate::platform::Context;
 use glam::{Vec2, Vec4};
 use wgpu::util::DeviceExt;
@@ -14,18 +16,71 @@ pub struct SpriteBatch {
     sprite_sheet: SpriteSheet,
     instances: Vec<SpriteInstance>,
     data: Option<SpriteBatchData>,
-    needs_sync: bool,
+    status: BatchStatus,
 }
 
 impl SpriteBatch {
     pub fn new(sprite_sheet: SpriteSheet) -> Self {
-        Self { sprite_sheet, instances: Vec::new(), data: None, needs_sync: false }
+        Self { sprite_sheet, instances: Vec::new(), data: None, status: BatchStatus::Empty }
     }
 
-    #[inline]
-    pub fn begin(&mut self) -> SpriteDrawer {
+    pub fn clear(&mut self) {
         self.instances.clear();
-        SpriteDrawer { batch: self }
+        self.status = BatchStatus::Empty;
+    }
+
+    pub fn add(&mut self, sprite: &Sprite, transform: &Transform) {
+        let sprite_sheet_size =
+            Vec2::new(self.sprite_sheet.width() as f32, self.sprite_sheet.height() as f32);
+
+        let sprite_bounds =
+            self.sprite_sheet.get_bounds(sprite.index).expect("Sprite index out of range");
+
+        let size = sprite
+            .size
+            .unwrap_or_else(|| Vec2::new(sprite_bounds.width as f32, sprite_bounds.height as f32));
+
+        let affine = transform.to_affine2();
+
+        let pixel_tex_coords_edges = {
+            let (left, right) = {
+                let left = sprite_bounds.x as f32;
+                let right = (sprite_bounds.x + sprite_bounds.width) as f32;
+
+                if sprite.flip_x {
+                    (right, left)
+                } else {
+                    (left, right)
+                }
+            };
+
+            let (top, bottom) = {
+                let top = sprite_bounds.y as f32;
+                let bottom = (sprite_bounds.y + sprite_bounds.height) as f32;
+
+                if sprite.flip_y {
+                    (bottom, top)
+                } else {
+                    (top, bottom)
+                }
+            };
+
+            Vec4::new(top, left, bottom, right)
+        };
+
+        let instance = SpriteInstance {
+            sprite_sheet_size,
+            size,
+            anchor: sprite.anchor,
+            scale_rotation_col_0: affine.matrix2.col(0),
+            scale_rotation_col_1: affine.matrix2.col(1),
+            translation: affine.translation,
+            pixel_tex_coords_edges,
+            linear_color: sprite.color.to_linear_vec4(),
+        };
+
+        self.instances.push(instance);
+        self.status = BatchStatus::NonEmpty;
     }
 
     #[inline]
@@ -36,14 +91,14 @@ impl SpriteBatch {
 
 impl Drawable for SpriteBatch {
     fn prepare(&mut self, ctx: &Context, projection: Projection) {
-        if self.instances.is_empty() {
+        if self.status != BatchStatus::NonEmpty {
             return;
         }
 
+        let projection_matrix = projection.to_ortho_mat4();
+
         let device = &ctx.graphics.device;
         let queue = &ctx.graphics.queue;
-
-        let projection_matrix = projection.to_ortho_mat4();
 
         let create_instance_buffer = |instances: &[SpriteInstance]| {
             device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -55,19 +110,11 @@ impl Drawable for SpriteBatch {
 
         match self.data.as_mut() {
             Some(data) => {
-                if self.needs_sync {
-                    if self.instances.len() <= data.instances_capacity {
-                        queue.write_buffer(
-                            &data.instances,
-                            0,
-                            bytemuck::cast_slice(&self.instances),
-                        );
-                    } else {
-                        data.instances = create_instance_buffer(&self.instances);
-                        data.instances_capacity = self.instances.len();
-                    }
-
-                    self.needs_sync = false;
+                if self.instances.len() <= data.instances_capacity {
+                    queue.write_buffer(&data.instances, 0, bytemuck::cast_slice(&self.instances));
+                } else {
+                    data.instances = create_instance_buffer(&self.instances);
+                    data.instances_capacity = self.instances.len();
                 }
 
                 queue.write_buffer(&data.projection, 0, bytemuck::bytes_of(&projection_matrix));
@@ -118,6 +165,8 @@ impl Drawable for SpriteBatch {
                 });
             }
         }
+
+        self.status = BatchStatus::NonEmpty;
     }
 
     fn draw<'a>(&'a self, ctx: &'a Context, pass: &mut wgpu::RenderPass<'a>) {
@@ -133,72 +182,5 @@ impl Drawable for SpriteBatch {
         pass.set_bind_group(0, &data.bind_group, &[]);
         pass.set_vertex_buffer(0, data.instances.slice(..instances_size));
         pass.draw(0..6, 0..(self.instances.len() as u32));
-    }
-}
-
-pub struct SpriteDrawer<'a> {
-    batch: &'a mut SpriteBatch,
-}
-
-impl<'a> SpriteDrawer<'a> {
-    pub fn draw(&mut self, sprite: &Sprite, transform: &Transform) {
-        let sprite_sheet_size = Vec2::new(
-            self.batch.sprite_sheet.width() as f32,
-            self.batch.sprite_sheet.height() as f32,
-        );
-
-        let sprite_bounds =
-            self.batch.sprite_sheet.get_bounds(sprite.index).expect("Sprite index out of range");
-
-        let size = sprite
-            .size
-            .unwrap_or_else(|| Vec2::new(sprite_bounds.width as f32, sprite_bounds.height as f32));
-
-        let affine = transform.to_affine2();
-
-        let pixel_tex_coords_edges = {
-            let (left, right) = {
-                let left = sprite_bounds.x as f32;
-                let right = (sprite_bounds.x + sprite_bounds.width) as f32;
-
-                if sprite.flip_x {
-                    (right, left)
-                } else {
-                    (left, right)
-                }
-            };
-
-            let (top, bottom) = {
-                let top = sprite_bounds.y as f32;
-                let bottom = (sprite_bounds.y + sprite_bounds.height) as f32;
-
-                if sprite.flip_y {
-                    (bottom, top)
-                } else {
-                    (top, bottom)
-                }
-            };
-
-            Vec4::new(top, left, bottom, right)
-        };
-
-        let instance = SpriteInstance {
-            sprite_sheet_size,
-            size,
-            anchor: sprite.anchor,
-            scale_rotation_col_0: affine.matrix2.col(0),
-            scale_rotation_col_1: affine.matrix2.col(1),
-            translation: affine.translation,
-            pixel_tex_coords_edges,
-            linear_color: sprite.color.to_linear_vec4(),
-        };
-
-        self.batch.instances.push(instance);
-        self.batch.needs_sync = true;
-    }
-
-    #[inline]
-    pub fn finish(self) -> &'a mut SpriteBatch {
-        self.batch
     }
 }

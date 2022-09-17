@@ -57,7 +57,7 @@ impl TextBatch {
         self.status = BatchStatus::Empty;
     }
 
-    pub fn draw(&mut self, text: &Text, tranform: &Transform) {
+    pub fn add(&mut self, text: &Text, tranform: &Transform) {
         use glyph_brush::{HorizontalAlign, Layout, VerticalAlign};
 
         let layout = text.layout();
