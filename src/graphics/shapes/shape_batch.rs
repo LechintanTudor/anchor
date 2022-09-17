@@ -1,16 +1,8 @@
-use crate::graphics::{Color, Drawable, Projection, Shape, ShapeInstance, Transform};
+use crate::graphics::{BatchStatus, Color, Drawable, Projection, Shape, ShapeInstance, Transform};
 use crate::platform::Context;
 use glam::Vec2;
 use std::mem;
 use wgpu::util::DeviceExt;
-
-pub struct ShapeBatch {
-    shape: Shape,
-    instances: Vec<ShapeInstance>,
-    projection: Option<Projection>,
-    data: Option<ShapeBatchData>,
-    needs_sync: bool,
-}
 
 struct ShapeBatchData {
     instances: wgpu::Buffer,
@@ -19,9 +11,35 @@ struct ShapeBatchData {
     bind_group: wgpu::BindGroup,
 }
 
+pub struct ShapeBatch {
+    shape: Shape,
+    instances: Vec<ShapeInstance>,
+    data: Option<ShapeBatchData>,
+    status: BatchStatus,
+}
+
 impl ShapeBatch {
     pub fn new(shape: Shape) -> ShapeBatch {
-        Self { shape, instances: Vec::new(), projection: None, data: None, needs_sync: false }
+        Self { shape, instances: Vec::new(), data: None, status: BatchStatus::Empty }
+    }
+
+    pub fn clear(&mut self) {
+        self.instances.clear();
+        self.status = BatchStatus::Empty;
+    }
+
+    pub fn add(&mut self, shape_params: &ShapeParams, transform: &Transform) {
+        let affine = transform.to_affine2();
+
+        self.instances.push(ShapeInstance {
+            scale_rotation_col_0: affine.matrix2.col(0),
+            scale_rotation_col_1: affine.matrix2.col(1),
+            translation: affine.translation,
+            pixel_anchor: shape_params.pixel_anchor,
+            linear_color: shape_params.color.to_linear_vec4(),
+        });
+
+        self.status = BatchStatus::NonEmpty;
     }
 
     #[inline]
@@ -30,28 +48,21 @@ impl ShapeBatch {
     }
 
     #[inline]
-    pub fn set_projection(&mut self, projection: Option<Projection>) {
-        self.projection = projection;
-        self.needs_sync = true;
-    }
-
-    #[inline]
-    pub fn begin(&mut self) -> ShapeDrawer {
-        self.instances.clear();
-        ShapeDrawer { batch: self }
+    pub fn shape(&self) -> &Shape {
+        &self.shape
     }
 }
 
 impl Drawable for ShapeBatch {
     fn prepare(&mut self, ctx: &Context, projection: Projection) {
-        if self.instances.is_empty() {
+        if self.status != BatchStatus::NonEmpty {
             return;
         }
 
+        let projection_matrix = projection.to_ortho_mat4();
+
         let device = &ctx.graphics.device;
         let queue = &ctx.graphics.queue;
-
-        let projection_matrix = projection.to_ortho_mat4();
 
         let create_instance_buffer = |instances: &[ShapeInstance]| {
             device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -63,19 +74,11 @@ impl Drawable for ShapeBatch {
 
         match self.data.as_mut() {
             Some(data) => {
-                if self.needs_sync {
-                    if self.instances.len() <= data.instances_capacity {
-                        queue.write_buffer(
-                            &data.instances,
-                            0,
-                            bytemuck::cast_slice(&self.instances),
-                        )
-                    } else {
-                        data.instances = create_instance_buffer(&self.instances);
-                        data.instances_capacity = self.instances.len();
-                    }
-
-                    self.needs_sync = false;
+                if self.instances.len() <= data.instances_capacity {
+                    queue.write_buffer(&data.instances, 0, bytemuck::cast_slice(&self.instances))
+                } else {
+                    data.instances = create_instance_buffer(&self.instances);
+                    data.instances_capacity = self.instances.len();
                 }
 
                 queue.write_buffer(&data.projection, 0, bytemuck::bytes_of(&projection_matrix));
@@ -104,11 +107,13 @@ impl Drawable for ShapeBatch {
                 });
             }
         }
+
+        self.status = BatchStatus::Ready;
     }
 
     fn draw<'a>(&'a self, ctx: &'a Context, pass: &mut wgpu::RenderPass<'a>) {
         let data = match self.data.as_ref() {
-            Some(data) if !self.instances.is_empty() => data,
+            Some(data) if self.status == BatchStatus::Ready => data,
             _ => return,
         };
 
@@ -139,29 +144,4 @@ impl Default for ShapeParams {
 
 impl ShapeParams {
     pub const DEFAULT: Self = Self { pixel_anchor: Vec2::splat(0.0), color: Color::WHITE };
-}
-
-pub struct ShapeDrawer<'a> {
-    batch: &'a mut ShapeBatch,
-}
-
-impl<'a> ShapeDrawer<'a> {
-    pub fn draw(&mut self, shape_params: &ShapeParams, transform: &Transform) {
-        let affine = transform.to_affine2();
-
-        self.batch.instances.push(ShapeInstance {
-            scale_rotation_col_0: affine.matrix2.col(0),
-            scale_rotation_col_1: affine.matrix2.col(1),
-            translation: affine.translation,
-            pixel_anchor: shape_params.pixel_anchor,
-            linear_color: shape_params.color.to_linear_vec4(),
-        });
-
-        self.batch.needs_sync = true;
-    }
-
-    #[inline]
-    pub fn finish(self) -> &'a mut ShapeBatch {
-        self.batch
-    }
 }

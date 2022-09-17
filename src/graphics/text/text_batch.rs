@@ -57,7 +57,7 @@ impl TextBatch {
         self.status = BatchStatus::Empty;
     }
 
-    pub fn add(&mut self, text: &Text, tranform: &Transform) {
+    pub fn add(&mut self, text: &Text, transform: &Transform) {
         use glyph_brush::{HorizontalAlign, Layout, VerticalAlign};
 
         let layout = text.layout();
@@ -85,7 +85,7 @@ impl TextBatch {
             )
         };
 
-        let affine = tranform.to_affine2();
+        let affine = transform.to_affine2();
         let sections = text
             .sections
             .iter()
@@ -254,12 +254,10 @@ impl Drawable for TextBatch {
     }
 
     fn draw<'a>(&'a self, ctx: &'a Context, pass: &mut wgpu::RenderPass<'a>) {
-        if self.status != BatchStatus::Ready {
-            return;
-        }
-
         let (bind_group, data) = match (self.bind_group.as_ref(), self.data.as_ref()) {
-            (Some(bind_group), Some(data)) => (bind_group, data),
+            (Some(bind_group), Some(data)) if self.status == BatchStatus::Ready => {
+                (bind_group, data)
+            }
             _ => return,
         };
 
