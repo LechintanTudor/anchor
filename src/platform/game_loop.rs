@@ -56,12 +56,9 @@ fn on_frame_start(ctx: &mut Context, game: &mut impl Game, control_flow: &mut Co
 }
 
 fn on_device_event(ctx: &mut Context, game: &mut impl Game, event: DeviceEvent) {
-    match event {
-        DeviceEvent::MouseMotion { delta, .. } => {
-            let delta = DVec2::new(delta.0, delta.1);
-            game.on_mouse_motion(ctx, delta);
-        }
-        _ => (),
+    if let DeviceEvent::MouseMotion { delta, .. } = event {
+        let delta = DVec2::new(delta.0, delta.1);
+        game.on_mouse_motion(ctx, delta);
     }
 }
 
@@ -177,16 +174,13 @@ fn on_frame_end(ctx: &mut Context) {
     }
 }
 
-fn handle_error<G>(
-    game: &mut G,
+fn handle_error(
+    game: &mut impl Game,
     ctx: &mut Context,
     phase: FramePhase,
     error: GameError,
     control_flow: &mut ControlFlow,
-) -> bool
-where
-    G: Game,
-{
+) -> bool {
     if game.on_error(ctx, phase, error) {
         control_flow.set_exit_with_code(phase.error_exit_code());
         true
