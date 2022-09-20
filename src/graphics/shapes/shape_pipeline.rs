@@ -16,6 +16,15 @@ pub struct ShapeInstance {
 #[derive(Clone, Copy, Debug, Pod, Zeroable)]
 pub struct ShapeVertex {
     pub position: Vec2,
+    _padding: Vec2,
+    pub linear_color: Vec4,
+}
+
+impl ShapeVertex {
+    #[inline]
+    pub fn new(position: Vec2, linear_color: Vec4) -> Self {
+        Self { position, _padding: Vec2::ZERO, linear_color }
+    }
 }
 
 pub struct ShapePipeline {
@@ -60,19 +69,30 @@ impl ShapePipeline {
                     wgpu::VertexBufferLayout {
                         array_stride: mem::size_of::<ShapeVertex>() as wgpu::BufferAddress,
                         step_mode: wgpu::VertexStepMode::Vertex,
-                        attributes: &wgpu::vertex_attr_array![
-                            0 => Float32x2, // position
+                        attributes: &[
+                            // position
+                            wgpu::VertexAttribute {
+                                shader_location: 0,
+                                format: wgpu::VertexFormat::Float32x2,
+                                offset: 0,
+                            },
+                            // linear_color
+                            wgpu::VertexAttribute {
+                                shader_location: 1,
+                                format: wgpu::VertexFormat::Float32x4,
+                                offset: 16,
+                            },
                         ],
                     },
                     wgpu::VertexBufferLayout {
                         array_stride: mem::size_of::<ShapeInstance>() as wgpu::BufferAddress,
                         step_mode: wgpu::VertexStepMode::Instance,
                         attributes: &wgpu::vertex_attr_array![
-                            1 => Float32x2, // scale_rotation_col_0
-                            2 => Float32x2, // scale_rotation_col_1
-                            3 => Float32x2, // translation
-                            4 => Float32x2, // pixel_anchor
-                            5 => Float32x4, // linear_color
+                            2 => Float32x2, // scale_rotation_col_0
+                            3 => Float32x2, // scale_rotation_col_1
+                            4 => Float32x2, // translation
+                            5 => Float32x2, // pixel_anchor
+                            6 => Float32x4, // linear_color
                         ],
                     },
                 ],

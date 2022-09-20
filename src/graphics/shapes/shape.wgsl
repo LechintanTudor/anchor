@@ -1,10 +1,11 @@
 struct VertexInput {
     @location(0) position: vec2<f32>,
-    @location(1) scale_rotation_col_0: vec2<f32>,
-    @location(2) scale_rotation_col_1: vec2<f32>,
-    @location(3) translation: vec2<f32>,
-    @location(4) pixel_anchor: vec2<f32>,
-    @location(5) linear_color: vec4<f32>,
+    @location(1) linear_color: vec4<f32>,
+    @location(2) scale_rotation_col_0: vec2<f32>,
+    @location(3) scale_rotation_col_1: vec2<f32>,
+    @location(4) translation: vec2<f32>,
+    @location(5) pixel_anchor: vec2<f32>,
+    @location(6) shape_linear_color: vec4<f32>,
 }
 
 struct VertexOutput {
@@ -21,7 +22,7 @@ fn vs_main(input: VertexInput) -> VertexOutput {
     let position = scale_rotation * (input.position - input.pixel_anchor) + input.translation;
     let clip_position = projection * vec4<f32>(position, 0.0, 1.0);
 
-    return VertexOutput(clip_position, input.linear_color);
+    return VertexOutput(clip_position, input.linear_color * input.shape_linear_color);
 }
 
 @fragment

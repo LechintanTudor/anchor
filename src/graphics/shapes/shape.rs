@@ -1,7 +1,8 @@
-use glam::Vec2;
 use std::fmt;
 use std::sync::Arc;
 use wgpu::util::DeviceExt;
+
+use crate::graphics::ShapeVertex;
 
 struct ShapeData {
     vertexes: wgpu::Buffer,
@@ -23,16 +24,20 @@ impl fmt::Debug for Shape {
 }
 
 impl Shape {
-    pub(crate) unsafe fn new(device: &wgpu::Device, vertexes: &[Vec2], indexes: &[u32]) -> Self {
+    pub(crate) unsafe fn new(
+        device: &wgpu::Device,
+        vertexes: &[ShapeVertex],
+        indexes: &[u16],
+    ) -> Self {
         Self(Arc::new(ShapeData {
             vertexes: device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: None,
+                label: Some("shape_vertex_buffer"),
                 contents: bytemuck::cast_slice(vertexes),
                 usage: wgpu::BufferUsages::VERTEX,
             }),
             vertex_count: vertexes.len(),
             indexes: device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: None,
+                label: Some("shape_index_buffer"),
                 contents: bytemuck::cast_slice(indexes),
                 usage: wgpu::BufferUsages::INDEX,
             }),

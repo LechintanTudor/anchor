@@ -1,4 +1,6 @@
-use crate::graphics::{Color, Font, Image, Layer, Shape, SpriteBounds, SpriteSheet, Texture};
+use crate::graphics::{
+    Color, Font, Image, Layer, Shape, ShapeVertex, SpriteBounds, SpriteSheet, Texture,
+};
 use crate::platform::{Context, GameErrorKind, GameResult};
 use glam::Vec2;
 use image::ImageError;
@@ -13,21 +15,12 @@ pub fn window_size(ctx: &Context) -> Vec2 {
 }
 
 #[inline]
-pub unsafe fn create_shape_unsafe(ctx: &Context, vertexes: &[Vec2], indexes: &[u32]) -> Shape {
+pub unsafe fn create_shape_unsafe(
+    ctx: &Context,
+    vertexes: &[ShapeVertex],
+    indexes: &[u16],
+) -> Shape {
     Shape::new(&ctx.graphics.device, vertexes, indexes)
-}
-
-pub fn create_rectangle_shape(ctx: &Context, size: Vec2) -> Shape {
-    let half_size = size / 2.0;
-    let vertexes = [
-        -half_size,
-        Vec2::new(-half_size.x, half_size.y),
-        half_size,
-        Vec2::new(half_size.x, -half_size.y),
-    ];
-    let indexes = [0, 1, 3, 3, 1, 2];
-
-    unsafe { Shape::new(&ctx.graphics.device, &vertexes, &indexes) }
 }
 
 pub fn load_image<P>(_ctx: &Context, path: P) -> GameResult<Image>

@@ -123,7 +123,7 @@ impl Drawable for ShapeBatch {
         pass.set_pipeline(&ctx.graphics.shape_pipeline.pipeline);
         pass.set_bind_group(0, &data.bind_group, &[]);
         pass.set_vertex_buffer(0, self.shape.vertexes());
-        pass.set_index_buffer(self.shape.indexes(), wgpu::IndexFormat::Uint32);
+        pass.set_index_buffer(self.shape.indexes(), wgpu::IndexFormat::Uint16);
         pass.set_vertex_buffer(1, data.instances.slice(..instance_slice_len));
         pass.draw_indexed(0..self.shape.index_count() as u32, 0, 0..self.instances.len() as u32);
     }
