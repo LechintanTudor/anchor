@@ -21,7 +21,7 @@ pub struct TextPipeline {
 impl TextPipeline {
     pub fn new(device: &wgpu::Device, target_format: wgpu::TextureFormat) -> Self {
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("text_pipeline_bind_group_layout"),
+            label: Some("text_bind_group_layout"),
             entries: &[
                 wgpu::BindGroupLayoutEntry {
                     binding: 0,
@@ -59,7 +59,7 @@ impl TextPipeline {
         });
 
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: Some("text_pipeline_shader"),
+            label: Some("text_shader"),
             source: wgpu::ShaderSource::Wgsl(include_str!("text.wgsl").into()),
         });
 
@@ -92,11 +92,7 @@ impl TextPipeline {
                 conservative: false,
             },
             depth_stencil: None,
-            multisample: wgpu::MultisampleState {
-                count: 1,
-                mask: !0,
-                alpha_to_coverage_enabled: false,
-            },
+            multisample: wgpu::MultisampleState::default(),
             fragment: Some(wgpu::FragmentState {
                 module: &shader,
                 entry_point: "fs_main",

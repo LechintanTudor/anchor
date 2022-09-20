@@ -7,17 +7,18 @@ use std::sync::Arc;
 pub struct SpriteBounds {
     pub x: u32,
     pub y: u32,
-    pub width: u32,
-    pub height: u32,
+    pub w: u32,
+    pub h: u32,
 }
 
 impl SpriteBounds {
     #[inline]
-    pub const fn new(x: u32, y: u32, width: u32, height: u32) -> Self {
-        Self { x, y, width, height }
+    pub const fn new(x: u32, y: u32, w: u32, h: u32) -> Self {
+        Self { x, y, w, h }
     }
 }
 
+#[derive(Debug)]
 pub struct SpriteSheetBuilder {
     texture: Texture,
     sprites: HashMap<String, Vec<SpriteBounds>>,

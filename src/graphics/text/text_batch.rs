@@ -1,7 +1,7 @@
 use crate::graphics::positioned_text::{PositionedText, PositionedTextSection};
 use crate::graphics::{
-    self, BatchStatus, Drawable, Font, GlyphInstance, GlyphTexture, GlyphTextureBounds, Projection,
-    RawGlyphInstanceData, Text, Transform,
+    self, BatchStatus, Drawable, FilterMode, Font, GlyphInstance, GlyphTexture, GlyphTextureBounds,
+    Projection, RawGlyphInstanceData, Text, Transform,
 };
 use crate::platform::Context;
 use glam::Vec2;
@@ -23,34 +23,34 @@ struct TextBatchData {
 
 pub struct TextBatch {
     fonts: FxHashMap<usize, FontId>,
+    filter_mode: FilterMode,
     brush: GlyphBrush,
     positioned_texts: Vec<PositionedText>,
-    status: BatchStatus,
     texture: Option<GlyphTexture>,
-    data: Option<TextBatchData>,
     bind_group: Option<wgpu::BindGroup>,
+    data: Option<TextBatchData>,
+    status: BatchStatus,
 }
 
-impl Default for TextBatch {
-    fn default() -> Self {
+impl TextBatch {
+    pub fn new(filter_mode: FilterMode) -> Self {
         let brush_builder = GlyphBrushBuilder::using_fonts(vec![])
             .initial_cache_size((INITIAL_DRAW_CACHE_SIZE, INITIAL_DRAW_CACHE_SIZE))
             .draw_cache_position_tolerance(1.0)
             .cache_glyph_positioning(false);
 
         Self {
-            fonts: Default::default(),
+            fonts: FxHashMap::default(),
+            filter_mode,
             brush: brush_builder.build(),
             positioned_texts: Vec::new(),
-            status: BatchStatus::Empty,
             texture: None,
-            data: None,
             bind_group: None,
+            data: None,
+            status: BatchStatus::Empty,
         }
     }
-}
 
-impl TextBatch {
     #[inline]
     pub fn clear(&mut self) {
         self.positioned_texts.clear();
@@ -213,8 +213,8 @@ impl Drawable for TextBatch {
                                 address_mode_u: wgpu::AddressMode::ClampToEdge,
                                 address_mode_v: wgpu::AddressMode::ClampToEdge,
                                 address_mode_w: wgpu::AddressMode::ClampToEdge,
-                                mag_filter: wgpu::FilterMode::Linear,
-                                min_filter: wgpu::FilterMode::Linear,
+                                mag_filter: self.filter_mode.into(),
+                                min_filter: self.filter_mode.into(),
                                 ..Default::default()
                             });
 

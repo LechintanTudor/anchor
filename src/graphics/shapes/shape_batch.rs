@@ -92,7 +92,7 @@ impl Drawable for ShapeBatch {
 
                 let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
                     label: Some("shape_batch_bind_group"),
-                    layout: &ctx.graphics.shape_pipeline.camera_bind_group_layout,
+                    layout: &ctx.graphics.shape_pipeline.bind_group_layout,
                     entries: &[wgpu::BindGroupEntry {
                         binding: 0,
                         resource: projection.as_entire_binding(),

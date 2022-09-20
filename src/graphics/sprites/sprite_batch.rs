@@ -1,5 +1,5 @@
 use crate::graphics::{
-    BatchStatus, Drawable, Projection, Sprite, SpriteInstance, SpriteSheet, Transform,
+    BatchStatus, Drawable, FilterMode, Projection, Sprite, SpriteInstance, SpriteSheet, Transform,
 };
 use crate::platform::Context;
 use glam::{Vec2, Vec4};
@@ -14,14 +14,21 @@ struct SpriteBatchData {
 
 pub struct SpriteBatch {
     sprite_sheet: SpriteSheet,
+    filter_mode: FilterMode,
     instances: Vec<SpriteInstance>,
     data: Option<SpriteBatchData>,
     status: BatchStatus,
 }
 
 impl SpriteBatch {
-    pub fn new(sprite_sheet: SpriteSheet) -> Self {
-        Self { sprite_sheet, instances: Vec::new(), data: None, status: BatchStatus::Empty }
+    pub fn new(sprite_sheet: SpriteSheet, filter_mode: FilterMode) -> Self {
+        Self {
+            sprite_sheet,
+            filter_mode,
+            instances: Vec::new(),
+            data: None,
+            status: BatchStatus::Empty,
+        }
     }
 
     pub fn clear(&mut self) {
@@ -38,14 +45,14 @@ impl SpriteBatch {
 
         let size = sprite
             .size
-            .unwrap_or_else(|| Vec2::new(sprite_bounds.width as f32, sprite_bounds.height as f32));
+            .unwrap_or_else(|| Vec2::new(sprite_bounds.w as f32, sprite_bounds.h as f32));
 
         let affine = transform.to_affine2();
 
         let pixel_tex_coords_edges = {
             let (left, right) = {
                 let left = sprite_bounds.x as f32;
-                let right = (sprite_bounds.x + sprite_bounds.width) as f32;
+                let right = (sprite_bounds.x + sprite_bounds.w) as f32;
 
                 if sprite.flip_x {
                     (right, left)
@@ -56,7 +63,7 @@ impl SpriteBatch {
 
             let (top, bottom) = {
                 let top = sprite_bounds.y as f32;
-                let bottom = (sprite_bounds.y + sprite_bounds.height) as f32;
+                let bottom = (sprite_bounds.y + sprite_bounds.h) as f32;
 
                 if sprite.flip_y {
                     (bottom, top)
@@ -130,8 +137,8 @@ impl Drawable for SpriteBatch {
                     address_mode_u: wgpu::AddressMode::ClampToEdge,
                     address_mode_v: wgpu::AddressMode::ClampToEdge,
                     address_mode_w: wgpu::AddressMode::ClampToEdge,
-                    mag_filter: wgpu::FilterMode::Nearest,
-                    min_filter: wgpu::FilterMode::Nearest,
+                    mag_filter: self.filter_mode.into(),
+                    min_filter: self.filter_mode.into(),
                     mipmap_filter: wgpu::FilterMode::Nearest,
                     ..Default::default()
                 });

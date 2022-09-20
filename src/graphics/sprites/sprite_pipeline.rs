@@ -22,7 +22,7 @@ pub struct SpritePipeline {
 impl SpritePipeline {
     pub fn new(device: &wgpu::Device, target_format: wgpu::TextureFormat) -> Self {
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("sprite_pipeline_bind_group_layout"),
+            label: Some("sprite_bind_group_layout"),
             entries: &[
                 wgpu::BindGroupLayoutEntry {
                     binding: 0,
@@ -60,7 +60,7 @@ impl SpritePipeline {
         });
 
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: Some("sprite_pipeline_shader"),
+            label: Some("sprite_shader"),
             source: wgpu::ShaderSource::Wgsl(include_str!("sprite.wgsl").into()),
         });
 
@@ -95,11 +95,7 @@ impl SpritePipeline {
                 conservative: false,
             },
             depth_stencil: None,
-            multisample: wgpu::MultisampleState {
-                count: 1,
-                mask: !0,
-                alpha_to_coverage_enabled: false,
-            },
+            multisample: wgpu::MultisampleState::default(),
             fragment: Some(wgpu::FragmentState {
                 module: &shader,
                 entry_point: "fs_main",

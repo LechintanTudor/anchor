@@ -11,3 +11,18 @@ pub mod anchors {
     pub const ANCHOR_BOTTOM_CENTER: Vec2 = Vec2::new(0.0, 0.5);
     pub const ANCHOR_BOTTOM_RIGHT: Vec2 = Vec2::new(0.5, 0.5);
 }
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum FilterMode {
+    Nearest = 0,
+    Linear = 1,
+}
+
+impl From<FilterMode> for wgpu::FilterMode {
+    fn from(filter_mode: FilterMode) -> Self {
+        match filter_mode {
+            FilterMode::Nearest => Self::Nearest,
+            FilterMode::Linear => Self::Linear,
+        }
+    }
+}
