@@ -33,7 +33,8 @@ impl Context {
 
         window.set_cursor_visible(config.cursor_visible);
 
-        let graphics = GraphicsContext::new(&window, config.vsync, config.sample_count);
+        let sample_count = if config.multisample { 4 } else { 1 };
+        let graphics = GraphicsContext::new(&window, config.vsync, sample_count);
 
         Ok(Self {
             should_exit: false,
