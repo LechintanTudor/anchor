@@ -69,9 +69,9 @@ impl GraphicsContext {
 
         surface.configure(&device, &surface_config);
 
-        let shape_pipeline = ShapePipeline::new(&device, surface_format);
-        let sprite_pipeline = SpritePipeline::new(&device, surface_format);
-        let text_pipeline = TextPipeline::new(&device, surface_format);
+        let shape_pipeline = ShapePipeline::new(&device, surface_format, 1);
+        let sprite_pipeline = SpritePipeline::new(&device, surface_format, 1);
+        let text_pipeline = TextPipeline::new(&device, surface_format, 1);
 
         Self {
             surface,

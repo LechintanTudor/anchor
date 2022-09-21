@@ -30,10 +30,16 @@ impl ShapeVertex {
 pub struct ShapePipeline {
     pub pipeline: wgpu::RenderPipeline,
     pub bind_group_layout: wgpu::BindGroupLayout,
+    pipeline_layout: wgpu::PipelineLayout,
+    shader_module: wgpu::ShaderModule,
 }
 
 impl ShapePipeline {
-    pub fn new(device: &wgpu::Device, target_format: wgpu::TextureFormat) -> Self {
+    pub fn new(
+        device: &wgpu::Device,
+        texture_format: wgpu::TextureFormat,
+        sample_count: u32,
+    ) -> Self {
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("shape_bind_group_layout"),
             entries: &[wgpu::BindGroupLayoutEntry {
@@ -54,16 +60,49 @@ impl ShapePipeline {
             push_constant_ranges: &[],
         });
 
-        let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+        let shader_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("shape_shader"),
             source: wgpu::ShaderSource::Wgsl(include_str!("shape.wgsl").into()),
         });
 
-        let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+        let pipeline = Self::create_pipeline(
+            device,
+            &pipeline_layout,
+            &shader_module,
+            texture_format,
+            sample_count,
+        );
+
+        Self { pipeline, bind_group_layout, pipeline_layout, shader_module }
+    }
+
+    pub fn recreate_pipeline(
+        &mut self,
+        device: &wgpu::Device,
+        texture_format: wgpu::TextureFormat,
+        sample_count: u32,
+    ) {
+        self.pipeline = Self::create_pipeline(
+            device,
+            &self.pipeline_layout,
+            &self.shader_module,
+            texture_format,
+            sample_count,
+        );
+    }
+
+    fn create_pipeline(
+        device: &wgpu::Device,
+        pipeline_layout: &wgpu::PipelineLayout,
+        shader_module: &wgpu::ShaderModule,
+        texture_format: wgpu::TextureFormat,
+        sample_count: u32,
+    ) -> wgpu::RenderPipeline {
+        device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("shape_pipeline"),
             layout: Some(&pipeline_layout),
             vertex: wgpu::VertexState {
-                module: &shader,
+                module: &shader_module,
                 entry_point: "vs_main",
                 buffers: &[
                     wgpu::VertexBufferLayout {
@@ -107,19 +146,17 @@ impl ShapePipeline {
                 conservative: false,
             },
             depth_stencil: None,
-            multisample: wgpu::MultisampleState::default(),
+            multisample: wgpu::MultisampleState { count: sample_count, ..Default::default() },
             fragment: Some(wgpu::FragmentState {
-                module: &shader,
+                module: &shader_module,
                 entry_point: "fs_main",
                 targets: &[Some(wgpu::ColorTargetState {
-                    format: target_format,
+                    format: texture_format,
                     blend: Some(wgpu::BlendState::ALPHA_BLENDING),
                     write_mask: wgpu::ColorWrites::ALL,
                 })],
             }),
             multiview: None,
-        });
-
-        Self { pipeline, bind_group_layout }
+        })
     }
 }
