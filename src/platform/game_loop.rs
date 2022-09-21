@@ -74,10 +74,10 @@ fn on_window_event(
                 control_flow.set_exit();
             }
         }
-        WindowEvent::Resized(size) => {
-            let (width, height) = (size.width, size.height);
-            ctx.graphics.on_window_resized(width, height);
-            game.on_window_resized(ctx, width, height);
+        WindowEvent::Resized(size)
+        | WindowEvent::ScaleFactorChanged { new_inner_size: &mut size, .. } => {
+            ctx.graphics.on_window_resized(size.width, size.height);
+            game.on_window_resized(ctx, size.width, size.height);
         }
         WindowEvent::KeyboardInput { input, .. } => {
             if let Some(key) = input.virtual_keycode {

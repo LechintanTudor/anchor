@@ -4,6 +4,7 @@ mod color;
 mod consts;
 mod context;
 mod drawable;
+mod framebuffer;
 mod image;
 mod layer;
 mod projection;
@@ -14,6 +15,7 @@ mod texture;
 mod transform;
 
 pub(crate) use self::context::*;
+pub(crate) use self::framebuffer::*;
 
 pub use glam::f32::{Vec2, Vec4};
 

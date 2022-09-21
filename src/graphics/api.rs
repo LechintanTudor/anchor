@@ -107,19 +107,35 @@ pub fn display(ctx: &mut Context, clear_color: Color, layers: &mut [Layer]) {
         label: Some("display_command_buffer"),
     });
 
+    let mut multisample_data = ctx.graphics.multisample_data.take();
+
     {
-        let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: Some("display_render_pass"),
-            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                view: &surface_texture.texture_view,
-                resolve_target: None,
-                ops: wgpu::Operations {
-                    load: wgpu::LoadOp::Clear(clear_color.into()),
-                    store: true,
-                },
-            })],
-            depth_stencil_attachment: None,
-        });
+        let mut pass = match multisample_data.as_mut() {
+            Some(multisample_data) => encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("display_render_pass"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: &multisample_data.framebuffer.view,
+                    resolve_target: Some(&surface_texture.texture_view),
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(clear_color.into()),
+                        store: false,
+                    },
+                })],
+                depth_stencil_attachment: None,
+            }),
+            None => encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("display_render_pass"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: &surface_texture.texture_view,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(clear_color.into()),
+                        store: true,
+                    },
+                })],
+                depth_stencil_attachment: None,
+            }),
+        };
 
         for layer in layers.iter_mut() {
             let viewport = layer.projection.viewport;
@@ -130,5 +146,7 @@ pub fn display(ctx: &mut Context, clear_color: Color, layers: &mut [Layer]) {
     }
 
     ctx.graphics.queue.submit(Some(encoder.finish()));
+
     ctx.graphics.surface_texture = Some(surface_texture);
+    ctx.graphics.multisample_data = multisample_data;
 }

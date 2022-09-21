@@ -104,9 +104,9 @@ impl TextPipeline {
     ) -> wgpu::RenderPipeline {
         device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("text_pipeline"),
-            layout: Some(&pipeline_layout),
+            layout: Some(pipeline_layout),
             vertex: wgpu::VertexState {
-                module: &shader_module,
+                module: shader_module,
                 entry_point: "vs_main",
                 buffers: &[wgpu::VertexBufferLayout {
                     array_stride: std::mem::size_of::<GlyphInstance>() as wgpu::BufferAddress,
@@ -133,7 +133,7 @@ impl TextPipeline {
             depth_stencil: None,
             multisample: wgpu::MultisampleState { count: sample_count, ..Default::default() },
             fragment: Some(wgpu::FragmentState {
-                module: &shader_module,
+                module: shader_module,
                 entry_point: "fs_main",
                 targets: &[Some(wgpu::ColorTargetState {
                     format: texture_format,

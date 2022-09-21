@@ -1,9 +1,14 @@
-use crate::graphics::{ShapePipeline, SpritePipeline, TextPipeline};
+use crate::graphics::{Framebuffer, ShapePipeline, SpritePipeline, TextPipeline};
 use winit::window::Window;
 
 pub(crate) struct SurfaceTexture {
     pub texture: wgpu::SurfaceTexture,
     pub texture_view: wgpu::TextureView,
+}
+
+pub(crate) struct MultisampleData {
+    pub sample_count: u32,
+    pub framebuffer: Framebuffer,
 }
 
 pub(crate) struct GraphicsContext {
@@ -13,17 +18,18 @@ pub(crate) struct GraphicsContext {
     pub(crate) device: wgpu::Device,
     pub(crate) queue: wgpu::Queue,
     pub(crate) vsync: bool,
+    pub(crate) multisample_data: Option<MultisampleData>,
     pub(crate) shape_pipeline: ShapePipeline,
     pub(crate) sprite_pipeline: SpritePipeline,
     pub(crate) text_pipeline: TextPipeline,
 }
 
 impl GraphicsContext {
-    pub(crate) fn new(window: &Window, vsync: bool) -> Self {
-        pollster::block_on(Self::new_async(window, vsync))
+    pub(crate) fn new(window: &Window, vsync: bool, sample_count: u32) -> Self {
+        pollster::block_on(Self::new_async(window, vsync, sample_count))
     }
 
-    async fn new_async(window: &Window, vsync: bool) -> Self {
+    async fn new_async(window: &Window, vsync: bool, sample_count: u32) -> Self {
         let (window_width, window_height) = window.inner_size().into();
 
         let instance = wgpu::Instance::new(wgpu::Backends::PRIMARY);
@@ -69,9 +75,18 @@ impl GraphicsContext {
 
         surface.configure(&device, &surface_config);
 
-        let shape_pipeline = ShapePipeline::new(&device, surface_format, 1);
-        let sprite_pipeline = SpritePipeline::new(&device, surface_format, 1);
-        let text_pipeline = TextPipeline::new(&device, surface_format, 1);
+        let multisample_data = if sample_count > 1 {
+            Some(MultisampleData {
+                sample_count,
+                framebuffer: Framebuffer::new(&device, &surface_config, sample_count),
+            })
+        } else {
+            None
+        };
+
+        let shape_pipeline = ShapePipeline::new(&device, surface_format, sample_count);
+        let sprite_pipeline = SpritePipeline::new(&device, surface_format, sample_count);
+        let text_pipeline = TextPipeline::new(&device, surface_format, sample_count);
 
         Self {
             surface,
@@ -80,6 +95,7 @@ impl GraphicsContext {
             device,
             queue,
             vsync,
+            multisample_data,
             shape_pipeline,
             sprite_pipeline,
             text_pipeline,
@@ -91,6 +107,14 @@ impl GraphicsContext {
             self.surface_config.width = width;
             self.surface_config.height = height;
             self.surface.configure(&self.device, &self.surface_config);
+
+            if let Some(multisample_data) = self.multisample_data.as_mut() {
+                multisample_data.framebuffer = Framebuffer::new(
+                    &self.device,
+                    &self.surface_config,
+                    multisample_data.sample_count,
+                );
+            }
         }
     }
 
