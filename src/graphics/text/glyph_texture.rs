@@ -12,22 +12,18 @@ impl GlyphTexture {
         assert!(width != 0 && height != 0);
 
         let data = vec![0_u8; (width * height) as usize];
+        let texture_descriptor = wgpu::TextureDescriptor {
+            label: Some("text_batch_texture"),
+            size: wgpu::Extent3d { width, height, depth_or_array_layers: 1 },
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: wgpu::TextureFormat::R8Unorm,
+            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+        };
 
-        let texture = device.create_texture_with_data(
-            queue,
-            &wgpu::TextureDescriptor {
-                label: Some("text_batch_texture"),
-                size: wgpu::Extent3d { width, height, depth_or_array_layers: 1 },
-                mip_level_count: 1,
-                sample_count: 1,
-                dimension: wgpu::TextureDimension::D2,
-                format: wgpu::TextureFormat::R8Unorm,
-                usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
-            },
-            &data,
-        );
-
-        let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+        let texture = device.create_texture_with_data(queue, &texture_descriptor, &data);
+        let texture_view = texture.create_view(&Default::default());
 
         Self { texture, texture_view }
     }

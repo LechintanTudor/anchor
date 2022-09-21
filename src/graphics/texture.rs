@@ -14,21 +14,19 @@ impl Texture {
         let width = image.width();
         let height = image.height();
 
-        let texture = device.create_texture_with_data(
-            queue,
-            &wgpu::TextureDescriptor {
-                label: None,
-                size: wgpu::Extent3d { width, height, depth_or_array_layers: 1 },
-                mip_level_count: 1,
-                sample_count: 1,
-                dimension: wgpu::TextureDimension::D2,
-                format: wgpu::TextureFormat::Rgba8UnormSrgb,
-                usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
-            },
-            image.data(),
-        );
+        let texture_descriptor = wgpu::TextureDescriptor {
+            label: None,
+            size: wgpu::Extent3d { width, height, depth_or_array_layers: 1 },
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: wgpu::TextureFormat::Rgba8UnormSrgb,
+            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+        };
 
-        let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+        let view = device
+            .create_texture_with_data(queue, &texture_descriptor, image.data())
+            .create_view(&Default::default());
 
         Self { view: Arc::new(view), width, height }
     }
