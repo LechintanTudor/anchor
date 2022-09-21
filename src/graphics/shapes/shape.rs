@@ -1,8 +1,9 @@
+use crate::graphics::{Color, ShapeVertex};
+use crate::platform::Context;
+use glam::Vec2;
 use std::fmt;
 use std::sync::Arc;
 use wgpu::util::DeviceExt;
-
-use crate::graphics::ShapeVertex;
 
 struct ShapeData {
     vertexes: wgpu::Buffer,
@@ -24,25 +25,67 @@ impl fmt::Debug for Shape {
 }
 
 impl Shape {
-    pub(crate) unsafe fn new(
-        device: &wgpu::Device,
-        vertexes: &[ShapeVertex],
-        indexes: &[u16],
-    ) -> Self {
+    pub unsafe fn new_unchecked(ctx: &Context, vertexes: &[ShapeVertex], indexes: &[u16]) -> Self {
         Self(Arc::new(ShapeData {
-            vertexes: device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            vertexes: ctx.graphics.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: Some("shape_vertex_buffer"),
                 contents: bytemuck::cast_slice(vertexes),
                 usage: wgpu::BufferUsages::VERTEX,
             }),
             vertex_count: vertexes.len(),
-            indexes: device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            indexes: ctx.graphics.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: Some("shape_index_buffer"),
                 contents: bytemuck::cast_slice(indexes),
                 usage: wgpu::BufferUsages::INDEX,
             }),
             index_count: indexes.len(),
         }))
+    }
+
+    pub fn triangle(ctx: &Context, vertex_positions: [Vec2; 3], color: Color) -> Self {
+        let linear_color = color.to_linear_vec4();
+        let vertexes = vertex_positions.map(|position| ShapeVertex::new(position, linear_color));
+
+        unsafe { Self::new_unchecked(ctx, &vertexes, &[0, 1, 2]) }
+    }
+
+    pub fn equilateral_triangle(ctx: &Context, side_length: f32, color: Color) -> Self {
+        let height = (f32::sqrt(3.0) / 2.0) * side_length;
+        let bottom = height / 3.0;
+        let top = bottom - height;
+        let half_side_length = side_length / 2.0;
+
+        let vertex_positions = [
+            Vec2::new(0.0, top),
+            Vec2::new(-half_side_length, bottom),
+            Vec2::new(half_side_length, bottom),
+        ];
+
+        Self::triangle(ctx, vertex_positions, color)
+    }
+
+    pub fn quadrilateral(ctx: &Context, vertex_positions: [Vec2; 4], color: Color) -> Self {
+        let linear_color = color.to_linear_vec4();
+        let vertexes = vertex_positions.map(|position| ShapeVertex::new(position, linear_color));
+
+        unsafe { Self::new_unchecked(ctx, &vertexes, &[0, 1, 3, 3, 1, 2]) }
+    }
+
+    pub fn rectangle(ctx: &Context, size: Vec2, color: Color) -> Self {
+        let half_size = size * 0.5;
+
+        let vertex_positions = [
+            -half_size,
+            Vec2::new(-half_size.x, half_size.y),
+            half_size,
+            Vec2::new(half_size.x, -half_size.y),
+        ];
+
+        Self::quadrilateral(ctx, vertex_positions, color)
+    }
+
+    pub fn square(ctx: &Context, side_length: f32, color: Color) -> Self {
+        Self::rectangle(ctx, Vec2::splat(side_length), color)
     }
 
     #[inline]

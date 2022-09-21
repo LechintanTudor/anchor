@@ -1,6 +1,4 @@
-use crate::graphics::{
-    Color, Font, Image, Layer, Shape, ShapeVertex, SpriteBounds, SpriteSheet, Texture,
-};
+use crate::graphics::{Color, Font, Image, Layer, SpriteBounds, SpriteSheet, Texture};
 use crate::platform::{Context, GameErrorKind, GameResult};
 use glam::Vec2;
 use image::ImageError;
@@ -12,15 +10,6 @@ use std::path::Path;
 pub fn window_size(ctx: &Context) -> Vec2 {
     let size = ctx.window.inner_size();
     Vec2::new(size.width as f32, size.height as f32)
-}
-
-#[inline]
-pub unsafe fn create_shape_unsafe(
-    ctx: &Context,
-    vertexes: &[ShapeVertex],
-    indexes: &[u16],
-) -> Shape {
-    Shape::new(&ctx.graphics.device, vertexes, indexes)
 }
 
 pub fn load_image<P>(_ctx: &Context, path: P) -> GameResult<Image>
