@@ -23,7 +23,7 @@ pub(crate) struct GraphicsContext {
 }
 
 impl GraphicsContext {
-    pub(crate) fn new(window: &Window, config: GraphicsConfig) -> Self {
+    pub fn new(window: &Window, config: GraphicsConfig) -> Self {
         pollster::block_on(Self::new_async(window, config))
     }
 
@@ -101,7 +101,7 @@ impl GraphicsContext {
         }
     }
 
-    pub(crate) fn on_window_resized(&mut self, width: u32, height: u32) {
+    pub fn on_window_resized(&mut self, width: u32, height: u32) {
         if width != 0 && height != 0 {
             self.surface_config.width = width;
             self.surface_config.height = height;
@@ -113,12 +113,12 @@ impl GraphicsContext {
         }
     }
 
-    pub(crate) fn prepare(&mut self) {
+    pub fn prepare(&mut self) {
         self.update_config();
         self.update_surface_texture();
     }
 
-    pub(crate) fn present(&mut self) {
+    pub fn present(&mut self) {
         if let Some(surface_texture) = self.surface_texture.take() {
             surface_texture.texture.present();
         }

@@ -2,6 +2,11 @@ use crate::core::{Context, FramePhase};
 use std::time::Duration;
 
 #[inline]
+pub fn since_start(ctx: &Context) -> Duration {
+    ctx.time.since_start()
+}
+
+#[inline]
 pub fn delta(ctx: &Context) -> Duration {
     if ctx.frame_phase == FramePhase::FixedUpdate {
         ctx.time.fixed_delta()
