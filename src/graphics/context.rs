@@ -1,35 +1,33 @@
-use crate::graphics::{Framebuffer, ShapePipeline, SpritePipeline, TextPipeline};
+use crate::graphics::{Framebuffer, GraphicsConfig, ShapePipeline, SpritePipeline, TextPipeline};
 use winit::window::Window;
+
+const SAMPLE_COUNT: u32 = 4;
 
 pub(crate) struct SurfaceTexture {
     pub texture: wgpu::SurfaceTexture,
-    pub texture_view: wgpu::TextureView,
-}
-
-pub(crate) struct MultisampleData {
-    pub sample_count: u32,
-    pub framebuffer: Framebuffer,
+    pub view: wgpu::TextureView,
 }
 
 pub(crate) struct GraphicsContext {
+    pub(crate) config: GraphicsConfig,
+    pub(crate) next_config: GraphicsConfig,
     pub(crate) surface: wgpu::Surface,
     pub(crate) surface_config: wgpu::SurfaceConfiguration,
     pub(crate) surface_texture: Option<SurfaceTexture>,
     pub(crate) device: wgpu::Device,
     pub(crate) queue: wgpu::Queue,
-    pub(crate) vsync: bool,
-    pub(crate) multisample_data: Option<MultisampleData>,
+    pub(crate) framebuffer: Option<Framebuffer>,
     pub(crate) shape_pipeline: ShapePipeline,
     pub(crate) sprite_pipeline: SpritePipeline,
     pub(crate) text_pipeline: TextPipeline,
 }
 
 impl GraphicsContext {
-    pub(crate) fn new(window: &Window, vsync: bool, sample_count: u32) -> Self {
-        pollster::block_on(Self::new_async(window, vsync, sample_count))
+    pub(crate) fn new(window: &Window, config: GraphicsConfig) -> Self {
+        pollster::block_on(Self::new_async(window, config))
     }
 
-    async fn new_async(window: &Window, vsync: bool, sample_count: u32) -> Self {
+    async fn new_async(window: &Window, config: GraphicsConfig) -> Self {
         let (window_width, window_height) = window.inner_size().into();
 
         let instance = wgpu::Instance::new(wgpu::Backends::PRIMARY);
@@ -62,8 +60,11 @@ impl GraphicsContext {
             .copied()
             .expect("No suitable surface format found");
 
-        let present_mode =
-            if vsync { wgpu::PresentMode::AutoVsync } else { wgpu::PresentMode::AutoNoVsync };
+        let present_mode = if config.vsync {
+            wgpu::PresentMode::AutoVsync
+        } else {
+            wgpu::PresentMode::AutoNoVsync
+        };
 
         let surface_config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
@@ -75,13 +76,10 @@ impl GraphicsContext {
 
         surface.configure(&device, &surface_config);
 
-        let multisample_data = if sample_count > 1 {
-            Some(MultisampleData {
-                sample_count,
-                framebuffer: Framebuffer::new(&device, &surface_config, sample_count),
-            })
+        let (framebuffer, sample_count) = if config.multisample {
+            (Some(Framebuffer::new(&device, &surface_config, SAMPLE_COUNT)), SAMPLE_COUNT)
         } else {
-            None
+            (None, 1)
         };
 
         let shape_pipeline = ShapePipeline::new(&device, surface_format, sample_count);
@@ -89,13 +87,14 @@ impl GraphicsContext {
         let text_pipeline = TextPipeline::new(&device, surface_format, sample_count);
 
         Self {
+            config: config.clone(),
+            next_config: config,
             surface,
             surface_config,
             surface_texture: None,
             device,
             queue,
-            vsync,
-            multisample_data,
+            framebuffer,
             shape_pipeline,
             sprite_pipeline,
             text_pipeline,
@@ -108,17 +107,62 @@ impl GraphicsContext {
             self.surface_config.height = height;
             self.surface.configure(&self.device, &self.surface_config);
 
-            if let Some(multisample_data) = self.multisample_data.as_mut() {
-                multisample_data.framebuffer = Framebuffer::new(
-                    &self.device,
-                    &self.surface_config,
-                    multisample_data.sample_count,
-                );
+            if let Some(framebuffer) = self.framebuffer.as_mut() {
+                *framebuffer = Framebuffer::new(&self.device, &self.surface_config, SAMPLE_COUNT);
             }
         }
     }
 
-    pub(crate) fn update_surface_texture(&mut self) {
+    pub(crate) fn prepare(&mut self) {
+        self.update_config();
+        self.update_surface_texture();
+    }
+
+    pub(crate) fn present(&mut self) {
+        if let Some(surface_texture) = self.surface_texture.take() {
+            surface_texture.texture.present();
+        }
+    }
+
+    fn update_config(&mut self) {
+        if self.config.vsync != self.next_config.vsync {
+            self.surface_config.present_mode = vsync_to_present_mode(self.next_config.vsync);
+            self.surface.configure(&self.device, &self.surface_config);
+        }
+
+        if self.config.multisample != self.next_config.multisample {
+            let (framebuffer, sample_count) = if self.next_config.multisample {
+                (
+                    Some(Framebuffer::new(&self.device, &self.surface_config, SAMPLE_COUNT)),
+                    SAMPLE_COUNT,
+                )
+            } else {
+                (None, 1)
+            };
+
+            self.framebuffer = framebuffer;
+
+            self.shape_pipeline.recreate_pipeline(
+                &self.device,
+                self.surface_config.format,
+                sample_count,
+            );
+            self.sprite_pipeline.recreate_pipeline(
+                &self.device,
+                self.surface_config.format,
+                sample_count,
+            );
+            self.text_pipeline.recreate_pipeline(
+                &self.device,
+                self.surface_config.format,
+                sample_count,
+            );
+        }
+
+        self.config = self.next_config.clone();
+    }
+
+    fn update_surface_texture(&mut self) {
         let texture = match self.surface.get_current_texture() {
             Ok(texture) => texture,
             Err(wgpu::SurfaceError::Lost) => {
@@ -128,7 +172,15 @@ impl GraphicsContext {
             Err(_) => return,
         };
 
-        let texture_view = texture.texture.create_view(&wgpu::TextureViewDescriptor::default());
-        self.surface_texture = Some(SurfaceTexture { texture, texture_view });
+        let view = texture.texture.create_view(&Default::default());
+        self.surface_texture = Some(SurfaceTexture { texture, view });
+    }
+}
+
+fn vsync_to_present_mode(vsync: bool) -> wgpu::PresentMode {
+    if vsync {
+        wgpu::PresentMode::AutoVsync
+    } else {
+        wgpu::PresentMode::AutoNoVsync
     }
 }

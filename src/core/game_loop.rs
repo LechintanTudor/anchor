@@ -151,7 +151,7 @@ fn on_update(ctx: &mut Context, game: &mut impl Game, control_flow: &mut Control
 
 fn on_draw(ctx: &mut Context, game: &mut impl Game, control_flow: &mut ControlFlow) {
     ctx.frame_phase = FramePhase::Draw;
-    ctx.graphics.update_surface_texture();
+    ctx.graphics.prepare();
 
     if let Err(error) = game.draw(ctx) {
         if handle_error(game, ctx, FramePhase::Draw, error, control_flow) {
@@ -159,15 +159,13 @@ fn on_draw(ctx: &mut Context, game: &mut impl Game, control_flow: &mut ControlFl
         }
     }
 
-    if let Some(surface_texture) = ctx.graphics.surface_texture.take() {
-        surface_texture.texture.present();
-    }
+    ctx.graphics.present();
 }
 
 fn on_frame_end(ctx: &mut Context) {
     ctx.input.on_frame_end();
 
-    if !ctx.graphics.vsync {
+    if !ctx.graphics.config.vsync {
         while !ctx.time.end_frame() {
             std::thread::yield_now();
         }

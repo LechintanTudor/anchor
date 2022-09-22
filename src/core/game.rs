@@ -45,7 +45,7 @@ where
     }
 
     fn draw(&mut self, ctx: &mut Context) -> GameResult<()> {
-        graphics::display(ctx, Color::BLACK, &mut []);
+        graphics::draw(ctx, Color::BLACK, &mut []);
         Ok(())
     }
 }

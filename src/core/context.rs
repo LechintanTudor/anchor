@@ -28,15 +28,14 @@ impl Context {
 
         window.set_cursor_visible(config.window.cursor_visible);
 
-        let sample_count = if config.graphics.multisample { 4 } else { 1 };
-        let graphics = GraphicsContext::new(&window, config.graphics.vsync, sample_count);
+        let graphics = GraphicsContext::new(&window, config.graphics);
 
         Ok(Self {
             should_exit: false,
             frame_phase: FramePhase::Input,
             time,
             window,
-            input: InputContext::default(),
+            input: Default::default(),
             graphics,
         })
     }
