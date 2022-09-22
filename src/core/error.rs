@@ -1,6 +1,5 @@
 use glyph_brush::ab_glyph::InvalidFont as FontError;
 use image::ImageError;
-use ron::error::SpannedError as RonError;
 use std::error::Error;
 use std::fmt;
 use std::io::Error as IoError;
@@ -48,7 +47,6 @@ impl Error for GameError {
         match &self.0.kind {
             GameErrorKind::OsError(e) => Some(e),
             GameErrorKind::IoError(e) => Some(e),
-            GameErrorKind::RonError(e) => Some(e),
             GameErrorKind::ImageError(e) => Some(e),
             GameErrorKind::FontError(e) => Some(e),
             GameErrorKind::OtherError(e) => Some(Box::as_ref(e) as _),
@@ -76,7 +74,6 @@ impl fmt::Display for GameError {
 pub enum GameErrorKind {
     OsError(OsError),
     IoError(IoError),
-    RonError(RonError),
     ImageError(ImageError),
     FontError(FontError),
     OtherError(Box<dyn Error + Send + Sync + 'static>),
@@ -87,7 +84,6 @@ impl fmt::Display for GameErrorKind {
         match self {
             Self::OsError(e) => fmt::Display::fmt(e, f),
             Self::IoError(e) => fmt::Display::fmt(e, f),
-            Self::RonError(e) => fmt::Display::fmt(e, f),
             Self::ImageError(e) => fmt::Display::fmt(e, f),
             Self::FontError(e) => fmt::Display::fmt(e, f),
             Self::OtherError(e) => fmt::Display::fmt(e, f),

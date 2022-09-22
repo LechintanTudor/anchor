@@ -47,7 +47,7 @@ where
 }
 
 fn on_frame_start(ctx: &mut Context, game: &mut impl Game, control_flow: &mut ControlFlow) {
-    ctx.timer.start_frame();
+    ctx.time.start_frame();
     ctx.frame_phase = FramePhase::Input;
 
     if ctx.take_should_exit() && game.on_exit_requested(ctx) {
@@ -131,7 +131,7 @@ fn on_update(ctx: &mut Context, game: &mut impl Game, control_flow: &mut Control
     }
 
     ctx.frame_phase = FramePhase::FixedUpdate;
-    while ctx.timer.fixed_update() {
+    while ctx.time.fixed_update() {
         if let Err(error) = game.fixed_update(ctx) {
             if handle_error(game, ctx, FramePhase::FixedUpdate, error, control_flow) {
                 return;
@@ -168,7 +168,7 @@ fn on_frame_end(ctx: &mut Context) {
     ctx.input.on_frame_end();
 
     if !ctx.graphics.vsync {
-        while !ctx.timer.end_frame() {
+        while !ctx.time.end_frame() {
             std::thread::yield_now();
         }
     }

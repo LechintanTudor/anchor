@@ -58,6 +58,34 @@ impl Color {
     }
 }
 
+impl From<(f32, f32, f32)> for Color {
+    #[inline]
+    fn from((r, g, b): (f32, f32, f32)) -> Self {
+        Self::rgb(r, g, b)
+    }
+}
+
+impl From<(f32, f32, f32, f32)> for Color {
+    #[inline]
+    fn from((r, g, b, a): (f32, f32, f32, f32)) -> Self {
+        Self::rgba(r, g, b, a)
+    }
+}
+
+impl From<[f32; 3]> for Color {
+    #[inline]
+    fn from([r, g, b]: [f32; 3]) -> Self {
+        Self::rgb(r, g, b)
+    }
+}
+
+impl From<[f32; 4]> for Color {
+    #[inline]
+    fn from([r, g, b, a]: [f32; 4]) -> Self {
+        Self::rgba(r, g, b, a)
+    }
+}
+
 impl From<Color> for wgpu::Color {
     fn from(color: Color) -> wgpu::Color {
         wgpu::Color {

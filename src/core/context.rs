@@ -4,15 +4,12 @@ use crate::input::InputContext;
 use crate::time::TimeContext;
 use winit::dpi::Size as WindowSize;
 use winit::event_loop::EventLoop;
-use winit::window::WindowBuilder;
-
-pub use winit;
-pub use winit::window::Window;
+use winit::window::{Window, WindowBuilder};
 
 pub struct Context {
     pub(crate) should_exit: bool,
     pub(crate) frame_phase: FramePhase,
-    pub(crate) timer: TimeContext,
+    pub(crate) time: TimeContext,
     pub(crate) window: Window,
     pub(crate) input: InputContext,
     pub(crate) graphics: GraphicsContext,
@@ -20,7 +17,7 @@ pub struct Context {
 
 impl Context {
     pub fn new(event_loop: &EventLoop<()>, config: Config) -> GameResult<Self> {
-        let timer = TimeContext::new(config.time);
+        let time = TimeContext::new(config.time);
 
         let window = WindowBuilder::new()
             .with_title(config.window.title)
@@ -37,7 +34,7 @@ impl Context {
         Ok(Self {
             should_exit: false,
             frame_phase: FramePhase::Input,
-            timer,
+            time,
             window,
             input: InputContext::default(),
             graphics,

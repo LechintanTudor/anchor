@@ -1,6 +1,6 @@
-use ab_glyph::{CodepointIdIter, FontVec, GlyphId, GlyphImage, Outline};
-use glyph_brush::ab_glyph;
-use std::ops::Deref;
+use crate::core::{GameErrorKind, GameResult};
+use glyph_brush::ab_glyph::{self, CodepointIdIter, FontVec, GlyphId, GlyphImage, Outline};
+use std::path::Path;
 use std::sync::Arc;
 
 #[derive(Clone, Debug)]
@@ -8,13 +8,33 @@ pub struct Font(Arc<FontVec>);
 
 impl Font {
     #[inline]
-    pub(crate) fn new(font_vec: FontVec) -> Self {
-        Self(Arc::new(font_vec))
+    pub fn new(data: Vec<u8>) -> GameResult<Self> {
+        let font_vec = ab_glyph::FontVec::try_from_vec(data)
+            .map_err(|e| GameErrorKind::FontError(e).into_error())?;
+
+        Ok(Self(Arc::new(font_vec)))
+    }
+
+    pub fn load_from_file<P>(path: P) -> GameResult<Font>
+    where
+        P: AsRef<Path>,
+    {
+        fn inner(path: &Path) -> GameResult<Font> {
+            let data = std::fs::read(path)
+                .map_err(|e| GameErrorKind::IoError(e).into_error().with_source_path(path))?;
+
+            let font_vec = ab_glyph::FontVec::try_from_vec(data)
+                .map_err(|e| GameErrorKind::FontError(e).into_error().with_source_path(path))?;
+
+            Ok(Self(Arc::new(font_vec)))
+        }
+
+        inner(path.as_ref())
     }
 
     #[inline]
     pub(crate) fn id(&self) -> usize {
-        self.0.deref() as *const FontVec as usize
+        Arc::as_ptr(&self.0) as usize
     }
 }
 

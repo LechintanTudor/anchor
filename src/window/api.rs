@@ -35,18 +35,7 @@ pub fn set_cursor_visible(ctx: &Context, cursor_visible: bool) {
 
 #[inline]
 pub fn set_icon(ctx: &Context, image: Option<Image>) -> GameResult<()> {
-    let image_to_icon = |image: Image| {
-        let width = image.width();
-        let height = image.height();
-        let data = image.into_data();
-        Icon::from_rgba(data, width, height)
-    };
-
-    let icon = image
-        .map(image_to_icon)
-        .transpose()
-        .map_err(|e| GameErrorKind::OtherError(Box::new(e)).into_error())?;
-
+    let icon = image.map(create_icon).transpose()?;
     ctx.window.set_window_icon(icon);
     Ok(())
 }
@@ -59,4 +48,13 @@ pub fn size(ctx: &Context) -> (u32, u32) {
 #[inline]
 pub fn scale_factor(ctx: &Context) -> f64 {
     ctx.window.scale_factor()
+}
+
+pub(crate) fn create_icon(image: Image) -> GameResult<Icon> {
+    let width = image.width();
+    let height = image.height();
+    let data = image.into_data();
+
+    Icon::from_rgba(data, width, height)
+        .map_err(|e| GameErrorKind::OtherError(Box::new(e)).into_error())
 }

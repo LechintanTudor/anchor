@@ -1,6 +1,9 @@
+use serde::Deserialize;
+
+use crate::core::{Context, GameResult};
 use crate::graphics::Texture;
 use std::collections::HashMap;
-use std::ops::Range;
+use std::path::PathBuf;
 use std::sync::Arc;
 
 #[derive(Clone, Copy, Debug)]
@@ -18,53 +21,97 @@ impl SpriteBounds {
     }
 }
 
-#[derive(Debug)]
+impl From<(u32, u32, u32, u32)> for SpriteBounds {
+    #[inline]
+    fn from((x, y, w, h): (u32, u32, u32, u32)) -> Self {
+        Self::new(x, y, w, h)
+    }
+}
+
+impl From<[u32; 4]> for SpriteBounds {
+    #[inline]
+    fn from([x, y, w, h]: [u32; 4]) -> Self {
+        Self::new(x, y, w, h)
+    }
+}
+
+#[derive(Deserialize)]
+struct PathSpriteSheetBuilder {
+    texture: PathBuf,
+    sprites: HashMap<String, (u32, u32, u32, u32)>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(from = "PathSpriteSheetBuilder")]
 pub struct SpriteSheetBuilder {
-    texture: Texture,
-    sprites: HashMap<String, Vec<SpriteBounds>>,
+    texture: SpriteSheetBuilderTexture,
+    sprites: HashMap<String, SpriteBounds>,
+}
+
+impl From<PathSpriteSheetBuilder> for SpriteSheetBuilder {
+    fn from(mut builder: PathSpriteSheetBuilder) -> Self {
+        Self {
+            texture: SpriteSheetBuilderTexture::Path(builder.texture),
+            sprites: builder
+                .sprites
+                .drain()
+                .map(|(name, bounds)| (name, SpriteBounds::from(bounds)))
+                .collect(),
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+enum SpriteSheetBuilderTexture {
+    Texture(Texture),
+    Path(PathBuf),
 }
 
 impl SpriteSheetBuilder {
-    #[inline]
-    fn new(texture: Texture) -> Self {
-        Self { texture, sprites: Default::default() }
+    pub fn from_texture(texture: Texture) -> Self {
+        Self { texture: SpriteSheetBuilderTexture::Texture(texture), sprites: Default::default() }
     }
 
-    #[inline]
-    pub fn add_sprite(&mut self, name: String, bounds: SpriteBounds) -> &mut Self {
-        self.sprites.insert(name, vec![bounds]);
+    pub fn from_texture_path<P>(texture_path: P) -> Self
+    where
+        P: Into<PathBuf>,
+    {
+        Self {
+            texture: SpriteSheetBuilderTexture::Path(texture_path.into()),
+            sprites: Default::default(),
+        }
+    }
+
+    pub fn add_sprite<S>(&mut self, name: S, bounds: SpriteBounds) -> &mut Self
+    where
+        S: Into<String>,
+    {
+        self.sprites.insert(name.into(), bounds);
         self
     }
 
-    #[inline]
-    pub fn add_sprites(&mut self, name: String, bounds: Vec<SpriteBounds>) -> &mut Self {
-        self.sprites.insert(name, bounds);
-        self
-    }
-
-    pub fn build(&mut self) -> SpriteSheet {
-        let data = {
-            let mut bounds =
-                vec![SpriteBounds::new(0, 0, self.texture.width(), self.texture.height())];
-            let mut ranges = HashMap::<String, Range<usize>>::new();
-
-            for (sprite_name, sprite_bounds) in self.sprites.drain() {
-                let range = bounds.len()..(bounds.len() + sprite_bounds.len());
-                bounds.extend(sprite_bounds.iter().copied());
-                ranges.insert(sprite_name, range);
-            }
-
-            SpriteSheetData { bounds, ranges }
+    pub fn build(&mut self, ctx: &Context) -> GameResult<SpriteSheet> {
+        let texture = match &self.texture {
+            SpriteSheetBuilderTexture::Texture(texture) => texture.clone(),
+            SpriteSheetBuilderTexture::Path(path) => Texture::load_from_file(ctx, path)?,
         };
 
-        SpriteSheet { texture: self.texture.clone(), data: Arc::new(data) }
+        let mut bounds = vec![SpriteBounds::new(0, 0, texture.width(), texture.height())];
+        let mut indexes = HashMap::<String, usize>::new();
+
+        for (sprite_name, sprite_bounds) in self.sprites.drain() {
+            indexes.insert(sprite_name, bounds.len());
+            bounds.push(sprite_bounds);
+        }
+
+        Ok(SpriteSheet { texture, data: Arc::new(SpriteSheetData { bounds, indexes }) })
     }
 }
 
 #[derive(Debug)]
 struct SpriteSheetData {
     bounds: Vec<SpriteBounds>,
-    ranges: HashMap<String, Range<usize>>,
+    indexes: HashMap<String, usize>,
 }
 
 #[derive(Clone, Debug)]
@@ -75,18 +122,8 @@ pub struct SpriteSheet {
 
 impl SpriteSheet {
     #[inline]
-    pub fn builder(texture: Texture) -> SpriteSheetBuilder {
-        SpriteSheetBuilder::new(texture)
-    }
-
-    #[inline]
     pub fn get_index(&self, sprite_name: &str) -> Option<usize> {
-        self.data.ranges.get(sprite_name).map(|range| range.start)
-    }
-
-    #[inline]
-    pub fn get_range(&self, sprite_name: &str) -> Option<Range<usize>> {
-        self.data.ranges.get(sprite_name).cloned()
+        self.data.indexes.get(sprite_name).copied()
     }
 
     #[inline]

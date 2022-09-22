@@ -18,8 +18,6 @@ mod transform;
 pub(crate) use self::context::*;
 pub(crate) use self::framebuffer::*;
 
-pub use glam::f32::{Vec2, Vec4};
-
 pub use self::api::*;
 pub use self::batch_status::*;
 pub use self::color::*;
