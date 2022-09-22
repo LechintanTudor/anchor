@@ -4,7 +4,7 @@ use std::mem;
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Pod, Zeroable)]
-pub struct ShapeInstance {
+pub(crate) struct ShapeInstance {
     pub scale_rotation_col_0: Vec2,
     pub scale_rotation_col_1: Vec2,
     pub translation: Vec2,
@@ -27,7 +27,7 @@ impl ShapeVertex {
     }
 }
 
-pub struct ShapePipeline {
+pub(crate) struct ShapePipeline {
     pub pipeline: wgpu::RenderPipeline,
     pub bind_group_layout: wgpu::BindGroupLayout,
     pipeline_layout: wgpu::PipelineLayout,

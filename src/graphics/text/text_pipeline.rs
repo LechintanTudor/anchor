@@ -13,7 +13,7 @@ pub(crate) struct GlyphInstance {
     pub _padding: Vec2,
 }
 
-pub struct TextPipeline {
+pub(crate) struct TextPipeline {
     pub pipeline: wgpu::RenderPipeline,
     pub bind_group_layout: wgpu::BindGroupLayout,
     pipeline_layout: wgpu::PipelineLayout,

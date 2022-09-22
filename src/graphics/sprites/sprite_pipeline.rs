@@ -3,7 +3,7 @@ use glam::{Vec2, Vec4};
 
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
-pub struct SpriteInstance {
+pub(crate) struct SpriteInstance {
     pub sprite_sheet_size: Vec2,
     pub size: Vec2,
     pub anchor: Vec2,
@@ -14,7 +14,7 @@ pub struct SpriteInstance {
     pub linear_color: Vec4,
 }
 
-pub struct SpritePipeline {
+pub(crate) struct SpritePipeline {
     pub pipeline: wgpu::RenderPipeline,
     pub bind_group_layout: wgpu::BindGroupLayout,
     pipeline_layout: wgpu::PipelineLayout,

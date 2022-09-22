@@ -1,8 +1,7 @@
 use crate::core::Context;
-use crate::graphics::positioned_text::{PositionedText, PositionedTextSection};
 use crate::graphics::{
     self, BatchStatus, Drawable, FilterMode, Font, GlyphInstance, GlyphTexture, GlyphTextureBounds,
-    Projection, RawGlyphInstanceData, Text, Transform,
+    PositionedText, PositionedTextSection, Projection, RawGlyphInstanceData, Text, Transform,
 };
 use glam::Vec2;
 use glyph_brush::{BrushAction, BrushError, FontId, GlyphBrushBuilder};
