@@ -11,7 +11,7 @@ pub type GameResult<T> = Result<T, GameError>;
 #[derive(Debug)]
 struct GameErrorData {
     kind: GameErrorKind,
-    source_path_chain: Vec<PathBuf>,
+    path: Option<PathBuf>,
 }
 
 #[derive(Debug)]
@@ -19,16 +19,8 @@ pub struct GameError(Box<GameErrorData>);
 
 impl GameError {
     #[inline]
-    pub fn new(kind: GameErrorKind) -> Self {
-        Self(Box::new(GameErrorData { kind, source_path_chain: vec![] }))
-    }
-
-    pub fn with_source_path<P>(mut self, path: P) -> Self
-    where
-        P: Into<PathBuf>,
-    {
-        self.0.source_path_chain.push(path.into());
-        self
+    pub fn new(kind: GameErrorKind, path: Option<PathBuf>) -> Self {
+        Self(Box::new(GameErrorData { kind, path }))
     }
 
     #[inline]
@@ -37,8 +29,8 @@ impl GameError {
     }
 
     #[inline]
-    pub fn source_path_chain(&self) -> PathChainIter {
-        PathChainIter(self.0.source_path_chain.iter())
+    pub fn path(&self) -> Option<&Path> {
+        self.0.path.as_deref()
     }
 }
 
@@ -56,16 +48,11 @@ impl Error for GameError {
 
 impl fmt::Display for GameError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "{}", self.0.kind)?;
-
-        if let Some((path, parent_paths)) = self.0.source_path_chain.split_first() {
-            writeln!(f, "    error originating from '{}'", path.display())?;
-
-            for parent_path in parent_paths {
-                writeln!(f, "        referenced in '{}'", parent_path.display())?;
-            }
+        if let Some(path) = self.0.path.as_ref() {
+            writeln!(f, "error originating from file \"{}\"", path.display())?;
         }
 
+        writeln!(f, "{}", self.0.kind)?;
         Ok(())
     }
 }
@@ -94,17 +81,13 @@ impl fmt::Display for GameErrorKind {
 impl GameErrorKind {
     #[inline]
     pub fn into_error(self) -> GameError {
-        GameError::new(self)
+        GameError::new(self, None)
     }
-}
 
-pub struct PathChainIter<'a>(std::slice::Iter<'a, PathBuf>);
-
-impl<'a> Iterator for PathChainIter<'a> {
-    type Item = &'a Path;
-
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        self.0.next().map(PathBuf::as_path)
+    pub fn into_error_with_path<P>(self, path: P) -> GameError
+    where
+        P: Into<PathBuf>,
+    {
+        GameError::new(self, Some(path.into()))
     }
 }

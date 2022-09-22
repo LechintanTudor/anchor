@@ -1,4 +1,4 @@
-use crate::core::{Config, FramePhase, GameError, GameErrorKind, GameResult};
+use crate::core::{Config, FramePhase, GameErrorKind, GameResult};
 use crate::graphics::GraphicsContext;
 use crate::input::InputContext;
 use crate::time::TimeContext;
@@ -24,7 +24,7 @@ impl Context {
             .with_inner_size(WindowSize::Physical(config.window.size.into()))
             .with_resizable(config.window.resizable)
             .build(event_loop)
-            .map_err(|error| GameError::new(GameErrorKind::OsError(error)))?;
+            .map_err(|error| GameErrorKind::OsError(error).into_error())?;
 
         window.set_cursor_visible(config.window.cursor_visible);
 

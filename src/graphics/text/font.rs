@@ -21,10 +21,10 @@ impl Font {
     {
         fn inner(path: &Path) -> GameResult<Font> {
             let data = std::fs::read(path)
-                .map_err(|e| GameErrorKind::IoError(e).into_error().with_source_path(path))?;
+                .map_err(|e| GameErrorKind::IoError(e).into_error_with_path(path))?;
 
             let font_vec = ab_glyph::FontVec::try_from_vec(data)
-                .map_err(|e| GameErrorKind::FontError(e).into_error().with_source_path(path))?;
+                .map_err(|e| GameErrorKind::FontError(e).into_error_with_path(path))?;
 
             Ok(Self(Arc::new(font_vec)))
         }

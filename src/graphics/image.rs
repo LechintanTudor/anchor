@@ -21,11 +21,9 @@ impl Image {
                 Ok(image) => Ok(Image(image.into_rgba8())),
                 Err(error) => match error {
                     ImageError::IoError(error) => {
-                        Err(GameErrorKind::IoError(error).into_error().with_source_path(path))
+                        Err(GameErrorKind::IoError(error).into_error_with_path(path))
                     }
-                    error => {
-                        Err(GameErrorKind::ImageError(error).into_error().with_source_path(path))
-                    }
+                    error => Err(GameErrorKind::ImageError(error).into_error_with_path(path)),
                 },
             }
         }
