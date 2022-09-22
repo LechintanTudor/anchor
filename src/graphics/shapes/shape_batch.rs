@@ -1,5 +1,5 @@
+use crate::core::Context;
 use crate::graphics::{BatchStatus, Color, Drawable, Projection, Shape, ShapeInstance, Transform};
-use crate::platform::Context;
 use glam::Vec2;
 use std::mem;
 use wgpu::util::DeviceExt;

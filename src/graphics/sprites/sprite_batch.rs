@@ -1,7 +1,7 @@
+use crate::core::Context;
 use crate::graphics::{
     BatchStatus, Drawable, FilterMode, Projection, Sprite, SpriteInstance, SpriteSheet, Transform,
 };
-use crate::platform::Context;
 use glam::{Vec2, Vec4};
 use wgpu::util::DeviceExt;
 

@@ -22,4 +22,9 @@ impl Image {
     pub fn data(&self) -> &[u8] {
         self.0.as_raw()
     }
+
+    #[inline]
+    pub fn into_data(self) -> Vec<u8> {
+        self.0.into_raw()
+    }
 }

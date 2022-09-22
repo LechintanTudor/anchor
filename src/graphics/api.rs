@@ -1,5 +1,5 @@
+use crate::core::{Context, GameErrorKind, GameResult};
 use crate::graphics::{Color, Font, Image, Layer, SpriteBounds, SpriteSheet, Texture};
-use crate::platform::{Context, GameErrorKind, GameResult};
 use glam::Vec2;
 use image::ImageError;
 use serde::Deserialize;

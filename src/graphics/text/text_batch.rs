@@ -1,9 +1,9 @@
+use crate::core::Context;
 use crate::graphics::positioned_text::{PositionedText, PositionedTextSection};
 use crate::graphics::{
     self, BatchStatus, Drawable, FilterMode, Font, GlyphInstance, GlyphTexture, GlyphTextureBounds,
     Projection, RawGlyphInstanceData, Text, Transform,
 };
-use crate::platform::Context;
 use glam::Vec2;
 use glyph_brush::{BrushAction, BrushError, FontId, GlyphBrushBuilder};
 use rustc_hash::FxHashMap;

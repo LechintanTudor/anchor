@@ -1,4 +1,4 @@
-use crate::platform::{Config, Context, FramePhase, Game, GameBuilder, GameError, GameResult};
+use crate::core::{Config, Context, FramePhase, Game, GameBuilder, GameError, GameResult};
 use glam::DVec2;
 use log::info;
 use winit::event::{DeviceEvent, ElementState, Event, StartCause, WindowEvent};

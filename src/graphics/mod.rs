@@ -1,6 +1,7 @@
 mod api;
 mod batch_status;
 mod color;
+mod config;
 mod consts;
 mod context;
 mod drawable;
@@ -22,6 +23,7 @@ pub use glam::f32::{Vec2, Vec4};
 pub use self::api::*;
 pub use self::batch_status::*;
 pub use self::color::*;
+pub use self::config::*;
 pub use self::consts::anchors::*;
 pub use self::consts::*;
 pub use self::drawable::*;

@@ -1,5 +1,5 @@
+use crate::core::Context;
 use crate::input::Key;
-use crate::platform::Context;
 use glam::DVec2;
 use winit::event::MouseButton;
 

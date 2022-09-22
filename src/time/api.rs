@@ -1,4 +1,4 @@
-use crate::platform::{Context, FramePhase};
+use crate::core::{Context, FramePhase};
 use std::time::Duration;
 
 #[inline]

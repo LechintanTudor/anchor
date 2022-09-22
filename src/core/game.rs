@@ -1,6 +1,6 @@
+use crate::core::{Context, FramePhase, GameError, GameResult};
 use crate::graphics::{self, Color};
 use crate::input::Key;
-use crate::platform::{Context, FramePhase, GameError, GameResult};
 use glam::DVec2;
 use winit::event::MouseButton;
 

@@ -2,12 +2,13 @@
 
 pub(crate) mod utils;
 
+pub mod core;
 pub mod graphics;
 pub mod input;
-pub mod platform;
 pub mod time;
+pub mod window;
 
-use crate::platform::{Config, GameBuilder, GameResult};
+use crate::core::{Config, GameBuilder, GameResult};
 
 pub use {glam, wgpu, winit};
 
@@ -15,5 +16,5 @@ pub fn run<G>(config: Config, game_builder: G) -> GameResult<()>
 where
     G: GameBuilder,
 {
-    platform::run(config, game_builder)
+    core::run(config, game_builder)
 }

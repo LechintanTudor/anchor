@@ -1,5 +1,5 @@
+use crate::core::Context;
 use crate::graphics::{Color, ShapeVertex};
-use crate::platform::Context;
 use glam::Vec2;
 use std::fmt;
 use std::sync::Arc;

@@ -1,30 +1,28 @@
+use crate::time::TimeConfig;
 use std::time::{Duration, Instant};
 
 #[derive(Debug)]
-struct FrameTimerConsts {
-    target_frame_interval: Duration,
-    target_fixed_update_interval: Duration,
-}
+struct FrameTimerConsts {}
 
 #[derive(Debug)]
-pub(crate) struct FrameTimer {
-    consts: FrameTimerConsts,
+pub(crate) struct TimeContext {
+    frame_interval: Duration,
+    fixed_update_interval: Duration,
     frame_start_time: Instant,
     last_frame_duration: Duration,
     frame_duration_accumulator: Duration,
 }
 
-impl FrameTimer {
-    pub fn new(target_frames_per_second: f64, target_fixed_updates_per_second: f64) -> Self {
-        let target_frame_interval = Duration::from_secs(1).div_f64(target_frames_per_second);
+impl TimeContext {
+    pub fn new(config: TimeConfig) -> Self {
+        let frame_interval = config.frame_interval();
+        let fixed_update_interval = config.fixed_update_interval();
 
-        let target_fixed_update_interval =
-            Duration::from_secs(1).div_f64(target_fixed_updates_per_second);
-
-        FrameTimer {
-            consts: FrameTimerConsts { target_frame_interval, target_fixed_update_interval },
+        Self {
+            frame_interval,
+            fixed_update_interval,
             frame_start_time: Instant::now(),
-            last_frame_duration: target_frame_interval,
+            last_frame_duration: frame_interval,
             frame_duration_accumulator: Duration::ZERO,
         }
     }
@@ -38,8 +36,8 @@ impl FrameTimer {
     }
 
     pub fn fixed_update(&mut self) -> bool {
-        if self.frame_duration_accumulator >= self.consts.target_fixed_update_interval {
-            self.frame_duration_accumulator -= self.consts.target_fixed_update_interval;
+        if self.frame_duration_accumulator >= self.fixed_update_interval {
+            self.frame_duration_accumulator -= self.fixed_update_interval;
             true
         } else {
             false
@@ -47,7 +45,7 @@ impl FrameTimer {
     }
 
     pub fn end_frame(&self) -> bool {
-        Instant::now() - self.frame_start_time >= self.consts.target_frame_interval
+        Instant::now() - self.frame_start_time >= self.frame_interval
     }
 
     #[inline]
@@ -57,7 +55,7 @@ impl FrameTimer {
 
     #[inline]
     pub fn fixed_delta(&self) -> Duration {
-        self.consts.target_fixed_update_interval
+        self.fixed_update_interval
     }
 
     #[inline]
