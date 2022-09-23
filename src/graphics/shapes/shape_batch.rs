@@ -135,13 +135,16 @@ pub struct ShapeParams {
     pub color: Color,
 }
 
-impl Default for ShapeParams {
+impl ShapeParams {
     #[inline]
-    fn default() -> Self {
-        Self::DEFAULT
+    pub fn from_color(color: Color) -> Self {
+        Self { color, ..Default::default() }
     }
 }
 
-impl ShapeParams {
-    pub const DEFAULT: Self = Self { pixel_anchor: Vec2::splat(0.0), color: Color::WHITE };
+impl Default for ShapeParams {
+    #[inline]
+    fn default() -> Self {
+        Self { pixel_anchor: Vec2::ZERO, color: Color::WHITE }
+    }
 }

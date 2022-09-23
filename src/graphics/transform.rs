@@ -10,16 +10,14 @@ pub struct Transform {
 impl Default for Transform {
     #[inline]
     fn default() -> Self {
-        Self::DEFAULT
+        Self { translation: Vec2::ZERO, rotation: 0.0, scale: Vec2::ONE }
     }
 }
 
 impl Transform {
-    pub const DEFAULT: Self = Self { translation: Vec2::ZERO, rotation: 0.0, scale: Vec2::ONE };
-
     #[inline]
     pub fn from_translation(translation: Vec2) -> Self {
-        Self { translation, ..Self::DEFAULT }
+        Self { translation, ..Default::default() }
     }
 
     #[inline]

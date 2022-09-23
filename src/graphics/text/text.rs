@@ -37,16 +37,20 @@ pub struct Text {
     pub anchor: Vec2,
 }
 
-impl Text {
-    pub const EMPTY: Self = Self {
-        sections: Vec::new(),
-        align: TextAlign::TopLeft,
-        wrap: TextWrap::SingleLine,
-        line_breaker: TextLineBreaker::Unicode,
-        bounds: Vec2::splat(f32::MAX),
-        anchor: graphics::ANCHOR_TOP_LEFT,
-    };
+impl Default for Text {
+    fn default() -> Self {
+        Self {
+            sections: Vec::new(),
+            align: TextAlign::TopLeft,
+            wrap: TextWrap::SingleLine,
+            line_breaker: TextLineBreaker::Unicode,
+            bounds: Vec2::splat(f32::MAX),
+            anchor: graphics::ANCHOR_TOP_LEFT,
+        }
+    }
+}
 
+impl Text {
     pub fn new<S>(content: S, font: Font, font_size: f32, color: Color) -> Self
     where
         S: Into<String>,
@@ -94,12 +98,6 @@ impl Text {
             TextWrap::SingleLine => Layout::SingleLine { h_align, v_align, line_breaker },
             TextWrap::Wrap => Layout::Wrap { h_align, v_align, line_breaker },
         }
-    }
-}
-
-impl Default for Text {
-    fn default() -> Self {
-        Self::EMPTY
     }
 }
 

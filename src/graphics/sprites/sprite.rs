@@ -1,7 +1,7 @@
-use crate::graphics::{self, Color};
+use crate::graphics::Color;
 use glam::Vec2;
 
-#[derive(Clone, Copy, Default, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct Sprite {
     pub index: usize,
     pub color: Color,
@@ -11,18 +11,22 @@ pub struct Sprite {
     pub anchor: Vec2,
 }
 
-impl Sprite {
-    pub const DEFAULT: Self = Self {
-        index: 0,
-        color: Color::WHITE,
-        flip_x: false,
-        flip_y: false,
-        size: None,
-        anchor: graphics::ANCHOR_CENTER,
-    };
+impl Default for Sprite {
+    fn default() -> Self {
+        Self {
+            index: 0,
+            color: Color::WHITE,
+            flip_x: false,
+            flip_y: false,
+            size: None,
+            anchor: Vec2::ZERO,
+        }
+    }
+}
 
+impl Sprite {
     #[inline]
     pub fn from_index(index: usize) -> Self {
-        Self { index, ..Self::DEFAULT }
+        Self { index, ..Default::default() }
     }
 }

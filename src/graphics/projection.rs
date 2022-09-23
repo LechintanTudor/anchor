@@ -14,12 +14,9 @@ impl Camera {
     }
 
     pub fn to_ortho_mat4(&self) -> Mat4 {
-        let top = self.size.y * (-0.5 - self.anchor.y);
-        let left = self.size.x * (-0.5 - self.anchor.x);
-        let bottom = self.size.y * (0.5 - self.anchor.y);
-        let right = self.size.x * (0.5 - self.anchor.x);
-
-        Mat4::orthographic_rh(left, right, bottom, top, 0.0, 1.0)
+        let tl_corner = self.size * (-0.5 - self.anchor);
+        let br_corner = self.size * (0.5 - self.anchor);
+        Mat4::orthographic_rh(tl_corner.x, br_corner.x, tl_corner.y, br_corner.y, 0.0, 1.0)
     }
 }
 
@@ -60,11 +57,25 @@ impl Viewport {
     }
 
     #[inline]
-    pub fn contains_position(&self, position: Vec2) -> bool {
-        self.x <= position.x
-            && position.x <= self.x + self.w
-            && self.y <= position.y
-            && position.y <= self.y + self.h
+    pub fn contains(&self, coords: Vec2) -> bool {
+        self.x <= coords.x
+            && coords.x <= self.x + self.w
+            && self.y <= coords.y
+            && coords.y <= self.y + self.h
+    }
+}
+
+impl From<(f32, f32, f32, f32)> for Viewport {
+    #[inline]
+    fn from((x, y, w, h): (f32, f32, f32, f32)) -> Self {
+        Self::new(x, y, w, h)
+    }
+}
+
+impl From<[f32; 4]> for Viewport {
+    #[inline]
+    fn from([x, y, w, h]: [f32; 4]) -> Self {
+        Self::new(x, y, w, h)
     }
 }
 
@@ -79,7 +90,7 @@ impl Projection {
     pub fn fill(size: Vec2) -> Self {
         Self {
             camera: Camera::new(size, graphics::ANCHOR_CENTER),
-            camera_transform: Transform::DEFAULT,
+            camera_transform: Transform::default(),
             viewport: Viewport::fixed(size),
         }
     }
@@ -88,7 +99,7 @@ impl Projection {
         let object_transform = Transform {
             translation: -self.camera_transform.translation,
             rotation: -self.camera_transform.rotation,
-            scale: self.camera_transform.scale,
+            scale: Vec2::ONE / self.camera_transform.scale,
         };
 
         self.camera.to_ortho_mat4() * object_transform.to_mat4()
