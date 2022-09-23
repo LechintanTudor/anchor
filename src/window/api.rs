@@ -34,7 +34,7 @@ pub fn set_cursor_visible(ctx: &Context, cursor_visible: bool) {
 }
 
 #[inline]
-pub fn set_icon(ctx: &Context, image: Option<Image>) -> GameResult<()> {
+pub fn set_icon(ctx: &Context, image: Option<Image>) -> GameResult {
     let icon = image.map(create_icon).transpose()?;
     ctx.window.set_window_icon(icon);
     Ok(())

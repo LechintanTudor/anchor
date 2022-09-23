@@ -31,19 +31,19 @@ where
 
     fn on_scroll(&mut self, ctx: &mut Context, delta: ScrollDelta) {}
 
-    fn update(&mut self, ctx: &mut Context) -> GameResult<()> {
+    fn update(&mut self, ctx: &mut Context) -> GameResult {
         Ok(())
     }
 
-    fn fixed_update(&mut self, ctx: &mut Context) -> GameResult<()> {
+    fn fixed_update(&mut self, ctx: &mut Context) -> GameResult {
         Ok(())
     }
 
-    fn late_update(&mut self, ctx: &mut Context) -> GameResult<()> {
+    fn late_update(&mut self, ctx: &mut Context) -> GameResult {
         Ok(())
     }
 
-    fn draw(&mut self, ctx: &mut Context) -> GameResult<()> {
+    fn draw(&mut self, ctx: &mut Context) -> GameResult {
         graphics::draw(ctx, Color::BLACK, &mut []);
         Ok(())
     }

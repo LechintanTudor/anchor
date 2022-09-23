@@ -12,7 +12,7 @@ use crate::core::{Config, GameBuilder, GameResult};
 
 pub use {glam, wgpu, winit};
 
-pub fn run<G>(config: Config, game_builder: G) -> GameResult<()>
+pub fn run<G>(config: Config, game_builder: G) -> GameResult
 where
     G: GameBuilder,
 {

@@ -6,7 +6,7 @@ use std::io::Error as IoError;
 use std::path::{Path, PathBuf};
 use winit::error::OsError;
 
-pub type GameResult<T> = Result<T, GameError>;
+pub type GameResult<T = ()> = Result<T, GameError>;
 
 #[derive(Debug)]
 struct GameErrorData {

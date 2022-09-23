@@ -4,7 +4,7 @@ use log::info;
 use winit::event::{DeviceEvent, ElementState, Event, StartCause, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
 
-pub(crate) fn run<G>(config: Config, game_builder: G) -> GameResult<()>
+pub(crate) fn run<G>(config: Config, game_builder: G) -> GameResult
 where
     G: GameBuilder,
 {
