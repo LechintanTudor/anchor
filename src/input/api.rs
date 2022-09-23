@@ -1,7 +1,11 @@
 use crate::core::Context;
-use crate::input::Key;
+use crate::input::{Key, ModifiersState, MouseButton};
 use glam::DVec2;
-use winit::event::MouseButton;
+
+#[inline]
+pub fn modifiers_state(ctx: &Context) -> ModifiersState {
+    ctx.input.modifiers
+}
 
 #[inline]
 pub fn is_key_pressed(ctx: &Context, key: Key) -> bool {

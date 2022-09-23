@@ -1,6 +1,6 @@
 use crate::core::{Context, FramePhase, GameError, GameResult};
 use crate::graphics::{self, Color};
-use crate::input::Key;
+use crate::input::{Key, ModifiersState, ScrollDelta};
 use glam::DVec2;
 use winit::event::MouseButton;
 
@@ -24,6 +24,8 @@ where
 
     fn on_key_released(&mut self, ctx: &mut Context, key: Key) {}
 
+    fn on_modifiers_changed(&mut self, ctx: &mut Context, modifiers: ModifiersState) {}
+
     fn on_mouse_button_pressed(&mut self, ctx: &mut Context, button: MouseButton) {}
 
     fn on_mouse_button_released(&mut self, ctx: &mut Context, button: MouseButton) {}
@@ -31,6 +33,8 @@ where
     fn on_mouse_motion(&mut self, ctx: &mut Context, delta: DVec2) {}
 
     fn on_cursor_moved(&mut self, ctx: &mut Context, position: DVec2) {}
+
+    fn on_scroll(&mut self, ctx: &mut Context, delta: ScrollDelta) {}
 
     fn update(&mut self, ctx: &mut Context) -> GameResult<()> {
         Ok(())

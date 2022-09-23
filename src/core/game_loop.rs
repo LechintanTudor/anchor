@@ -93,6 +93,10 @@ fn on_window_event(
                 }
             }
         }
+        WindowEvent::ModifiersChanged(modifiers) => {
+            ctx.input.modifiers = modifiers;
+            game.on_modifiers_changed(ctx, modifiers);
+        }
         WindowEvent::MouseInput { state, button, .. } => match state {
             ElementState::Pressed => {
                 ctx.input.mouse.on_button_pressed(button);
@@ -114,9 +118,11 @@ fn on_window_event(
             ctx.input.cursor.last_position = position;
             game.on_cursor_moved(ctx, position);
         }
+        WindowEvent::MouseWheel { delta, .. } => {
+            game.on_scroll(ctx, delta.into());
+        }
         WindowEvent::Focused(false) => {
-            ctx.input.keyboard.on_focus_lost();
-            ctx.input.mouse.on_focus_lost();
+            ctx.input.on_focus_lost();
         }
         _ => (),
     }
