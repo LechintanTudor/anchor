@@ -50,7 +50,7 @@ fn on_frame_start(ctx: &mut Context, game: &mut impl Game, control_flow: &mut Co
     ctx.time.start_frame();
     ctx.frame_phase = FramePhase::Input;
 
-    if ctx.take_should_exit() && game.on_exit_requested(ctx) {
+    if ctx.take_should_exit() && game.on_close_request(ctx) {
         control_flow.set_exit();
     }
 }
@@ -70,41 +70,41 @@ fn on_window_event(
 ) {
     match event {
         WindowEvent::CloseRequested => {
-            if game.on_exit_requested(ctx) {
+            if game.on_close_request(ctx) {
                 control_flow.set_exit();
             }
         }
         WindowEvent::Resized(size)
         | WindowEvent::ScaleFactorChanged { new_inner_size: &mut size, .. } => {
             ctx.graphics.on_window_resized(size.width, size.height);
-            game.on_window_resized(ctx, size.width, size.height);
+            game.on_window_resize(ctx, size.width, size.height);
         }
         WindowEvent::KeyboardInput { input, .. } => {
             if let Some(key) = input.virtual_keycode {
                 match input.state {
                     ElementState::Pressed => {
                         ctx.input.keyboard.on_key_pressed(key);
-                        game.on_key_pressed(ctx, key);
+                        game.on_key_press(ctx, key);
                     }
                     ElementState::Released => {
                         ctx.input.keyboard.on_key_released(key);
-                        game.on_key_released(ctx, key);
+                        game.on_key_release(ctx, key);
                     }
                 }
             }
         }
         WindowEvent::ModifiersChanged(modifiers) => {
             ctx.input.modifiers = modifiers;
-            game.on_modifiers_changed(ctx, modifiers);
+            game.on_modifiers_change(ctx, modifiers);
         }
         WindowEvent::MouseInput { state, button, .. } => match state {
             ElementState::Pressed => {
                 ctx.input.mouse.on_button_pressed(button);
-                game.on_mouse_button_pressed(ctx, button);
+                game.on_mouse_button_press(ctx, button);
             }
             ElementState::Released => {
                 ctx.input.mouse.on_button_released(button);
-                game.on_mouse_button_released(ctx, button);
+                game.on_mouse_button_release(ctx, button);
             }
         },
         WindowEvent::CursorEntered { .. } => {
@@ -116,7 +116,7 @@ fn on_window_event(
         WindowEvent::CursorMoved { position, .. } => {
             let position = DVec2::new(position.x, position.y);
             ctx.input.cursor.last_position = position;
-            game.on_cursor_moved(ctx, position);
+            game.on_cursor_move(ctx, position);
         }
         WindowEvent::MouseWheel { delta, .. } => {
             game.on_scroll(ctx, delta.into());
@@ -185,7 +185,7 @@ fn handle_error(
     error: GameError,
     control_flow: &mut ControlFlow,
 ) -> bool {
-    if game.on_error(ctx, phase, error) {
+    if game.handle_error(ctx, phase, error) {
         control_flow.set_exit_with_code(phase.error_exit_code());
         true
     } else {
