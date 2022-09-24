@@ -4,6 +4,7 @@ use std::path::Path;
 use std::sync::Arc;
 use wgpu::util::DeviceExt;
 
+/// Handle to a texture stored on the GPU. Cheap to clone.
 #[derive(Clone, Debug)]
 pub struct Texture {
     view: Arc<wgpu::TextureView>,
@@ -12,6 +13,7 @@ pub struct Texture {
 }
 
 impl Texture {
+    /// Creates a texture from the given [Image].
     pub fn from_image(ctx: &Context, image: &Image) -> Self {
         let width = image.width();
         let height = image.height();
@@ -35,6 +37,7 @@ impl Texture {
         Self { view: Arc::new(view), width, height }
     }
 
+    /// Loads a texture from the given `path`.
     pub fn load_from_file<P>(ctx: &Context, path: P) -> GameResult<Self>
     where
         P: AsRef<Path>,
@@ -43,16 +46,19 @@ impl Texture {
         Ok(Self::from_image(ctx, &image))
     }
 
+    /// Returns the width of the texture.
     #[inline]
     pub fn width(&self) -> u32 {
         self.width
     }
 
+    /// Returns the height of the texture.
     #[inline]
     pub fn height(&self) -> u32 {
         self.height
     }
 
+    /// Returns the [TextureView](wgpu::TextureView) associated with the texture.
     #[inline]
     pub fn view(&self) -> &wgpu::TextureView {
         &self.view

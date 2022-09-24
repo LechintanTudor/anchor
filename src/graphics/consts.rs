@@ -1,16 +1,14 @@
-pub mod anchors {
-    use glam::Vec2;
+use glam::Vec2;
 
-    pub const ANCHOR_TOP_LEFT: Vec2 = Vec2::new(-0.5, -0.5);
-    pub const ANCHOR_TOP_CENTER: Vec2 = Vec2::new(0.0, -0.5);
-    pub const ANCHOR_TOP_RIGHT: Vec2 = Vec2::new(0.5, -0.5);
-    pub const ANCHOR_CENTER_LEFT: Vec2 = Vec2::new(-0.5, 0.0);
-    pub const ANCHOR_CENTER: Vec2 = Vec2::new(0.0, 0.0);
-    pub const ANCHOR_CENTER_RIGHT: Vec2 = Vec2::new(0.5, 0.0);
-    pub const ANCHOR_BOTTOM_LEFT: Vec2 = Vec2::new(-0.5, 0.5);
-    pub const ANCHOR_BOTTOM_CENTER: Vec2 = Vec2::new(0.0, 0.5);
-    pub const ANCHOR_BOTTOM_RIGHT: Vec2 = Vec2::new(0.5, 0.5);
-}
+pub const ANCHOR_TOP_LEFT: Vec2 = Vec2::new(-0.5, -0.5);
+pub const ANCHOR_TOP_CENTER: Vec2 = Vec2::new(0.0, -0.5);
+pub const ANCHOR_TOP_RIGHT: Vec2 = Vec2::new(0.5, -0.5);
+pub const ANCHOR_CENTER_LEFT: Vec2 = Vec2::new(-0.5, 0.0);
+pub const ANCHOR_CENTER: Vec2 = Vec2::new(0.0, 0.0);
+pub const ANCHOR_CENTER_RIGHT: Vec2 = Vec2::new(0.5, 0.0);
+pub const ANCHOR_BOTTOM_LEFT: Vec2 = Vec2::new(-0.5, 0.5);
+pub const ANCHOR_BOTTOM_CENTER: Vec2 = Vec2::new(0.0, 0.5);
+pub const ANCHOR_BOTTOM_RIGHT: Vec2 = Vec2::new(0.5, 0.5);
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum FilterMode {
@@ -25,4 +23,12 @@ impl From<FilterMode> for wgpu::FilterMode {
             FilterMode::Linear => Self::Linear,
         }
     }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Default, Debug)]
+pub(crate) enum BatchStatus {
+    #[default]
+    Empty,
+    NonEmpty,
+    Ready,
 }

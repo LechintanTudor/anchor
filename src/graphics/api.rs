@@ -2,6 +2,7 @@ use crate::core::Context;
 use crate::graphics::{Color, Layer};
 use glam::Vec2;
 
+/// Clears the screen with the provided color, then draws the layers.
 pub fn draw(ctx: &mut Context, clear_color: Color, layers: &mut [Layer]) {
     let surface_texture = match ctx.graphics.surface_texture.take() {
         Some(surface_texture) => surface_texture,
@@ -60,27 +61,32 @@ pub fn draw(ctx: &mut Context, clear_color: Color, layers: &mut [Layer]) {
     ctx.graphics.framebuffer = framebuffer;
 }
 
+/// Toggles vsync. Enabling caps the framerate to the display's refresh rate.
 #[inline]
 pub fn set_vsync(ctx: &mut Context, vsync: bool) {
     ctx.graphics.next_config.vsync = vsync;
 }
 
+/// Toggles multisampling. Enabling multisampling smooths out rough edges but decreases performance.
 #[inline]
 pub fn set_multisample(ctx: &mut Context, multisample: bool) {
     ctx.graphics.next_config.multisample = multisample;
 }
 
+/// Returns the size of the application window.
 #[inline]
 pub fn window_size(ctx: &Context) -> Vec2 {
     let size = ctx.window.inner_size();
     Vec2::new(size.width as f32, size.height as f32)
 }
 
+/// Returns whether vsync is enabled.
 #[inline]
 pub fn vsync(ctx: &Context) -> bool {
     ctx.graphics.config.vsync
 }
 
+/// Returns whether multisampling is enabled.
 #[inline]
 pub fn multisample(ctx: &Context) -> bool {
     ctx.graphics.config.multisample

@@ -1,5 +1,4 @@
 mod api;
-mod batch_status;
 mod color;
 mod config;
 mod consts;
@@ -19,10 +18,8 @@ pub(crate) use self::context::*;
 pub(crate) use self::framebuffer::*;
 
 pub use self::api::*;
-pub use self::batch_status::*;
 pub use self::color::*;
 pub use self::config::*;
-pub use self::consts::anchors::*;
 pub use self::consts::*;
 pub use self::drawable::*;
 pub use self::image::*;
