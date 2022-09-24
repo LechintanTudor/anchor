@@ -40,7 +40,7 @@ impl Game for SpinningSquareExample {
         self.shape_batch.add(&self.shape_params, &self.transform);
 
         let projection = Projection::fill(graphics::window_size(ctx));
-        graphics::draw(ctx, Color::gray(0.8), &mut [Layer::new(projection, &mut self.shape_batch)]);
+        graphics::draw(ctx, Color::WHITE, &mut [Layer::new(projection, &mut self.shape_batch)]);
 
         Ok(())
     }
