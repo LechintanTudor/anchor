@@ -6,6 +6,7 @@ use winit::dpi::Size as WindowSize;
 use winit::event_loop::EventLoop;
 use winit::window::{Window, WindowBuilder};
 
+/// Groups together functionallity from all modules of the crate.
 pub struct Context {
     pub(crate) should_exit: bool,
     pub(crate) game_phase: GamePhase,
@@ -16,7 +17,7 @@ pub struct Context {
 }
 
 impl Context {
-    pub fn new(event_loop: &EventLoop<()>, config: Config) -> GameResult<Self> {
+    pub(crate) fn new(event_loop: &EventLoop<()>, config: Config) -> GameResult<Self> {
         let time = TimeContext::new(config.time);
 
         let window = WindowBuilder::new()

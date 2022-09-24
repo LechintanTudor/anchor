@@ -6,6 +6,7 @@ use std::io::Error as IoError;
 use std::path::{Path, PathBuf};
 use winit::error::OsError;
 
+/// Type returned by fallible operations.
 pub type GameResult<T = ()> = Result<T, GameError>;
 
 #[derive(Debug)]
@@ -14,20 +15,24 @@ struct GameErrorData {
     path: Option<PathBuf>,
 }
 
+/// Wrapper for all errors that may be returned by the game.
 #[derive(Debug)]
 pub struct GameError(Box<GameErrorData>);
 
 impl GameError {
+    /// Creates a new error with the given `kind` and `path`.
     #[inline]
     pub fn new(kind: GameErrorKind, path: Option<PathBuf>) -> Self {
         Self(Box::new(GameErrorData { kind, path }))
     }
 
+    /// The kind of error.
     #[inline]
     pub fn kind(&self) -> &GameErrorKind {
         &self.0.kind
     }
 
+    /// The path to the file that caused the error to occur (e.g. because it was missing).
     #[inline]
     pub fn path(&self) -> Option<&Path> {
         self.0.path.as_deref()
@@ -57,12 +62,18 @@ impl fmt::Display for GameError {
     }
 }
 
+/// Groups together the kind of errors that may be returned by the game.
 #[derive(Debug)]
 pub enum GameErrorKind {
+    /// The host OS cannot perform the requested operation.
     OsError(OsError),
+    /// Error related to IO.
     IoError(IoError),
+    /// Error caused by image processing.
     ImageError(ImageError),
+    /// Error caused by font processing.
     FontError(FontError),
+    /// Other kinds of errors.
     OtherError(Box<dyn Error + Send + Sync + 'static>),
 }
 
@@ -79,11 +90,13 @@ impl fmt::Display for GameErrorKind {
 }
 
 impl GameErrorKind {
+    /// Creates a [GameError] without an origin path.
     #[inline]
     pub fn into_error(self) -> GameError {
         GameError::new(self, None)
     }
 
+    /// Creates a [GameError] with an origin path.
     pub fn into_error_with_path<P>(self, path: P) -> GameError
     where
         P: Into<PathBuf>,
