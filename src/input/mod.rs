@@ -1,3 +1,7 @@
+#![forbid(missing_docs)]
+
+//! Provides functions for querying the state of input devices. 
+
 mod api;
 mod context;
 mod cursor;
