@@ -1,3 +1,7 @@
+#![forbid(missing_docs)]
+
+//! Provides functions for interacting with the application window.
+
 mod api;
 mod config;
 
