@@ -1,3 +1,7 @@
+#![forbid(missing_docs)]
+
+//! Provides functions for querying game loop timers.
+
 mod api;
 mod config;
 
