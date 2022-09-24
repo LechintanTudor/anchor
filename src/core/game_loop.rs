@@ -1,6 +1,5 @@
-use crate::core::{Config, Context, FramePhase, Game, GameBuilder, GameError, GameResult};
+use crate::core::{Config, Context, Game, GameBuilder, GameError, GamePhase, GameResult};
 use glam::DVec2;
-use log::info;
 use winit::event::{DeviceEvent, ElementState, Event, StartCause, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
 
@@ -18,7 +17,7 @@ where
 
         match event {
             Event::NewEvents(StartCause::Init) => {
-                info!("Starting Anchor...");
+                on_init(ctx, game, control_flow);
             }
             Event::NewEvents(_) => {
                 on_frame_start(ctx, game, control_flow);
@@ -39,18 +38,30 @@ where
                 on_frame_end(ctx);
             }
             Event::LoopDestroyed => {
-                info!("Shutting down Anchor...");
+                on_destroy(ctx, game);
             }
             _ => (),
         }
     });
 }
 
+fn on_init(ctx: &mut Context, game: &mut impl Game, control_flow: &mut ControlFlow) {
+    ctx.game_phase = GamePhase::Init;
+    if let Err(error) = game.on_init(ctx) {
+        handle_error(game, ctx, error, control_flow);
+    }
+}
+
+fn on_destroy(ctx: &mut Context, game: &mut impl Game) {
+    ctx.game_phase = GamePhase::Destroy;
+    game.on_destroy(ctx);
+}
+
 fn on_frame_start(ctx: &mut Context, game: &mut impl Game, control_flow: &mut ControlFlow) {
     ctx.time.start_frame();
-    ctx.frame_phase = FramePhase::Input;
+    ctx.game_phase = GamePhase::Input;
 
-    if ctx.take_should_exit() && game.on_close_request(ctx) {
+    if ctx.take_should_exit() && game.on_exit_request(ctx) {
         control_flow.set_exit();
     }
 }
@@ -70,7 +81,7 @@ fn on_window_event(
 ) {
     match event {
         WindowEvent::CloseRequested => {
-            if game.on_close_request(ctx) {
+            if game.on_exit_request(ctx) {
                 control_flow.set_exit();
             }
         }
@@ -129,25 +140,25 @@ fn on_window_event(
 }
 
 fn on_update(ctx: &mut Context, game: &mut impl Game, control_flow: &mut ControlFlow) {
-    ctx.frame_phase = FramePhase::Update;
+    ctx.game_phase = GamePhase::Update;
     if let Err(error) = game.update(ctx) {
-        if handle_error(game, ctx, FramePhase::Update, error, control_flow) {
+        if handle_error(game, ctx, error, control_flow) {
             return;
         }
     }
 
-    ctx.frame_phase = FramePhase::FixedUpdate;
+    ctx.game_phase = GamePhase::FixedUpdate;
     while ctx.time.fixed_update() {
         if let Err(error) = game.fixed_update(ctx) {
-            if handle_error(game, ctx, FramePhase::FixedUpdate, error, control_flow) {
+            if handle_error(game, ctx, error, control_flow) {
                 return;
             }
         }
     }
 
-    ctx.frame_phase = FramePhase::LateUpdate;
+    ctx.game_phase = GamePhase::LateUpdate;
     if let Err(error) = game.late_update(ctx) {
-        if handle_error(game, ctx, FramePhase::LateUpdate, error, control_flow) {
+        if handle_error(game, ctx, error, control_flow) {
             return;
         }
     }
@@ -156,11 +167,11 @@ fn on_update(ctx: &mut Context, game: &mut impl Game, control_flow: &mut Control
 }
 
 fn on_draw(ctx: &mut Context, game: &mut impl Game, control_flow: &mut ControlFlow) {
-    ctx.frame_phase = FramePhase::Draw;
+    ctx.game_phase = GamePhase::Draw;
     ctx.graphics.prepare();
 
     if let Err(error) = game.draw(ctx) {
-        if handle_error(game, ctx, FramePhase::Draw, error, control_flow) {
+        if handle_error(game, ctx, error, control_flow) {
             return;
         }
     }
@@ -181,12 +192,11 @@ fn on_frame_end(ctx: &mut Context) {
 fn handle_error(
     game: &mut impl Game,
     ctx: &mut Context,
-    phase: FramePhase,
     error: GameError,
     control_flow: &mut ControlFlow,
 ) -> bool {
-    if game.handle_error(ctx, phase, error) {
-        control_flow.set_exit_with_code(phase.error_exit_code());
+    if game.handle_error(ctx, error) {
+        control_flow.set_exit_with_code(ctx.game_phase.error_exit_code());
         true
     } else {
         false

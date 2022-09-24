@@ -1,4 +1,4 @@
-use crate::core::{Context, FramePhase};
+use crate::core::{Context, GamePhase};
 
 #[inline]
 pub fn request_exit(ctx: &mut Context) {
@@ -6,8 +6,8 @@ pub fn request_exit(ctx: &mut Context) {
 }
 
 #[inline]
-pub fn frame_phase(ctx: &Context) -> FramePhase {
-    ctx.frame_phase
+pub fn game_phase(ctx: &Context) -> GamePhase {
+    ctx.game_phase
 }
 
 #[inline]

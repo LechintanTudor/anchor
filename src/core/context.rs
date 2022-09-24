@@ -1,4 +1,4 @@
-use crate::core::{Config, FramePhase, GameErrorKind, GameResult};
+use crate::core::{Config, GameErrorKind, GamePhase, GameResult};
 use crate::graphics::GraphicsContext;
 use crate::input::InputContext;
 use crate::time::TimeContext;
@@ -8,7 +8,7 @@ use winit::window::{Window, WindowBuilder};
 
 pub struct Context {
     pub(crate) should_exit: bool,
-    pub(crate) frame_phase: FramePhase,
+    pub(crate) game_phase: GamePhase,
     pub(crate) time: TimeContext,
     pub(crate) window: Window,
     pub(crate) input: InputContext,
@@ -32,7 +32,7 @@ impl Context {
 
         Ok(Self {
             should_exit: false,
-            frame_phase: FramePhase::Input,
+            game_phase: GamePhase::Input,
             time,
             window,
             input: Default::default(),

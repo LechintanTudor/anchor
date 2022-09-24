@@ -1,4 +1,4 @@
-use crate::core::{Context, FramePhase};
+use crate::core::{Context, GamePhase};
 use std::time::Duration;
 
 #[inline]
@@ -8,7 +8,7 @@ pub fn since_start(ctx: &Context) -> Duration {
 
 #[inline]
 pub fn delta(ctx: &Context) -> Duration {
-    if ctx.frame_phase == FramePhase::FixedUpdate {
+    if ctx.game_phase == GamePhase::FixedUpdate {
         ctx.time.fixed_delta()
     } else {
         ctx.time.delta()

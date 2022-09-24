@@ -1,4 +1,4 @@
-use crate::core::{Context, FramePhase, GameError, GameResult};
+use crate::core::{Context, GameError, GameResult};
 use crate::graphics::{self, Color};
 use crate::input::{Key, ModifiersState, ScrollDelta};
 use glam::DVec2;
@@ -9,7 +9,13 @@ pub trait Game
 where
     Self: Sized + 'static,
 {
-    fn on_close_request(&mut self, ctx: &mut Context) -> bool {
+    fn on_init(&mut self, ctx: &mut Context) -> GameResult {
+        Ok(())
+    }
+
+    fn on_destroy(&mut self, ctx: &mut Context) {}
+
+    fn on_exit_request(&mut self, ctx: &mut Context) -> bool {
         true
     }
 
@@ -48,8 +54,8 @@ where
         Ok(())
     }
 
-    fn handle_error(&mut self, ctx: &mut Context, phase: FramePhase, error: GameError) -> bool {
-        eprintln!("{:?}: {}", phase, error);
+    fn handle_error(&mut self, ctx: &mut Context, error: GameError) -> bool {
+        eprintln!("{:?}: {}", ctx.game_phase, error);
         true
     }
 }
