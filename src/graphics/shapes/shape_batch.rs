@@ -6,11 +6,12 @@ use wgpu::util::DeviceExt;
 
 struct ShapeBatchData {
     instances: wgpu::Buffer,
-    instances_capacity: usize,
+    instances_cap: usize,
     projection: wgpu::Buffer,
     bind_group: wgpu::BindGroup,
 }
 
+/// Draws instances of a shape.
 pub struct ShapeBatch {
     shape: Shape,
     instances: Vec<ShapeInstance>,
@@ -19,15 +20,18 @@ pub struct ShapeBatch {
 }
 
 impl ShapeBatch {
+    /// Creates a shape batch with the given `shape`.
     pub fn new(shape: Shape) -> ShapeBatch {
         Self { shape, instances: Vec::new(), data: None, status: BatchStatus::Empty }
     }
 
+    /// Clears the shape batch.
     pub fn clear(&mut self) {
         self.instances.clear();
         self.status = BatchStatus::Empty;
     }
 
+    /// Adds a shape with the given params and transform.
     pub fn add(&mut self, shape_params: &ShapeParams, transform: &Transform) {
         let affine = transform.to_affine2();
 
@@ -42,11 +46,13 @@ impl ShapeBatch {
         self.status = BatchStatus::NonEmpty;
     }
 
+    /// Sets the shape to use when drawing.
     #[inline]
     pub fn set_shape(&mut self, shape: Shape) {
         self.shape = shape;
     }
 
+    /// Return the shape drawn by the shape batch.
     #[inline]
     pub fn shape(&self) -> &Shape {
         &self.shape
@@ -74,11 +80,11 @@ impl Drawable for ShapeBatch {
 
         match self.data.as_mut() {
             Some(data) => {
-                if self.instances.len() <= data.instances_capacity {
+                if self.instances.len() <= data.instances_cap {
                     queue.write_buffer(&data.instances, 0, bytemuck::cast_slice(&self.instances))
                 } else {
                     data.instances = create_instance_buffer(&self.instances);
-                    data.instances_capacity = self.instances.len();
+                    data.instances_cap = self.instances.len();
                 }
 
                 queue.write_buffer(&data.projection, 0, bytemuck::bytes_of(&projection_matrix));
@@ -101,7 +107,7 @@ impl Drawable for ShapeBatch {
 
                 self.data = Some(ShapeBatchData {
                     instances: create_instance_buffer(&self.instances),
-                    instances_capacity: self.instances.len(),
+                    instances_cap: self.instances.len(),
                     projection,
                     bind_group,
                 });
