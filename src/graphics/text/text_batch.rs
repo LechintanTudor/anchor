@@ -20,6 +20,7 @@ struct TextBatchData {
     sampler: wgpu::Sampler,
 }
 
+/// Rasterizes and draws text using a glyph atlas.
 pub struct TextBatch {
     fonts: FxHashMap<usize, FontId>,
     filter_mode: FilterMode,
@@ -32,6 +33,7 @@ pub struct TextBatch {
 }
 
 impl TextBatch {
+    /// Creates a text batch that uses the provided filter to sample the glyph atlas.  
     pub fn new(filter_mode: FilterMode) -> Self {
         let brush_builder = GlyphBrushBuilder::using_fonts(vec![])
             .initial_cache_size((INITIAL_DRAW_CACHE_SIZE, INITIAL_DRAW_CACHE_SIZE))
@@ -50,12 +52,14 @@ impl TextBatch {
         }
     }
 
+    /// Clears the text batch.
     #[inline]
     pub fn clear(&mut self) {
         self.positioned_texts.clear();
         self.status = BatchStatus::Empty;
     }
 
+    /// Adds transformed text to the batch.
     pub fn add(&mut self, text: &Text, transform: &Transform) {
         use glyph_brush::{HorizontalAlign, Layout, VerticalAlign};
 

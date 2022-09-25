@@ -3,10 +3,12 @@ use glyph_brush::ab_glyph::{self, CodepointIdIter, FontVec, GlyphId, GlyphImage,
 use std::path::Path;
 use std::sync::Arc;
 
+/// Holds font data required to rasterize text. Cheap to clone.
 #[derive(Clone, Debug)]
 pub struct Font(Arc<FontVec>);
 
 impl Font {
+    /// Creates a font with the given `data`.
     #[inline]
     pub fn new(data: Vec<u8>) -> GameResult<Self> {
         let font_vec = ab_glyph::FontVec::try_from_vec(data)
@@ -15,6 +17,7 @@ impl Font {
         Ok(Self(Arc::new(font_vec)))
     }
 
+    /// Loads the font from the given `path`.
     pub fn load_from_file<P>(path: P) -> GameResult<Font>
     where
         P: AsRef<Path>,

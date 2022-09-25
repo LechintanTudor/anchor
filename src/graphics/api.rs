@@ -61,7 +61,7 @@ pub fn draw(ctx: &mut Context, clear_color: Color, layers: &mut [Layer]) {
     ctx.graphics.framebuffer = framebuffer;
 }
 
-/// Toggles vsync. Enabling caps the framerate to the display's refresh rate.
+/// Toggles vsync. Enabling vsync caps the framerate to the display's refresh rate.
 #[inline]
 pub fn set_vsync(ctx: &mut Context, vsync: bool) {
     ctx.graphics.next_config.vsync = vsync;

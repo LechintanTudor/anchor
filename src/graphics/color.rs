@@ -26,25 +26,25 @@ impl Color {
     pub const AQUA: Self = Self::rgb(0.0, 1.0, 1.0);
     pub const MAGENTA: Self = Self::rgb(1.0, 0.0, 1.0);
 
-    /// Creates an opaque [Color] from the given values.
+    /// Creates an opaque color from the given values.
     #[inline]
     pub const fn rgb(r: f32, g: f32, b: f32) -> Self {
         Self { r, g, b, a: 1.0 }
     }
 
-    /// Creates a [Color] from the given values.
+    /// Creates a color from the given values.
     #[inline]
     pub const fn rgba(r: f32, g: f32, b: f32, a: f32) -> Self {
         Self { r, g, b, a }
     }
 
-    /// Creates an opaque grayscale [Color] with the given value.
+    /// Creates an opaque grayscale color with the given value.
     #[inline]
     pub const fn luma(value: f32) -> Self {
         Self { r: value, g: value, b: value, a: 1.0 }
     }
 
-    /// Creates a grayscale [Color] with the given value and opacity.
+    /// Creates a grayscale color with the given value and opacity.
     #[inline]
     pub const fn lumaa(value: f32, a: f32) -> Self {
         Self { r: value, g: value, b: value, a }
