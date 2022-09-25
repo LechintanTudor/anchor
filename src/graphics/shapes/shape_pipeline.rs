@@ -12,15 +12,19 @@ pub(crate) struct ShapeInstance {
     pub linear_color: Vec4,
 }
 
+/// Vertex used for building a drawable shape.
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Pod, Zeroable)]
 pub struct ShapeVertex {
+    /// Vertex position.
     pub position: Vec2,
     _padding: Vec2,
+    /// Vertex color expressed as a linear RGBA vector.
     pub linear_color: Vec4,
 }
 
 impl ShapeVertex {
+    /// Creates a shape vertex.
     #[inline]
     pub fn new(position: Vec2, linear_color: Vec4) -> Self {
         Self { position, _padding: Vec2::ZERO, linear_color }

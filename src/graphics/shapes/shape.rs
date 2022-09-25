@@ -27,7 +27,7 @@ impl fmt::Debug for Shape {
 
 impl Shape {
     /// Creates a shape with the given vertexes and indexes.
-    /// 
+    ///
     /// # Safety
     /// The shape must have at least 3 vertexes and the value of each index in the `indexes` array
     /// must be less than the length of the `vertexes` array.

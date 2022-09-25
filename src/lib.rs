@@ -12,6 +12,7 @@ use crate::core::{Config, GameBuilder, GameResult};
 
 pub use {glam, wgpu, winit};
 
+/// Creates the game and starts the event loop.
 pub fn run<G>(config: Config, game_builder: G) -> GameResult
 where
     G: GameBuilder,

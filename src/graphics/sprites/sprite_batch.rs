@@ -7,11 +7,12 @@ use wgpu::util::DeviceExt;
 
 struct SpriteBatchData {
     instances: wgpu::Buffer,
-    instances_capacity: usize,
+    instances_cap: usize,
     projection: wgpu::Buffer,
     bind_group: wgpu::BindGroup,
 }
 
+/// Draws sprite instances using a sprite sheet.
 pub struct SpriteBatch {
     sprite_sheet: SpriteSheet,
     filter_mode: FilterMode,
@@ -21,6 +22,7 @@ pub struct SpriteBatch {
 }
 
 impl SpriteBatch {
+    /// Creates a sprite batch using the given sprite sheet and texture filtering.
     pub fn new(sprite_sheet: SpriteSheet, filter_mode: FilterMode) -> Self {
         Self {
             sprite_sheet,
@@ -31,11 +33,13 @@ impl SpriteBatch {
         }
     }
 
+    /// Clears the sprite batch.
     pub fn clear(&mut self) {
         self.instances.clear();
         self.status = BatchStatus::Empty;
     }
 
+    /// Adds a transformed sprite to the batch.
     pub fn add(&mut self, sprite: &Sprite, transform: &Transform) {
         let sprite_sheet_size =
             Vec2::new(self.sprite_sheet.width() as f32, self.sprite_sheet.height() as f32);
@@ -90,6 +94,7 @@ impl SpriteBatch {
         self.status = BatchStatus::NonEmpty;
     }
 
+    /// Returns the sprite sheet used by the batch.
     #[inline]
     pub fn sprite_sheet(&self) -> &SpriteSheet {
         &self.sprite_sheet
@@ -117,11 +122,11 @@ impl Drawable for SpriteBatch {
 
         match self.data.as_mut() {
             Some(data) => {
-                if self.instances.len() <= data.instances_capacity {
+                if self.instances.len() <= data.instances_cap {
                     queue.write_buffer(&data.instances, 0, bytemuck::cast_slice(&self.instances));
                 } else {
                     data.instances = create_instance_buffer(&self.instances);
-                    data.instances_capacity = self.instances.len();
+                    data.instances_cap = self.instances.len();
                 }
 
                 queue.write_buffer(&data.projection, 0, bytemuck::bytes_of(&projection_matrix));
@@ -166,7 +171,7 @@ impl Drawable for SpriteBatch {
 
                 self.data = Some(SpriteBatchData {
                     instances: create_instance_buffer(&self.instances),
-                    instances_capacity: self.instances.len(),
+                    instances_cap: self.instances.len(),
                     projection,
                     bind_group,
                 });

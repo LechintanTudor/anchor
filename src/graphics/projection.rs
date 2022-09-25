@@ -34,9 +34,13 @@ impl Camera {
 /// Projects normalized device coords into window coords.
 #[derive(Clone, Copy, Debug)]
 pub struct Viewport {
+    /// Offset from the left of the window.
     pub x: f32,
+    /// Offset from the top of the window.
     pub y: f32,
+    /// Width of the viewport.
     pub w: f32,
+    /// Height of the viewport.
     pub h: f32,
 }
 

@@ -1,3 +1,5 @@
+//! Provides types and functions for displaying graphics using WGPU.
+
 mod api;
 mod color;
 mod config;

@@ -1,5 +1,3 @@
-#![forbid(missing_docs)]
-
 //! Provides types and functions for interacting with the game loop.
 
 mod api;

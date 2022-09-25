@@ -135,13 +135,17 @@ impl Drawable for ShapeBatch {
     }
 }
 
+/// Params used to alter shape drawing.
 #[derive(Clone, Copy, Debug)]
 pub struct ShapeParams {
+    /// Anchor offset in pixels.
     pub pixel_anchor: Vec2,
+    /// Color used to tint the shape.
     pub color: Color,
 }
 
 impl ShapeParams {
+    /// Creates shape params with the given `color`.
     #[inline]
     pub fn from_color(color: Color) -> Self {
         Self { color, ..Default::default() }

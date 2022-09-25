@@ -15,7 +15,6 @@ pub struct Color {
     pub a: f32,
 }
 
-#[allow(missing_docs)]
 impl Color {
     pub const WHITE: Self = Self::rgb(1.0, 1.0, 1.0);
     pub const BLACK: Self = Self::rgb(0.0, 0.0, 0.0);
