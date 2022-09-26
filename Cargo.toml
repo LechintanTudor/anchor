@@ -1,7 +1,14 @@
 [package]
 name = "anchor"
-version = "0.1.0"
+version = "0.0.1"
 edition = "2021"
+description = "Modern 2D Game Framework"
+authors = ["Tudor-Cristian Lechintan <lechintantudor02@gmail.com>"]
+repository = "https://github.com/LechintanTudor/anchor"
+keywords = ["gamedev"]
+categories = ["game-development"]
+license = "MIT OR Apache-2.0"
+readme = "README.md"
 
 [dependencies]
 bytemuck = { version = "1.12", features = ["derive"] }
