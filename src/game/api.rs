@@ -1,4 +1,4 @@
-use crate::core::{Context, GamePhase};
+use crate::game::{Context, GamePhase};
 
 /// Signals to the game that exit was requested.
 #[inline]

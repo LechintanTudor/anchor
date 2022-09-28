@@ -1,4 +1,4 @@
-use anchor::core::{Config, Context, Game, GameResult};
+use anchor::game::{Config, Context, Game, GameResult};
 use anchor::graphics::{self, Color, Layer, Projection, Shape, ShapeBatch, ShapeParams, Transform};
 use anchor::input::Key;
 use anchor::time;

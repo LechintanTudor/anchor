@@ -1,4 +1,4 @@
-use crate::core::Context;
+use crate::game::Context;
 use crate::graphics::{BatchStatus, Color, Drawable, Projection, Shape, ShapeInstance, Transform};
 use glam::Vec2;
 use std::mem;

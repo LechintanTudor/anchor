@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-use crate::core::{Context, GameResult};
+use crate::game::{Context, GameResult};
 use crate::graphics::Texture;
 use std::collections::HashMap;
 use std::path::PathBuf;

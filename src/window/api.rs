@@ -1,4 +1,4 @@
-use crate::core::{Context, GameErrorKind, GameResult};
+use crate::game::{Context, GameErrorKind, GameResult};
 use crate::graphics::Image;
 use winit::dpi::{PhysicalPosition, PhysicalSize};
 use winit::window::{Icon, Window};

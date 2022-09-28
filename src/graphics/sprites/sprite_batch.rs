@@ -1,4 +1,4 @@
-use crate::core::Context;
+use crate::game::Context;
 use crate::graphics::{
     BatchStatus, Drawable, FilterMode, Projection, Sprite, SpriteInstance, SpriteSheet, Transform,
 };

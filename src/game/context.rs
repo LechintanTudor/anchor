@@ -1,4 +1,4 @@
-use crate::core::{Config, GameErrorKind, GamePhase, GameResult};
+use crate::game::{Config, GameErrorKind, GamePhase, GameResult};
 use crate::graphics::GraphicsContext;
 use crate::input::InputContext;
 use crate::time::TimeContext;

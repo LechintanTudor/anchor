@@ -1,4 +1,4 @@
-use crate::core::{Context, GamePhase};
+use crate::game::{Context, GamePhase};
 use std::time::Duration;
 
 /// Returns the time since the application was started.
@@ -8,7 +8,7 @@ pub fn since_start(ctx: &Context) -> Duration {
 }
 
 /// Returns the duration of the last frame.
-/// If called inside [fixed_update](crate::core::Game::fixed_update), it returns the value of
+/// If called inside [fixed_update](crate::game::Game::fixed_update), it returns the value of
 /// [fixed_delta].
 #[inline]
 pub fn delta(ctx: &Context) -> Duration {
@@ -20,7 +20,7 @@ pub fn delta(ctx: &Context) -> Duration {
 }
 
 /// Returns the duration of the last frame as seconds.
-/// If called inside [fixed_update](crate::core::Game::fixed_update), it returns the value of
+/// If called inside [fixed_update](crate::game::Game::fixed_update), it returns the value of
 /// [fixed_delta_f32].
 #[inline]
 pub fn delta_f32(ctx: &Context) -> f32 {
@@ -28,7 +28,7 @@ pub fn delta_f32(ctx: &Context) -> f32 {
 }
 
 /// Returns the duration of the last frame as seconds.
-/// If called inside [fixed_update](crate::core::Game::fixed_update), it returns the value of
+/// If called inside [fixed_update](crate::game::Game::fixed_update), it returns the value of
 /// [fixed_delta_f64].
 #[inline]
 pub fn delta_f64(ctx: &Context) -> f64 {

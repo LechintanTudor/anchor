@@ -1,4 +1,4 @@
-use crate::core::Context;
+use crate::game::Context;
 use crate::graphics::{Color, ShapeVertex};
 use glam::Vec2;
 use std::fmt;

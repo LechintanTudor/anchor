@@ -1,4 +1,4 @@
-use crate::core::{Context, GameResult};
+use crate::game::{Context, GameResult};
 use crate::graphics::Image;
 use std::path::Path;
 use std::sync::Arc;

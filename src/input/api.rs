@@ -1,4 +1,4 @@
-use crate::core::Context;
+use crate::game::Context;
 use crate::input::{Key, ModifiersState, MouseButton};
 use glam::DVec2;
 

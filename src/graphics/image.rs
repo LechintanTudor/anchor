@@ -1,4 +1,4 @@
-use crate::core::{GameErrorKind, GameResult};
+use crate::game::{GameErrorKind, GameResult};
 use image::error::ImageError;
 use image::RgbaImage;
 use std::path::Path;

@@ -19,7 +19,7 @@ Modern game framework for building 2D games. Not yet released on [crates.io](htt
 Draws a blue square in the center of the screen.
 
 ```rust
-use anchor::core::{Config, Context, Game, GameResult};
+use anchor::game::{Config, Context, Game, GameResult};
 use anchor::graphics::{self, Color, Layer, Projection, Shape, ShapeBatch, ShapeParams, Transform};
 
 struct MyGame {

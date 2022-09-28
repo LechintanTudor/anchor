@@ -1,4 +1,4 @@
-use crate::core::{Context, GameError, GameResult};
+use crate::game::{Context, GameError, GameResult};
 use crate::graphics::{self, Color};
 use crate::input::{Key, ModifiersState, ScrollDelta};
 use glam::DVec2;

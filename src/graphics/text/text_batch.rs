@@ -1,4 +1,4 @@
-use crate::core::Context;
+use crate::game::Context;
 use crate::graphics::{
     self, BatchStatus, Drawable, FilterMode, Font, GlyphInstance, GlyphTexture, GlyphTextureBounds,
     PositionedText, PositionedTextSection, Projection, RawGlyphInstanceData, Text, Transform,

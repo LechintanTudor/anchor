@@ -1,4 +1,4 @@
-use crate::core::{GameErrorKind, GameResult};
+use crate::game::{GameErrorKind, GameResult};
 use glyph_brush::ab_glyph::{self, CodepointIdIter, FontVec, GlyphId, GlyphImage, Outline};
 use std::path::Path;
 use std::sync::Arc;

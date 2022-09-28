@@ -1,4 +1,4 @@
-use crate::core::Context;
+use crate::game::Context;
 use crate::graphics::Projection;
 
 /// Object or batch of objects that can be drawn on the screen.
