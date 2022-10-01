@@ -27,7 +27,7 @@ impl Camera {
     pub fn to_ortho_mat4(&self) -> Mat4 {
         let tl_corner = self.size * (-0.5 - self.anchor);
         let br_corner = self.size * (0.5 - self.anchor);
-        Mat4::orthographic_rh(tl_corner.x, br_corner.x, tl_corner.y, br_corner.y, 0.0, 1.0)
+        Mat4::orthographic_rh(tl_corner.x, br_corner.x, br_corner.y, tl_corner.y, 0.0, 1.0)
     }
 }
 
