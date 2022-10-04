@@ -1,7 +1,6 @@
-use serde::Deserialize;
-
 use crate::game::{Context, GameResult};
 use crate::graphics::Texture;
+use serde::Deserialize;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -41,37 +40,36 @@ impl From<[u32; 4]> for SpriteBounds {
     }
 }
 
-#[derive(Deserialize)]
-struct PathSpriteSheetBuilder {
-    texture: PathBuf,
-    sprites: HashMap<String, (u32, u32, u32, u32)>,
-}
-
-/// Implements the builder pattern for creating sprite sheets.
-#[derive(Debug, Deserialize)]
-#[serde(from = "PathSpriteSheetBuilder")]
-pub struct SpriteSheetBuilder {
-    texture: SpriteSheetBuilderTexture,
-    sprites: HashMap<String, SpriteBounds>,
-}
-
-impl From<PathSpriteSheetBuilder> for SpriteSheetBuilder {
-    fn from(mut builder: PathSpriteSheetBuilder) -> Self {
-        Self {
-            texture: SpriteSheetBuilderTexture::Path(builder.texture),
-            sprites: builder
-                .sprites
-                .drain()
-                .map(|(name, bounds)| (name, SpriteBounds::from(bounds)))
-                .collect(),
-        }
-    }
-}
-
 #[derive(Clone, Debug)]
 enum SpriteSheetBuilderTexture {
     Texture(Texture),
     Path(PathBuf),
+}
+
+#[derive(Clone, Debug, Deserialize)]
+struct NamedSpriteBounds {
+    name: String,
+    bounds: (u32, u32, u32, u32),
+}
+
+#[derive(Clone, Debug, Deserialize)]
+struct SerializableSpriteSheetBuilder {
+    texture: PathBuf,
+    sprites: Vec<NamedSpriteBounds>,
+}
+
+/// Implements the builder pattern for creating sprite sheets.
+#[derive(Clone, Debug, Deserialize)]
+#[serde(from = "SerializableSpriteSheetBuilder")]
+pub struct SpriteSheetBuilder {
+    texture: SpriteSheetBuilderTexture,
+    sprites: Vec<NamedSpriteBounds>,
+}
+
+impl From<SerializableSpriteSheetBuilder> for SpriteSheetBuilder {
+    fn from(builder: SerializableSpriteSheetBuilder) -> Self {
+        Self { texture: SpriteSheetBuilderTexture::Path(builder.texture), sprites: builder.sprites }
+    }
 }
 
 impl SpriteSheetBuilder {
@@ -92,12 +90,12 @@ impl SpriteSheetBuilder {
     }
 
     /// Adds a named sprite to the sprite sheet.
-    pub fn add_sprite<S>(&mut self, name: S, bounds: SpriteBounds) -> &mut Self
+    pub fn add_sprite<S>(&mut self, name: S, bounds: (u32, u32, u32, u32)) -> usize
     where
         S: Into<String>,
     {
-        self.sprites.insert(name.into(), bounds);
-        self
+        self.sprites.push(NamedSpriteBounds { name: name.into(), bounds });
+        self.sprites.len()
     }
 
     /// Builds the sprite sheet.
@@ -110,9 +108,10 @@ impl SpriteSheetBuilder {
         let mut bounds = vec![SpriteBounds::new(0, 0, texture.width(), texture.height())];
         let mut indexes = HashMap::<String, usize>::new();
 
-        for (sprite_name, sprite_bounds) in self.sprites.drain() {
-            indexes.insert(sprite_name, bounds.len());
-            bounds.push(sprite_bounds);
+        for named_sprite in self.sprites.drain(..) {
+            let sprite_index = bounds.len();
+            bounds.push(named_sprite.bounds.into());
+            indexes.insert(named_sprite.name, sprite_index);
         }
 
         Ok(SpriteSheet { texture, data: Arc::new(SpriteSheetData { bounds, indexes }) })
