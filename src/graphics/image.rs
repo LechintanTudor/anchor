@@ -5,7 +5,7 @@ use std::path::Path;
 
 /// RGBA image stored in main memory.
 #[derive(Clone, Debug)]
-pub struct Image(RgbaImage);
+pub struct Image(pub(crate) RgbaImage);
 
 impl Image {
     /// Creates an image with the given dimensions and data. Panics if `width * height !=
