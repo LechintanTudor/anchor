@@ -8,10 +8,10 @@ use std::path::Path;
 pub struct Image(pub(crate) RgbaImage);
 
 impl Image {
-    /// Creates an image with the given dimensions and data. Panics if `width * height !=
+    /// Creates an image with the given dimensions and data. Panics if `width * height * 4 !=
     /// data.len()`.
     pub fn new(width: u32, height: u32, data: Vec<u8>) -> Self {
-        assert!((width * height) as usize == data.len());
+        assert!((width * height * 4) as usize == data.len());
         Image(RgbaImage::from_vec(width, height, data).unwrap())
     }
 

@@ -1,50 +1,43 @@
-use crate::graphics::Image;
+use crate::game::Context;
+use crate::graphics::{Image, PixelBounds, SpriteSheet};
 use image::{GenericImage, RgbaImage};
 use std::cmp::{self, Ordering};
 use std::collections::BinaryHeap;
+use std::sync::Arc;
 
 #[derive(Clone, Debug)]
-struct SpriteData {
+struct IndexedImage {
     index: usize,
     image: Image,
 }
 
-impl PartialEq for SpriteData {
+impl PartialEq for IndexedImage {
     fn eq(&self, other: &Self) -> bool {
         self.cmp(other) == Ordering::Equal
     }
 }
 
-impl Eq for SpriteData {}
+impl Eq for IndexedImage {}
 
-impl PartialOrd for SpriteData {
+impl PartialOrd for IndexedImage {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl Ord for SpriteData {
+impl Ord for IndexedImage {
     fn cmp(&self, other: &Self) -> Ordering {
         let max_dimension_1 = cmp::max(self.image.width(), self.image.height());
         let max_dimension_2 = cmp::max(other.image.width(), other.image.height());
         max_dimension_1.cmp(&max_dimension_2)
     }
 }
-
-#[derive(Clone, Copy, Default, Debug)]
-pub struct Bounds {
-    pub x: u32,
-    pub y: u32,
-    pub w: u32,
-    pub h: u32,
-}
-
 #[derive(Clone, Default, Debug)]
 enum AtlasNodeState {
     #[default]
     Unused,
     Used,
-    UsedLeaf(SpriteData),
+    UsedLeaf(IndexedImage),
 }
 
 impl AtlasNodeState {
@@ -55,25 +48,25 @@ impl AtlasNodeState {
 
 #[derive(Clone, Debug)]
 struct AtlasNode {
-    bounds: Bounds,
+    bounds: PixelBounds,
     state: AtlasNodeState,
     children: Option<Box<(AtlasNode, AtlasNode)>>,
 }
 
 impl AtlasNode {
-    fn root(sprite: SpriteData) -> Self {
+    fn root(sprite: IndexedImage) -> Self {
         Self {
-            bounds: Bounds { x: 0, y: 0, w: sprite.image.width(), h: sprite.image.height() },
+            bounds: PixelBounds { x: 0, y: 0, w: sprite.image.width(), h: sprite.image.height() },
             state: AtlasNodeState::UsedLeaf(sprite),
             children: None,
         }
     }
 
     fn from_bounds(x: u32, y: u32, w: u32, h: u32) -> Self {
-        Self { bounds: Bounds { x, y, w, h }, state: AtlasNodeState::Unused, children: None }
+        Self { bounds: PixelBounds { x, y, w, h }, state: AtlasNodeState::Unused, children: None }
     }
 
-    fn insert(&mut self, sprite: SpriteData) {
+    fn insert(&mut self, sprite: IndexedImage) {
         let width = sprite.image.width();
         let height = sprite.image.height();
 
@@ -94,16 +87,14 @@ impl AtlasNode {
                 Some(node) => Some(node),
                 None => down.find(width, height),
             }
+        } else if self.bounds.w >= width && self.bounds.h >= height {
+            Some(self)
         } else {
-            if self.bounds.w >= width && self.bounds.h >= height {
-                Some(self)
-            } else {
-                None
-            }
+            None
         }
     }
 
-    fn set_sprite(&mut self, sprite: SpriteData) {
+    fn set_sprite(&mut self, sprite: IndexedImage) {
         let bounds = self.bounds;
         let width = sprite.image.width();
         let height = sprite.image.height();
@@ -139,7 +130,7 @@ impl AtlasNode {
         let bounds = self.bounds;
 
         *self = AtlasNode {
-            bounds: Bounds { x: 0, y: 0, w: bounds.w + width, h: bounds.h },
+            bounds: PixelBounds { x: 0, y: 0, w: bounds.w + width, h: bounds.h },
             state: AtlasNodeState::Used,
             children: Some(Box::new((
                 self.clone(),
@@ -154,7 +145,7 @@ impl AtlasNode {
         let bounds = self.bounds;
 
         *self = AtlasNode {
-            bounds: Bounds { x: 0, y: 0, w: bounds.w, h: bounds.h + height },
+            bounds: PixelBounds { x: 0, y: 0, w: bounds.w, h: bounds.h + height },
             state: AtlasNodeState::Used,
             children: Some(Box::new((
                 AtlasNode::from_bounds(0, bounds.h, bounds.w, height),
@@ -183,65 +174,85 @@ impl AtlasNode {
 }
 
 #[derive(Default)]
-pub struct DynamicSpriteSheetBuilder {
-    sprites: BinaryHeap<SpriteData>,
+pub struct ImageAtlasBuilder {
+    images: BinaryHeap<IndexedImage>,
 }
 
-impl DynamicSpriteSheetBuilder {
-    pub fn add_sprite(&mut self, image: Image) -> usize {
-        let index = self.sprites.len() + 1;
-        self.sprites.push(SpriteData { index, image });
+impl ImageAtlasBuilder {
+    pub fn add_image(&mut self, image: Image) -> usize {
+        let index = self.images.len() + 1;
+        self.images.push(IndexedImage { index, image });
         index
     }
 
-    pub fn build(&mut self) -> DynamicSpriteSheet {
-        let sprite_count = self.sprites.len();
+    pub fn build(&self) -> ImageAtlas {
+        let image_count = self.images.len();
 
-        let sprite_tree = {
-            let mut root = AtlasNode::root(self.sprites.pop().unwrap());
+        if image_count == 0 {
+            return ImageAtlas {
+                image: Image::new(1, 1, vec![0; 4]),
+                bounds: Arc::new([PixelBounds::new(0, 0, 1, 1)]),
+            };
+        }
 
-            for sprite in self.sprites.drain() {
-                root.insert(sprite);
+        let (width, height, image_tree) = {
+            let mut image_iter = self.images.iter();
+            let mut image_tree = AtlasNode::root(image_iter.next().unwrap().clone());
+
+            for image in image_iter {
+                image_tree.insert(image.clone());
             }
 
-            root
+            (image_tree.bounds.w, image_tree.bounds.h, image_tree)
         };
 
-        let width = sprite_tree.bounds.w;
-        let height = sprite_tree.bounds.h;
-
         let mut atlas = RgbaImage::new(width, height);
-        let mut bounds = vec![Bounds::default(); sprite_count + 1];
-        bounds[0] = Bounds { x: 0, y: 0, w: width, h: height };
+        let mut bounds = vec![PixelBounds::default(); image_count + 1];
+        bounds[0] = PixelBounds { x: 0, y: 0, w: width, h: height };
 
-        sprite_tree.for_each_leaf(|index, x, y, image| {
+        image_tree.for_each_leaf(|index, x, y, image| {
             atlas.copy_from(&image.0, x, y).unwrap();
-            bounds[index] = Bounds { x, y, w: image.width(), h: image.height() };
+            bounds[index] = PixelBounds { x, y, w: image.width(), h: image.height() };
         });
 
-        DynamicSpriteSheet { image: Image(atlas), bounds }
+        ImageAtlas { image: Image(atlas), bounds: bounds.into() }
+    }
+
+    #[inline]
+    pub fn build_sprite_sheet(&mut self, ctx: &Context) -> SpriteSheet {
+        self.build().into_sprite_sheet(ctx)
     }
 }
 
 #[derive(Clone, Debug)]
-pub struct DynamicSpriteSheet {
-    image: Image,
-    bounds: Vec<Bounds>,
+pub struct ImageAtlas {
+    pub(crate) image: Image,
+    pub(crate) bounds: Arc<[PixelBounds]>,
 }
 
-impl DynamicSpriteSheet {
+impl ImageAtlas {
     #[inline]
-    pub fn builder() -> DynamicSpriteSheetBuilder {
-        DynamicSpriteSheetBuilder::default()
+    pub fn builder() -> ImageAtlasBuilder {
+        ImageAtlasBuilder::default()
     }
 
     #[inline]
-    pub fn get_bounds(&self, index: usize) -> Option<&Bounds> {
+    pub fn get_bounds(&self, index: usize) -> Option<&PixelBounds> {
         self.bounds.get(index)
     }
 
     #[inline]
     pub fn image(&self) -> &Image {
         &self.image
+    }
+
+    #[inline]
+    pub fn bounds(&self) -> &[PixelBounds] {
+        &self.bounds
+    }
+
+    #[inline]
+    pub fn into_sprite_sheet(self, ctx: &Context) -> SpriteSheet {
+        SpriteSheet::from_image_atlas(ctx, self)
     }
 }
