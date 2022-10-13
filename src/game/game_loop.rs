@@ -18,48 +18,48 @@ where
 
         match event {
             Event::NewEvents(StartCause::Init) => {
-                on_init(ctx, game, control_flow);
+                on_init(game, ctx, control_flow);
             }
             Event::NewEvents(_) => {
-                on_frame_start(ctx, game, control_flow);
+                on_frame_start(game, ctx, control_flow);
             }
             Event::DeviceEvent { event, .. } => {
-                on_device_event(ctx, game, event);
+                on_device_event(game, ctx, event);
             }
             Event::WindowEvent { event, .. } => {
-                on_window_event(ctx, game, event, control_flow);
+                on_window_event(game, ctx, event, control_flow);
             }
             Event::MainEventsCleared => {
-                on_window_resize_request(ctx, game);
-                on_update(ctx, game, control_flow);
+                on_window_resize_request(game, ctx);
+                on_update(game, ctx, control_flow);
             }
             Event::RedrawRequested(_) => {
-                on_draw(ctx, game, control_flow);
+                on_draw(game, ctx, control_flow);
             }
             Event::RedrawEventsCleared => {
                 on_frame_end(ctx);
             }
             Event::LoopDestroyed => {
-                on_destroy(ctx, game);
+                on_destroy(game, ctx);
             }
             _ => (),
         }
     });
 }
 
-fn on_init(ctx: &mut Context, game: &mut impl Game, control_flow: &mut ControlFlow) {
+fn on_init(game: &mut impl Game, ctx: &mut Context, control_flow: &mut ControlFlow) {
     ctx.game_phase = GamePhase::Init;
     if let Err(error) = game.on_init(ctx) {
         handle_error(game, ctx, error, control_flow);
     }
 }
 
-fn on_destroy(ctx: &mut Context, game: &mut impl Game) {
+fn on_destroy(game: &mut impl Game, ctx: &mut Context) {
     ctx.game_phase = GamePhase::Destroy;
     game.on_destroy(ctx);
 }
 
-fn on_frame_start(ctx: &mut Context, game: &mut impl Game, control_flow: &mut ControlFlow) {
+fn on_frame_start(game: &mut impl Game, ctx: &mut Context, control_flow: &mut ControlFlow) {
     ctx.time.start_frame();
     ctx.game_phase = GamePhase::Input;
 
@@ -68,7 +68,7 @@ fn on_frame_start(ctx: &mut Context, game: &mut impl Game, control_flow: &mut Co
     }
 }
 
-fn on_device_event(ctx: &mut Context, game: &mut impl Game, event: DeviceEvent) {
+fn on_device_event(game: &mut impl Game, ctx: &mut Context, event: DeviceEvent) {
     if let DeviceEvent::MouseMotion { delta, .. } = event {
         let delta = DVec2::new(delta.0, delta.1);
         game.on_mouse_motion(ctx, delta);
@@ -76,8 +76,8 @@ fn on_device_event(ctx: &mut Context, game: &mut impl Game, event: DeviceEvent) 
 }
 
 fn on_window_event(
-    ctx: &mut Context,
     game: &mut impl Game,
+    ctx: &mut Context,
     event: WindowEvent,
     control_flow: &mut ControlFlow,
 ) {
@@ -89,7 +89,7 @@ fn on_window_event(
         }
         WindowEvent::Resized(size)
         | WindowEvent::ScaleFactorChanged { new_inner_size: &mut size, .. } => {
-            on_window_resize(ctx, game, size.width, size.height, false);
+            on_window_resize(game, ctx, size.width, size.height, false);
         }
         WindowEvent::KeyboardInput { input, .. } => {
             if let Some(key) = input.virtual_keycode {
@@ -140,16 +140,16 @@ fn on_window_event(
     }
 }
 
-fn on_window_resize_request(ctx: &mut Context, game: &mut impl Game) {
+fn on_window_resize_request(game: &mut impl Game, ctx: &mut Context) {
     if let Some(update) = ctx.window.next_update.take() {
         ctx.window.window.set_inner_size(PhysicalSize::new(update.width, update.height));
-        on_window_resize(ctx, game, update.width, update.height, true);
+        on_window_resize(game, ctx, update.width, update.height, true);
     }
 }
 
 fn on_window_resize(
-    ctx: &mut Context,
     game: &mut impl Game,
+    ctx: &mut Context,
     width: u32,
     height: u32,
     is_programatic: bool,
@@ -158,7 +158,7 @@ fn on_window_resize(
     game.on_window_resize(ctx, width, height, is_programatic);
 }
 
-fn on_update(ctx: &mut Context, game: &mut impl Game, control_flow: &mut ControlFlow) {
+fn on_update(game: &mut impl Game, ctx: &mut Context, control_flow: &mut ControlFlow) {
     ctx.game_phase = GamePhase::Update;
     if let Err(error) = game.update(ctx) {
         if handle_error(game, ctx, error, control_flow) {
@@ -185,7 +185,7 @@ fn on_update(ctx: &mut Context, game: &mut impl Game, control_flow: &mut Control
     ctx.window.window.request_redraw();
 }
 
-fn on_draw(ctx: &mut Context, game: &mut impl Game, control_flow: &mut ControlFlow) {
+fn on_draw(game: &mut impl Game, ctx: &mut Context, control_flow: &mut ControlFlow) {
     ctx.game_phase = GamePhase::Draw;
     ctx.graphics.prepare();
 
