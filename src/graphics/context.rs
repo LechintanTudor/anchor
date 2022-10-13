@@ -122,9 +122,9 @@ impl GraphicsContext {
 
     pub fn on_window_resize(&mut self, width: u32, height: u32) {
         if width != 0 && height != 0 {
-            let next_update = self.prepare_next_update();
-            next_update.surface_width = width;
-            next_update.surface_height = height;
+            let update = self.prepare_next_update();
+            update.surface_width = width;
+            update.surface_height = height;
         }
     }
 

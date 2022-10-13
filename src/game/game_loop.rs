@@ -1,5 +1,6 @@
 use crate::game::{Config, Context, Game, GameBuilder, GameError, GamePhase, GameResult};
 use glam::DVec2;
+use winit::dpi::PhysicalSize;
 use winit::event::{DeviceEvent, ElementState, Event, StartCause, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
 
@@ -29,6 +30,7 @@ where
                 on_window_event(ctx, game, event, control_flow);
             }
             Event::MainEventsCleared => {
+                on_window_resize_request(ctx, game);
                 on_update(ctx, game, control_flow);
             }
             Event::RedrawRequested(_) => {
@@ -87,8 +89,7 @@ fn on_window_event(
         }
         WindowEvent::Resized(size)
         | WindowEvent::ScaleFactorChanged { new_inner_size: &mut size, .. } => {
-            ctx.graphics.on_window_resize(size.width, size.height);
-            game.on_window_resize(ctx, size.width, size.height);
+            on_window_resize(ctx, game, size.width, size.height, false);
         }
         WindowEvent::KeyboardInput { input, .. } => {
             if let Some(key) = input.virtual_keycode {
@@ -139,6 +140,24 @@ fn on_window_event(
     }
 }
 
+fn on_window_resize_request(ctx: &mut Context, game: &mut impl Game) {
+    if let Some(update) = ctx.window.next_update.take() {
+        ctx.window.window.set_inner_size(PhysicalSize::new(update.width, update.height));
+        on_window_resize(ctx, game, update.width, update.height, true);
+    }
+}
+
+fn on_window_resize(
+    ctx: &mut Context,
+    game: &mut impl Game,
+    width: u32,
+    height: u32,
+    is_programatic: bool,
+) {
+    ctx.graphics.on_window_resize(width, height);
+    game.on_window_resize(ctx, width, height, is_programatic);
+}
+
 fn on_update(ctx: &mut Context, game: &mut impl Game, control_flow: &mut ControlFlow) {
     ctx.game_phase = GamePhase::Update;
     if let Err(error) = game.update(ctx) {
@@ -163,7 +182,7 @@ fn on_update(ctx: &mut Context, game: &mut impl Game, control_flow: &mut Control
         }
     }
 
-    ctx.window.request_redraw();
+    ctx.window.window.request_redraw();
 }
 
 fn on_draw(ctx: &mut Context, game: &mut impl Game, control_flow: &mut ControlFlow) {

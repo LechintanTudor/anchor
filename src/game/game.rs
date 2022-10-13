@@ -25,7 +25,14 @@ where
     }
 
     /// Called when the window is resized with the new window dimensions.
-    fn on_window_resize(&mut self, ctx: &mut Context, width: u32, height: u32) {}
+    fn on_window_resize(
+        &mut self,
+        ctx: &mut Context,
+        width: u32,
+        height: u32,
+        is_programatic: bool,
+    ) {
+    }
 
     /// Called when a key is pressed.
     fn on_key_press(&mut self, ctx: &mut Context, key: Key) {}
