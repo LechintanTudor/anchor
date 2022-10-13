@@ -20,7 +20,7 @@ Draws a blue square in the center of the screen.
 
 ```rust
 use anchor::game::{Config, Context, Game, GameResult};
-use anchor::graphics::{self, Color, Layer, Projection, Shape, ShapeBatch, ShapeParams, Transform};
+use anchor::graphics::{self, Color, Layer, Shape, ShapeBatch, ShapeParams, Transform};
 
 struct MyGame {
     shape_batch: ShapeBatch,
@@ -43,7 +43,7 @@ impl Game for MyGame {
         self.shape_batch.clear();
         self.shape_batch.add(&self.shape_params, &self.shape_transform);
 
-        let projection = Projection::fill(graphics::window_size(ctx));
+        let projection = graphics::fill_projection(ctx);
         graphics::draw(ctx, Color::WHITE, &mut [Layer::new(projection, &mut self.shape_batch)]);
 
         Ok(())

@@ -1,5 +1,5 @@
 use crate::game::Context;
-use crate::graphics::{Color, Layer};
+use crate::graphics::{Color, Layer, Projection};
 use glam::Vec2;
 
 /// Clears the screen with the provided color, then draws the layers.
@@ -73,11 +73,20 @@ pub fn set_multisample(ctx: &mut Context, multisample: bool) {
     ctx.graphics.next_config.multisample = multisample;
 }
 
-/// Returns the size of the application window.
+/// Returns the size of the drawing surface.
 #[inline]
-pub fn window_size(ctx: &Context) -> Vec2 {
-    let size = ctx.window.inner_size();
-    Vec2::new(size.width as f32, size.height as f32)
+pub fn surface_size(ctx: &Context) -> Vec2 {
+    Vec2::new(ctx.graphics.surface_config.width as f32, ctx.graphics.surface_config.height as f32)
+}
+
+#[inline]
+pub fn fill_projection(ctx: &Context) -> Projection {
+    Projection::fill(surface_size(ctx))
+}
+
+#[inline]
+pub fn fit_projection(ctx: &Context, camera_size: Vec2) -> Projection {
+    Projection::fit(camera_size, surface_size(ctx))
 }
 
 /// Returns whether vsync is enabled.

@@ -123,6 +123,21 @@ impl Projection {
         }
     }
 
+    pub fn fit(camera_size: Vec2, surface_size: Vec2) -> Self {
+        let aspect_ratio = camera_size.x / camera_size.y;
+
+        Self {
+            camera: Camera::from_size(camera_size),
+            camera_transform: Transform::default(),
+            viewport: Viewport::fit(aspect_ratio, surface_size),
+        }
+    }
+
+    #[inline]
+    pub fn with_camera_transform(self, camera_transform: Transform) -> Self {
+        Self { camera_transform, ..self }
+    }
+
     /// Creates an orthographics projection matrix from self's properties.
     pub fn to_ortho_mat4(&self) -> Mat4 {
         let object_transform = Transform {

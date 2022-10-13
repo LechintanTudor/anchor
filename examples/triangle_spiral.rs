@@ -1,6 +1,6 @@
 use anchor::game::{Config, Context, Game, GameResult};
 use anchor::glam::Vec2;
-use anchor::graphics::{self, Color, Layer, Projection, Shape, ShapeBatch, ShapeParams, Transform};
+use anchor::graphics::{self, Color, Layer, Shape, ShapeBatch, ShapeParams, Transform};
 use anchor::time;
 use anchor::window::WindowConfig;
 use std::collections::VecDeque;
@@ -90,7 +90,7 @@ impl Game for TriangleSpiralExample {
             self.shape_batch.add(&triangle.shape_params, &triangle.transform);
         }
 
-        let projection = Projection::fill(graphics::window_size(ctx));
+        let projection = graphics::fill_projection(ctx);
         graphics::draw(ctx, Color::WHITE, &mut [Layer::new(projection, &mut self.shape_batch)]);
         Ok(())
     }

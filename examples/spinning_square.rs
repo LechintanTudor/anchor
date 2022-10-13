@@ -1,5 +1,5 @@
 use anchor::game::{Config, Context, Game, GameResult};
-use anchor::graphics::{self, Color, Layer, Projection, Shape, ShapeBatch, ShapeParams, Transform};
+use anchor::graphics::{self, Color, Layer, Shape, ShapeBatch, ShapeParams, Transform};
 use anchor::input::Key;
 use anchor::time;
 use anchor::window::WindowConfig;
@@ -39,7 +39,7 @@ impl Game for SpinningSquareExample {
         self.shape_batch.clear();
         self.shape_batch.add(&self.shape_params, &self.transform);
 
-        let projection = Projection::fill(graphics::window_size(ctx));
+        let projection = graphics::fill_projection(ctx);
         graphics::draw(ctx, Color::WHITE, &mut [Layer::new(projection, &mut self.shape_batch)]);
 
         Ok(())
