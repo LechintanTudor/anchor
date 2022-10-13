@@ -72,6 +72,7 @@ impl GraphicsContext {
             width: window_width,
             height: window_height,
             present_mode,
+            alpha_mode: wgpu::CompositeAlphaMode::Auto,
         };
 
         surface.configure(&device, &surface_config);
