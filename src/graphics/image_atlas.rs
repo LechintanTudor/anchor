@@ -219,7 +219,7 @@ impl ImageAtlasBuilder {
     }
 
     #[inline]
-    pub fn build_sprite_sheet(&mut self, ctx: &Context) -> SpriteSheet {
+    pub fn build_sprite_sheet(&self, ctx: &Context) -> SpriteSheet {
         self.build().into_sprite_sheet(ctx)
     }
 }
@@ -244,6 +244,16 @@ impl ImageAtlas {
     #[inline]
     pub fn image(&self) -> &Image {
         &self.image
+    }
+
+    #[inline]
+    pub fn width(&self) -> u32 {
+        self.image.width()
+    }
+
+    #[inline]
+    pub fn height(&self) -> u32 {
+        self.image.height()
     }
 
     #[inline]

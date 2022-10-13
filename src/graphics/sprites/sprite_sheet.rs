@@ -16,8 +16,9 @@ impl SpriteSheetBuilder {
 
     #[inline]
     pub fn add_sprite(&mut self, bounds: PixelBounds) -> usize {
+        let index = self.bounds.len();
         self.bounds.push(bounds);
-        self.bounds.len()
+        index
     }
 
     /// Builds the sprite sheet.
@@ -65,5 +66,10 @@ impl SpriteSheet {
     #[inline]
     pub fn height(&self) -> u32 {
         self.texture.height()
+    }
+
+    #[inline]
+    pub fn bounds(&self) -> &[PixelBounds] {
+        &self.bounds
     }
 }
