@@ -14,7 +14,6 @@ type GlyphBrush = glyph_brush::GlyphBrush<GlyphInstance, RawGlyphInstanceData, F
 
 struct TextBatchData {
     instances: wgpu::Buffer,
-    instances_cap: usize,
     instances_len: usize,
     projection: wgpu::Buffer,
     sampler: wgpu::Sampler,
@@ -184,7 +183,10 @@ impl Drawable for TextBatch {
 
                     match self.data.as_mut() {
                         Some(data) => {
-                            if instances.len() <= data.instances_cap {
+                            let instances_cap = (data.instances.size() as usize)
+                                / std::mem::size_of::<GlyphInstance>();
+
+                            if instances.len() <= instances_cap {
                                 queue.write_buffer(
                                     &data.instances,
                                     0,
@@ -192,7 +194,6 @@ impl Drawable for TextBatch {
                                 );
                             } else {
                                 data.instances = create_instance_buffer(&instances);
-                                data.instances_cap = instances.len();
                             }
 
                             data.instances_len = instances.len();
@@ -223,7 +224,6 @@ impl Drawable for TextBatch {
 
                             self.data = Some(TextBatchData {
                                 instances: create_instance_buffer(&instances),
-                                instances_cap: instances.len(),
                                 instances_len: instances.len(),
                                 projection,
                                 sampler,

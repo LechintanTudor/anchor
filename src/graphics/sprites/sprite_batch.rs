@@ -7,7 +7,6 @@ use wgpu::util::DeviceExt;
 
 struct SpriteBatchData {
     instances: wgpu::Buffer,
-    instances_cap: usize,
     projection: wgpu::Buffer,
     bind_group: wgpu::BindGroup,
 }
@@ -122,11 +121,13 @@ impl Drawable for SpriteBatch {
 
         match self.data.as_mut() {
             Some(data) => {
-                if self.instances.len() <= data.instances_cap {
+                let instances_cap =
+                    (data.instances.size() as usize) / std::mem::size_of::<SpriteInstance>();
+
+                if self.instances.len() <= instances_cap {
                     queue.write_buffer(&data.instances, 0, bytemuck::cast_slice(&self.instances));
                 } else {
                     data.instances = create_instance_buffer(&self.instances);
-                    data.instances_cap = self.instances.len();
                 }
 
                 queue.write_buffer(&data.projection, 0, bytemuck::bytes_of(&projection_matrix));
@@ -171,7 +172,6 @@ impl Drawable for SpriteBatch {
 
                 self.data = Some(SpriteBatchData {
                     instances: create_instance_buffer(&self.instances),
-                    instances_cap: self.instances.len(),
                     projection,
                     bind_group,
                 });
