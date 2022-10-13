@@ -22,10 +22,17 @@ pub fn set_position(ctx: &Context, x: u32, y: u32) {
     ctx.window.set_outer_position(PhysicalPosition::new(x, y));
 }
 
+/// TODO: Maybe call on_window_resize?
 /// Sets the size of the window contents.
 #[inline]
-pub fn set_size(ctx: &Context, width: u32, height: u32) {
+pub fn set_size(ctx: &mut Context, width: u32, height: u32) {
     ctx.window.set_inner_size(PhysicalSize::new(width, height));
+
+    if width != 0 && height != 0 {
+        let graphics_update = ctx.graphics.prepare_next_update();
+        graphics_update.surface_width = width;
+        graphics_update.surface_height = height;
+    }
 }
 
 /// Sets whether the window is resizable.

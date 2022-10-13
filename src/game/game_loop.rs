@@ -87,7 +87,7 @@ fn on_window_event(
         }
         WindowEvent::Resized(size)
         | WindowEvent::ScaleFactorChanged { new_inner_size: &mut size, .. } => {
-            ctx.graphics.on_window_resized(size.width, size.height);
+            ctx.graphics.on_window_resize(size.width, size.height);
             game.on_window_resize(ctx, size.width, size.height);
         }
         WindowEvent::KeyboardInput { input, .. } => {
@@ -182,7 +182,7 @@ fn on_draw(ctx: &mut Context, game: &mut impl Game, control_flow: &mut ControlFl
 fn on_frame_end(ctx: &mut Context) {
     ctx.input.on_frame_end();
 
-    if !ctx.graphics.config.vsync {
+    if !ctx.graphics.vsync {
         while !ctx.time.end_frame() {
             std::thread::yield_now();
         }

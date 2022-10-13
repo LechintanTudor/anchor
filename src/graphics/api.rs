@@ -64,13 +64,13 @@ pub fn draw(ctx: &mut Context, clear_color: Color, layers: &mut [Layer]) {
 /// Toggles vsync. Enabling vsync caps the framerate to the display's refresh rate.
 #[inline]
 pub fn set_vsync(ctx: &mut Context, vsync: bool) {
-    ctx.graphics.next_config.vsync = vsync;
+    ctx.graphics.prepare_next_update().vsync = vsync;
 }
 
 /// Toggles multisampling. Enabling multisampling smooths out rough edges but decreases performance.
 #[inline]
 pub fn set_multisample(ctx: &mut Context, multisample: bool) {
-    ctx.graphics.next_config.multisample = multisample;
+    ctx.graphics.prepare_next_update().multisample = multisample;
 }
 
 /// Returns the size of the drawing surface.
@@ -92,11 +92,11 @@ pub fn fit_projection(ctx: &Context, camera_size: Vec2) -> Projection {
 /// Returns whether vsync is enabled.
 #[inline]
 pub fn vsync(ctx: &Context) -> bool {
-    ctx.graphics.config.vsync
+    ctx.graphics.vsync
 }
 
 /// Returns whether multisampling is enabled.
 #[inline]
 pub fn multisample(ctx: &Context) -> bool {
-    ctx.graphics.config.multisample
+    ctx.graphics.multisample
 }

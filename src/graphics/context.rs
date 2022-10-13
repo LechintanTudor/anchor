@@ -8,14 +8,22 @@ pub(crate) struct SurfaceTexture {
     pub view: wgpu::TextureView,
 }
 
+pub(crate) struct GraphicsUpdate {
+    pub surface_width: u32,
+    pub surface_height: u32,
+    pub vsync: bool,
+    pub multisample: bool,
+}
+
 pub(crate) struct GraphicsContext {
-    pub(crate) config: GraphicsConfig,
-    pub(crate) next_config: GraphicsConfig,
     pub(crate) surface: wgpu::Surface,
     pub(crate) surface_config: wgpu::SurfaceConfiguration,
     pub(crate) surface_texture: Option<SurfaceTexture>,
     pub(crate) device: wgpu::Device,
     pub(crate) queue: wgpu::Queue,
+    pub(crate) vsync: bool,
+    pub(crate) multisample: bool,
+    pub(crate) next_update: Option<GraphicsUpdate>,
     pub(crate) framebuffer: Option<Framebuffer>,
     pub(crate) shape_pipeline: ShapePipeline,
     pub(crate) sprite_pipeline: SpritePipeline,
@@ -88,13 +96,14 @@ impl GraphicsContext {
         let text_pipeline = TextPipeline::new(&device, surface_format, sample_count);
 
         Self {
-            config: config.clone(),
-            next_config: config,
             surface,
             surface_config,
             surface_texture: None,
             device,
             queue,
+            vsync: config.vsync,
+            multisample: config.multisample,
+            next_update: None,
             framebuffer,
             shape_pipeline,
             sprite_pipeline,
@@ -102,20 +111,25 @@ impl GraphicsContext {
         }
     }
 
-    pub fn on_window_resized(&mut self, width: u32, height: u32) {
-        if width != 0 && height != 0 {
-            self.surface_config.width = width;
-            self.surface_config.height = height;
-            self.surface.configure(&self.device, &self.surface_config);
+    pub fn prepare_next_update(&mut self) -> &mut GraphicsUpdate {
+        self.next_update.get_or_insert_with(|| GraphicsUpdate {
+            surface_width: self.surface_config.width,
+            surface_height: self.surface_config.height,
+            vsync: self.vsync,
+            multisample: self.multisample,
+        })
+    }
 
-            if let Some(framebuffer) = self.framebuffer.as_mut() {
-                *framebuffer = Framebuffer::new(&self.device, &self.surface_config, SAMPLE_COUNT);
-            }
+    pub fn on_window_resize(&mut self, width: u32, height: u32) {
+        if width != 0 && height != 0 {
+            let next_update = self.prepare_next_update();
+            next_update.surface_width = width;
+            next_update.surface_height = height;
         }
     }
 
     pub fn prepare(&mut self) {
-        self.update_config();
+        self.update_state();
         self.update_surface_texture();
     }
 
@@ -125,42 +139,45 @@ impl GraphicsContext {
         }
     }
 
-    fn update_config(&mut self) {
-        if self.config.vsync != self.next_config.vsync {
-            self.surface_config.present_mode = vsync_to_present_mode(self.next_config.vsync);
+    fn update_state(&mut self) {
+        if let Some(update) = self.next_update.take() {
+            // Recreate surface
+            self.surface_config.width = update.surface_width;
+            self.surface_config.height = update.surface_height;
+            self.surface_config.present_mode = vsync_to_present_mode(update.vsync);
             self.surface.configure(&self.device, &self.surface_config);
-        }
+            self.vsync = update.vsync;
 
-        if self.config.multisample != self.next_config.multisample {
-            let (framebuffer, sample_count) = if self.next_config.multisample {
-                (
-                    Some(Framebuffer::new(&self.device, &self.surface_config, SAMPLE_COUNT)),
-                    SAMPLE_COUNT,
-                )
+            // Recreate framebuffer
+            self.framebuffer = if update.multisample {
+                Some(Framebuffer::new(&self.device, &self.surface_config, SAMPLE_COUNT))
             } else {
-                (None, 1)
+                None
             };
 
-            self.framebuffer = framebuffer;
+            // Recreate pipelines
+            if self.multisample != update.multisample {
+                let sample_count = if update.multisample { SAMPLE_COUNT } else { 1 };
 
-            self.shape_pipeline.recreate_pipeline(
-                &self.device,
-                self.surface_config.format,
-                sample_count,
-            );
-            self.sprite_pipeline.recreate_pipeline(
-                &self.device,
-                self.surface_config.format,
-                sample_count,
-            );
-            self.text_pipeline.recreate_pipeline(
-                &self.device,
-                self.surface_config.format,
-                sample_count,
-            );
+                self.shape_pipeline.recreate_pipeline(
+                    &self.device,
+                    self.surface_config.format,
+                    sample_count,
+                );
+                self.sprite_pipeline.recreate_pipeline(
+                    &self.device,
+                    self.surface_config.format,
+                    sample_count,
+                );
+                self.text_pipeline.recreate_pipeline(
+                    &self.device,
+                    self.surface_config.format,
+                    sample_count,
+                );
+
+                self.multisample = update.multisample;
+            }
         }
-
-        self.config = self.next_config.clone();
     }
 
     fn update_surface_texture(&mut self) {
