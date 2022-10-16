@@ -50,7 +50,13 @@ impl AtlasNodeState {
 struct AtlasNode {
     bounds: PixelBounds,
     state: AtlasNodeState,
-    children: Option<Box<(AtlasNode, AtlasNode)>>,
+    children: Option<Box<AtlasNodeChildren>>,
+}
+
+#[derive(Clone, Debug)]
+struct AtlasNodeChildren {
+    right: AtlasNode,
+    down: AtlasNode,
 }
 
 impl AtlasNode {
@@ -81,11 +87,11 @@ impl AtlasNode {
 
     fn find(&mut self, width: u32, height: u32) -> Option<&mut AtlasNode> {
         if self.state.is_used() {
-            let (right, down) = self.children.as_mut().map(Box::as_mut)?;
+            let children = self.children.as_mut()?;
 
-            match right.find(width, height) {
+            match children.right.find(width, height) {
                 Some(node) => Some(node),
-                None => down.find(width, height),
+                None => children.down.find(width, height),
             }
         } else if self.bounds.w >= width && self.bounds.h >= height {
             Some(self)
@@ -100,18 +106,18 @@ impl AtlasNode {
         let height = sprite.image.height();
 
         self.state = AtlasNodeState::UsedLeaf(sprite);
-        self.children = Some(Box::new((
-            Self::from_bounds(bounds.x, bounds.y + height, bounds.w, bounds.h - height),
-            Self::from_bounds(bounds.x + width, bounds.y, bounds.w - width, bounds.h),
-        )));
+        self.children = Some(Box::new(AtlasNodeChildren {
+            right: Self::from_bounds(bounds.x, bounds.y + height, bounds.w, bounds.h - height),
+            down: Self::from_bounds(bounds.x + width, bounds.y, bounds.w - width, bounds.h),
+        }));
     }
 
     fn grow(&mut self, width: u32, height: u32) -> Option<&mut AtlasNode> {
-        let can_grow_right = self.bounds.w >= width;
-        let can_grow_down = self.bounds.h >= height;
+        let can_grow_right = height <= self.bounds.h;
+        let can_grow_down = width <= self.bounds.w;
 
-        let should_grow_right = can_grow_right && (self.bounds.h >= self.bounds.w + width);
-        let should_grow_down = can_grow_down && (self.bounds.w >= self.bounds.h + height);
+        let should_grow_right = can_grow_right && (self.bounds.w + width <= self.bounds.h);
+        let should_grow_down = can_grow_down && (self.bounds.h + height <= self.bounds.w);
 
         if should_grow_right {
             self.grow_right(width, height)
@@ -132,10 +138,10 @@ impl AtlasNode {
         *self = AtlasNode {
             bounds: PixelBounds { x: 0, y: 0, w: bounds.w + width, h: bounds.h },
             state: AtlasNodeState::Used,
-            children: Some(Box::new((
-                self.clone(),
-                AtlasNode::from_bounds(bounds.w, 0, width, bounds.h),
-            ))),
+            children: Some(Box::new(AtlasNodeChildren {
+                right: AtlasNode::from_bounds(bounds.w, 0, width, bounds.h),
+                down: self.clone(),
+            })),
         };
 
         self.find(width, height)
@@ -147,10 +153,10 @@ impl AtlasNode {
         *self = AtlasNode {
             bounds: PixelBounds { x: 0, y: 0, w: bounds.w, h: bounds.h + height },
             state: AtlasNodeState::Used,
-            children: Some(Box::new((
-                AtlasNode::from_bounds(0, bounds.h, bounds.w, height),
-                self.clone(),
-            ))),
+            children: Some(Box::new(AtlasNodeChildren {
+                right: self.clone(),
+                down: AtlasNode::from_bounds(0, bounds.h, bounds.w, height),
+            })),
         };
 
         self.find(width, height)
@@ -165,8 +171,8 @@ impl AtlasNode {
             }
 
             if node.state.is_used() {
-                if let Some((right, down)) = node.children.as_ref().map(Box::as_ref) {
-                    nodes.extend([right, down]);
+                if let Some(children) = node.children.as_ref() {
+                    nodes.extend([&children.right, &children.down]);
                 }
             }
         }
