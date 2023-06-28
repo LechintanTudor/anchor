@@ -23,6 +23,7 @@ impl Framebuffer {
             sample_count,
             dimension: wgpu::TextureDimension::D2,
             format: surface_config.format,
+            view_formats: &[],
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
         };
 

@@ -19,6 +19,7 @@ impl GlyphTexture {
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
             format: wgpu::TextureFormat::R8Unorm,
+            view_formats: &[],
             usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
         };
 
@@ -44,8 +45,8 @@ impl GlyphTexture {
             data,
             wgpu::ImageDataLayout {
                 offset: (offset_y * width + offset_x) as u64,
-                bytes_per_row: std::num::NonZeroU32::new(width),
-                rows_per_image: std::num::NonZeroU32::new(height),
+                bytes_per_row: Some(width),
+                rows_per_image: Some(height),
             },
             wgpu::Extent3d { width, height, depth_or_array_layers: 1 },
         );

@@ -38,8 +38,11 @@ impl GraphicsContext {
     async fn new_async(window: &Window, config: GraphicsConfig) -> Self {
         let (window_width, window_height) = window.inner_size().into();
 
-        let instance = wgpu::Instance::new(wgpu::Backends::PRIMARY);
-        let surface = unsafe { instance.create_surface(window) };
+        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+            backends: wgpu::Backends::PRIMARY,
+            ..Default::default()
+        });
+        let surface = unsafe { instance.create_surface(window).unwrap() };
 
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
@@ -62,11 +65,13 @@ impl GraphicsContext {
             .await
             .expect("No suitable graphics device found");
 
-        let surface_format = surface
-            .get_supported_formats(&adapter)
-            .first()
+        let surface_capabilities = surface.get_capabilities(&adapter);
+        let surface_format = surface_capabilities
+            .formats
+            .iter()
+            .find(|f| f.is_srgb())
             .copied()
-            .expect("No suitable surface format found");
+            .unwrap_or(surface_capabilities.formats[0]);
 
         let present_mode = if config.vsync {
             wgpu::PresentMode::AutoVsync
@@ -77,6 +82,7 @@ impl GraphicsContext {
         let surface_config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
             format: surface_format,
+            view_formats: vec![],
             width: window_width,
             height: window_height,
             present_mode,
@@ -112,7 +118,7 @@ impl GraphicsContext {
     }
 
     pub fn prepare_next_update(&mut self) -> &mut GraphicsUpdate {
-        self.next_update.get_or_insert_with(|| GraphicsUpdate {
+        self.next_update.get_or_insert(GraphicsUpdate {
             surface_width: self.surface_config.width,
             surface_height: self.surface_config.height,
             vsync: self.vsync,
