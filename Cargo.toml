@@ -19,6 +19,6 @@ ordered-float = "3"
 pollster = "0.3"
 rustc-hash = "1.1"
 serde = { version = "1", features = ["derive"] }
-smallvec = { version = "1.10", features = ["const_generics", "const_new", "union"] }
+smallvec = { version = "1.11", features = ["const_generics", "const_new", "union"] }
 winit = "0.28"
 wgpu = "0.16"
