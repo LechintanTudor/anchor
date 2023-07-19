@@ -2,13 +2,13 @@ use glam::{DVec2, Vec2};
 use winit::event::MouseScrollDelta;
 
 /// Keyboard key code.
-pub type Key = winit::event::VirtualKeyCode;
+pub type KeyCode = winit::keyboard::KeyCode;
 
 /// Mouse button.
 pub type MouseButton = winit::event::MouseButton;
 
 /// State of the keyboard modifiers.
-pub type ModifiersState = winit::event::ModifiersState;
+pub type Modifiers = winit::event::Modifiers;
 
 /// Scroll distance in lines or pixels.
 #[derive(Clone, Copy, Debug)]

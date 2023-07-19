@@ -91,20 +91,16 @@ fn on_window_event(
         | WindowEvent::ScaleFactorChanged { new_inner_size: &mut size, .. } => {
             on_window_resize(game, ctx, size.width, size.height, false);
         }
-        WindowEvent::KeyboardInput { input, .. } => {
-            if let Some(key) = input.virtual_keycode {
-                match input.state {
-                    ElementState::Pressed => {
-                        ctx.input.keyboard.on_key_pressed(key);
-                        game.on_key_press(ctx, key);
-                    }
-                    ElementState::Released => {
-                        ctx.input.keyboard.on_key_released(key);
-                        game.on_key_release(ctx, key);
-                    }
-                }
+        WindowEvent::KeyboardInput { event, .. } => match event.state {
+            ElementState::Pressed => {
+                ctx.input.keyboard.on_key_pressed(event.physical_key);
+                game.on_key_press(ctx, event.physical_key);
             }
-        }
+            ElementState::Released => {
+                ctx.input.keyboard.on_key_released(event.physical_key);
+                game.on_key_release(ctx, event.physical_key);
+            }
+        },
         WindowEvent::ModifiersChanged(modifiers) => {
             ctx.input.modifiers = modifiers;
             game.on_modifiers_change(ctx, modifiers);

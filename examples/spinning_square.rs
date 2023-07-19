@@ -1,6 +1,6 @@
 use anchor::game::{Config, Context, Game, GameResult};
 use anchor::graphics::{self, Color, Layer, Shape, ShapeBatch, ShapeParams, Transform};
-use anchor::input::Key;
+use anchor::input::KeyCode;
 use anchor::time;
 use anchor::window::WindowConfig;
 
@@ -21,11 +21,11 @@ impl SpinningSquareExample {
 }
 
 impl Game for SpinningSquareExample {
-    fn on_key_press(&mut self, _ctx: &mut Context, key: Key) {
+    fn on_key_press(&mut self, _ctx: &mut Context, key: KeyCode) {
         match key {
-            Key::R => self.shape_params.color = Color::RED,
-            Key::G => self.shape_params.color = Color::GREEN,
-            Key::B => self.shape_params.color = Color::BLUE,
+            KeyCode::KeyR => self.shape_params.color = Color::RED,
+            KeyCode::KeyG => self.shape_params.color = Color::GREEN,
+            KeyCode::KeyB => self.shape_params.color = Color::BLUE,
             _ => (),
         }
     }

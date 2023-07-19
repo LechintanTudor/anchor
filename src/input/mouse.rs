@@ -1,11 +1,11 @@
 use crate::input::MouseButton;
-use crate::utils::SmallVecSet;
+use crate::utils::VecSet;
 
 #[derive(Default, Debug)]
 pub(crate) struct Mouse {
-    pressed_buttons: SmallVecSet<MouseButton, 6>,
-    just_pressed_buttons: SmallVecSet<MouseButton, 6>,
-    just_released_buttons: SmallVecSet<MouseButton, 6>,
+    pressed_buttons: VecSet<MouseButton>,
+    just_pressed_buttons: VecSet<MouseButton>,
+    just_released_buttons: VecSet<MouseButton>,
 }
 
 impl Mouse {

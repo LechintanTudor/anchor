@@ -1,46 +1,46 @@
 use crate::game::Context;
-use crate::input::{Key, ModifiersState, MouseButton};
+use crate::input::{KeyCode, Modifiers, MouseButton};
 use glam::DVec2;
 
 /// Returns the state of the keyboard modifiers.
 #[inline]
-pub fn modifiers_state(ctx: &Context) -> ModifiersState {
+pub fn modifiers_state(ctx: &Context) -> Modifiers {
     ctx.input.modifiers
 }
 
 /// Returns whether the given key is pressed.
 #[inline]
-pub fn is_key_pressed(ctx: &Context, key: Key) -> bool {
+pub fn is_key_pressed(ctx: &Context, key: KeyCode) -> bool {
     ctx.input.keyboard.is_key_pressed(key)
 }
 
 /// Returns whether the given key was pressed this frame.
 #[inline]
-pub fn was_key_just_pressed(ctx: &Context, key: Key) -> bool {
+pub fn was_key_just_pressed(ctx: &Context, key: KeyCode) -> bool {
     ctx.input.keyboard.was_key_just_pressed(key)
 }
 
 /// Returns whether the given key was released this frame.
 #[inline]
-pub fn was_key_just_released(ctx: &Context, key: Key) -> bool {
+pub fn was_key_just_released(ctx: &Context, key: KeyCode) -> bool {
     ctx.input.keyboard.was_key_just_released(key)
 }
 
 /// Returns all keys that are currently pressed.
 #[inline]
-pub fn pressed_keys(ctx: &Context) -> &[Key] {
+pub fn pressed_keys(ctx: &Context) -> &[KeyCode] {
     ctx.input.keyboard.pressed_keys()
 }
 
 /// Returns all keys that were pressed this frame.
 #[inline]
-pub fn just_pressed_keys(ctx: &Context) -> &[Key] {
+pub fn just_pressed_keys(ctx: &Context) -> &[KeyCode] {
     ctx.input.keyboard.just_pressed_keys()
 }
 
 /// Returns all keys that were released this frame
 #[inline]
-pub fn just_released_keys(ctx: &Context) -> &[Key] {
+pub fn just_released_keys(ctx: &Context) -> &[KeyCode] {
     ctx.input.keyboard.just_released_keys()
 }
 

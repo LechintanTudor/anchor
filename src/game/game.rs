@@ -1,6 +1,6 @@
 use crate::game::{Context, GameError, GameResult};
 use crate::graphics::{self, Color};
-use crate::input::{Key, ModifiersState, ScrollDelta};
+use crate::input::{KeyCode, Modifiers, ScrollDelta};
 use glam::DVec2;
 use winit::event::MouseButton;
 
@@ -35,13 +35,13 @@ where
     }
 
     /// Called when a key is pressed.
-    fn on_key_press(&mut self, ctx: &mut Context, key: Key) {}
+    fn on_key_press(&mut self, ctx: &mut Context, key: KeyCode) {}
 
     /// Called when a key is released.
-    fn on_key_release(&mut self, ctx: &mut Context, key: Key) {}
+    fn on_key_release(&mut self, ctx: &mut Context, key: KeyCode) {}
 
     /// Called when the keyboard modifiers changes.
-    fn on_modifiers_change(&mut self, ctx: &mut Context, modifiers: ModifiersState) {}
+    fn on_modifiers_change(&mut self, ctx: &mut Context, modifiers: Modifiers) {}
 
     /// Called when a mouse button is pressed.
     fn on_mouse_button_press(&mut self, ctx: &mut Context, button: MouseButton) {}
