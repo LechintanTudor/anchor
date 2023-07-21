@@ -20,4 +20,4 @@ pollster = "0.3"
 rustc-hash = "1.1"
 serde = { version = "1", features = ["derive"] }
 winit = "0.29.0-beta.0"
-wgpu = "0.16"
+wgpu = "0.17"
