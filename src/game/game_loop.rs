@@ -1,5 +1,5 @@
 use crate::game::{Config, Context, Game, GameBuilder, GameError, GamePhase, GameResult};
-use glam::DVec2;
+use glam::{DVec2, UVec2};
 use winit::dpi::PhysicalSize;
 use winit::event::{DeviceEvent, ElementState, Event, StartCause, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
@@ -30,11 +30,11 @@ where
                 on_window_event(game, ctx, event, control_flow);
             }
             Event::MainEventsCleared => {
-                on_window_resize_request(game, ctx);
-                on_update(game, ctx, control_flow);
+                update_window(game, ctx);
+                update(game, ctx, control_flow);
             }
             Event::RedrawRequested(_) => {
-                on_draw(game, ctx, control_flow);
+                draw(game, ctx, control_flow);
             }
             Event::RedrawEventsCleared => {
                 on_frame_end(ctx);
@@ -136,11 +136,14 @@ fn on_window_event(
     }
 }
 
-fn on_window_resize_request(game: &mut impl Game, ctx: &mut Context) {
-    if let Some(update) = ctx.window.next_update.take() {
-        ctx.window.window.set_inner_size(PhysicalSize::new(update.width, update.height));
-        on_window_resize(game, ctx, update.width, update.height, true);
-    }
+fn update_window(game: &mut impl Game, ctx: &mut Context) {
+    let Some(update) = ctx.window.next_update.take() else {
+        return;
+    };
+
+    let physical_size = PhysicalSize::new(update.window_size.x, update.window_size.y);
+    ctx.window.window.set_inner_size(physical_size);
+    on_window_resize(game, ctx, update.window_size.x, update.window_size.y, true);
 }
 
 fn on_window_resize(
@@ -150,11 +153,12 @@ fn on_window_resize(
     height: u32,
     is_programatic: bool,
 ) {
+    ctx.window.window_size = UVec2::new(width, height);
     ctx.graphics.on_window_resize(width, height);
     game.on_window_resize(ctx, width, height, is_programatic);
 }
 
-fn on_update(game: &mut impl Game, ctx: &mut Context, control_flow: &mut ControlFlow) {
+fn update(game: &mut impl Game, ctx: &mut Context, control_flow: &mut ControlFlow) {
     ctx.game_phase = GamePhase::Update;
     if let Err(error) = game.update(ctx) {
         if handle_error(game, ctx, error, control_flow) {
@@ -181,7 +185,7 @@ fn on_update(game: &mut impl Game, ctx: &mut Context, control_flow: &mut Control
     ctx.window.window.request_redraw();
 }
 
-fn on_draw(game: &mut impl Game, ctx: &mut Context, control_flow: &mut ControlFlow) {
+fn draw(game: &mut impl Game, ctx: &mut Context, control_flow: &mut ControlFlow) {
     ctx.game_phase = GamePhase::Draw;
     ctx.graphics.prepare();
 

@@ -1,7 +1,5 @@
 #![allow(clippy::module_inception)]
 
-pub(crate) mod utils;
-
 pub mod game;
 pub mod graphics;
 pub mod input;

@@ -75,7 +75,7 @@ where
 
     /// Called once per frame to draw graphics.
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
-        graphics::draw(ctx, Color::BLACK, &mut []);
+        graphics::draw(ctx, Color::WHITE, &mut []);
         Ok(())
     }
 

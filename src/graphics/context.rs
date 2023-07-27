@@ -146,43 +146,45 @@ impl GraphicsContext {
     }
 
     fn update_state(&mut self) {
-        if let Some(update) = self.next_update.take() {
-            // Recreate surface
-            self.surface_config.width = update.surface_width;
-            self.surface_config.height = update.surface_height;
-            self.surface_config.present_mode = vsync_to_present_mode(update.vsync);
-            self.surface.configure(&self.device, &self.surface_config);
-            self.vsync = update.vsync;
+        let Some(update) = self.next_update.take() else {
+            return;
+        };
 
-            // Recreate framebuffer
-            self.framebuffer = if update.multisample {
-                Some(Framebuffer::new(&self.device, &self.surface_config, SAMPLE_COUNT))
-            } else {
-                None
-            };
+        // Recreate surface
+        self.surface_config.width = update.surface_width;
+        self.surface_config.height = update.surface_height;
+        self.surface_config.present_mode = vsync_to_present_mode(update.vsync);
+        self.surface.configure(&self.device, &self.surface_config);
+        self.vsync = update.vsync;
 
-            // Recreate pipelines
-            if self.multisample != update.multisample {
-                let sample_count = if update.multisample { SAMPLE_COUNT } else { 1 };
+        // Recreate framebuffer
+        self.framebuffer = if update.multisample {
+            Some(Framebuffer::new(&self.device, &self.surface_config, SAMPLE_COUNT))
+        } else {
+            None
+        };
 
-                self.shape_pipeline.recreate_pipeline(
-                    &self.device,
-                    self.surface_config.format,
-                    sample_count,
-                );
-                self.sprite_pipeline.recreate_pipeline(
-                    &self.device,
-                    self.surface_config.format,
-                    sample_count,
-                );
-                self.text_pipeline.recreate_pipeline(
-                    &self.device,
-                    self.surface_config.format,
-                    sample_count,
-                );
+        // Recreate pipelines
+        if self.multisample != update.multisample {
+            let sample_count = if update.multisample { SAMPLE_COUNT } else { 1 };
 
-                self.multisample = update.multisample;
-            }
+            self.shape_pipeline.recreate_pipeline(
+                &self.device,
+                self.surface_config.format,
+                sample_count,
+            );
+            self.sprite_pipeline.recreate_pipeline(
+                &self.device,
+                self.surface_config.format,
+                sample_count,
+            );
+            self.text_pipeline.recreate_pipeline(
+                &self.device,
+                self.surface_config.format,
+                sample_count,
+            );
+
+            self.multisample = update.multisample;
         }
     }
 

@@ -1,11 +1,11 @@
 use crate::input::MouseButton;
-use crate::utils::VecSet;
+use rustc_hash::FxHashSet;
 
 #[derive(Default, Debug)]
 pub(crate) struct Mouse {
-    pressed_buttons: VecSet<MouseButton>,
-    just_pressed_buttons: VecSet<MouseButton>,
-    just_released_buttons: VecSet<MouseButton>,
+    pressed_buttons: FxHashSet<MouseButton>,
+    just_pressed_buttons: FxHashSet<MouseButton>,
+    just_released_buttons: FxHashSet<MouseButton>,
 }
 
 impl Mouse {
@@ -19,18 +19,6 @@ impl Mouse {
 
     pub fn was_button_just_released(&self, button: MouseButton) -> bool {
         self.just_released_buttons.contains(&button)
-    }
-
-    pub fn pressed_buttons(&self) -> &[MouseButton] {
-        self.pressed_buttons.as_slice()
-    }
-
-    pub fn just_pressed_buttons(&self) -> &[MouseButton] {
-        self.just_pressed_buttons.as_slice()
-    }
-
-    pub fn just_released_buttons(&self) -> &[MouseButton] {
-        self.just_released_buttons.as_slice()
     }
 
     pub fn on_frame_end(&mut self) {

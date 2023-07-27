@@ -1,11 +1,11 @@
 use crate::input::KeyCode;
-use crate::utils::VecSet;
+use rustc_hash::FxHashSet;
 
 #[derive(Debug, Default)]
 pub(crate) struct Keyboard {
-    pressed_keys: VecSet<KeyCode>,
-    just_pressed_keys: VecSet<KeyCode>,
-    just_released_keys: VecSet<KeyCode>,
+    pressed_keys: FxHashSet<KeyCode>,
+    just_pressed_keys: FxHashSet<KeyCode>,
+    just_released_keys: FxHashSet<KeyCode>,
 }
 
 impl Keyboard {
@@ -19,18 +19,6 @@ impl Keyboard {
 
     pub fn was_key_just_released(&self, key: KeyCode) -> bool {
         self.just_released_keys.contains(&key)
-    }
-
-    pub fn pressed_keys(&self) -> &[KeyCode] {
-        self.pressed_keys.as_slice()
-    }
-
-    pub fn just_pressed_keys(&self) -> &[KeyCode] {
-        self.just_pressed_keys.as_slice()
-    }
-
-    pub fn just_released_keys(&self) -> &[KeyCode] {
-        self.just_released_keys.as_slice()
     }
 
     pub fn on_frame_end(&mut self) {

@@ -4,7 +4,7 @@ use glam::DVec2;
 
 /// Returns the state of the keyboard modifiers.
 #[inline]
-pub fn modifiers_state(ctx: &Context) -> Modifiers {
+pub fn modifiers(ctx: &Context) -> Modifiers {
     ctx.input.modifiers
 }
 
@@ -26,24 +26,6 @@ pub fn was_key_just_released(ctx: &Context, key: KeyCode) -> bool {
     ctx.input.keyboard.was_key_just_released(key)
 }
 
-/// Returns all keys that are currently pressed.
-#[inline]
-pub fn pressed_keys(ctx: &Context) -> &[KeyCode] {
-    ctx.input.keyboard.pressed_keys()
-}
-
-/// Returns all keys that were pressed this frame.
-#[inline]
-pub fn just_pressed_keys(ctx: &Context) -> &[KeyCode] {
-    ctx.input.keyboard.just_pressed_keys()
-}
-
-/// Returns all keys that were released this frame
-#[inline]
-pub fn just_released_keys(ctx: &Context) -> &[KeyCode] {
-    ctx.input.keyboard.just_released_keys()
-}
-
 /// Returns whether the given mouse button is pressed.
 #[inline]
 pub fn is_mouse_button_pressed(ctx: &Context, button: MouseButton) -> bool {
@@ -60,24 +42,6 @@ pub fn was_mouse_button_just_pressed(ctx: &Context, button: MouseButton) -> bool
 #[inline]
 pub fn was_mouse_button_just_released(ctx: &Context, button: MouseButton) -> bool {
     ctx.input.mouse.was_button_just_released(button)
-}
-
-/// Returns all pressed mouse buttons.
-#[inline]
-pub fn pressed_mouse_buttons(ctx: &Context) -> &[MouseButton] {
-    ctx.input.mouse.pressed_buttons()
-}
-
-/// Returns all mouse buttons that were pressed this frame.
-#[inline]
-pub fn just_pressed_mouse_buttons(ctx: &Context) -> &[MouseButton] {
-    ctx.input.mouse.just_pressed_buttons()
-}
-
-/// Return all mouse buttons that were released this frame.
-#[inline]
-pub fn just_released_mouse_buttons(ctx: &Context) -> &[MouseButton] {
-    ctx.input.mouse.just_released_buttons()
 }
 
 /// Returns the cursor position if the cursor hovers the window.

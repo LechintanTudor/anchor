@@ -1,5 +1,6 @@
 use crate::game::{Context, GameErrorKind, GameResult};
 use crate::graphics::Image;
+use glam::UVec2;
 use winit::dpi::PhysicalPosition;
 use winit::window::{Icon, Window};
 
@@ -50,8 +51,8 @@ pub fn set_icon(ctx: &mut Context, image: Option<Image>) -> GameResult {
 
 /// Returns the size of the window contents.
 #[inline]
-pub fn size(ctx: &Context) -> (u32, u32) {
-    ctx.window.window.inner_size().into()
+pub fn size(ctx: &Context) -> UVec2 {
+    ctx.window.window_size
 }
 
 /// Returns the scale factor associated with the window.
