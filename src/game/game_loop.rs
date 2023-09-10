@@ -1,71 +1,87 @@
-use crate::game::{Config, Context, Game, GameBuilder, GameError, GamePhase, GameResult};
+use std::thread;
+
+use crate::game::{Config, Context, Game, GameBuilder, GamePhase, GameResult};
 use glam::{DVec2, UVec2};
 use winit::dpi::PhysicalSize;
 use winit::event::{DeviceEvent, ElementState, Event, StartCause, WindowEvent};
-use winit::event_loop::{ControlFlow, EventLoop};
+use winit::event_loop::EventLoop;
+
+#[must_use]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+pub enum ShouldExit {
+    No,
+    Yes,
+}
+
+impl ShouldExit {
+    pub fn should_exit(&self) -> bool {
+        matches!(self, ShouldExit::Yes)
+    }
+}
 
 pub(crate) fn run<G>(config: Config, game_builder: G) -> GameResult
 where
     G: GameBuilder,
 {
-    let event_loop = EventLoop::new();
+    let event_loop = EventLoop::new()?;
     let mut ctx = Context::new(&event_loop, config)?;
     let mut game = game_builder.build(&mut ctx)?;
 
-    event_loop.run(move |event, _event_loop, control_flow| {
+    event_loop.run(move |event, event_loop| {
         let game = &mut game;
         let ctx = &mut ctx;
 
         match event {
             Event::NewEvents(StartCause::Init) => {
-                on_init(game, ctx, control_flow);
+                ctx.game_phase = GamePhase::Init;
+                if let Err(error) = game.on_init(ctx) {
+                    if game.handle_error(ctx, error).should_exit() {
+                        event_loop.exit();
+                    }
+                }
             }
-            Event::NewEvents(_) => {
-                on_frame_start(game, ctx, control_flow);
+            Event::NewEvents(StartCause::Poll) => {
+                if !ctx.graphics.vsync {
+                    while !ctx.time.end_frame() {
+                        thread::yield_now();
+                    }
+                }
+
+                ctx.time.start_frame();
+                ctx.game_phase = GamePhase::FrameStart;
+
+                if ctx.take_should_exit().should_exit() && game.on_exit_request(ctx).should_exit() {
+                    event_loop.exit();
+                    return;
+                }
+
+                update_window(game, ctx);
+
+                if update(game, ctx).should_exit() {
+                    event_loop.exit();
+                    return;
+                }
+
+                ctx.window.window.request_redraw();
+                ctx.game_phase = GamePhase::Input;
             }
             Event::DeviceEvent { event, .. } => {
                 on_device_event(game, ctx, event);
             }
             Event::WindowEvent { event, .. } => {
-                on_window_event(game, ctx, event, control_flow);
+                if on_window_event(game, ctx, event).should_exit() {
+                    event_loop.exit();
+                }
             }
-            Event::MainEventsCleared => {
-                update_window(game, ctx);
-                update(game, ctx, control_flow);
-            }
-            Event::RedrawRequested(_) => {
-                draw(game, ctx, control_flow);
-            }
-            Event::RedrawEventsCleared => {
-                on_frame_end(ctx);
-            }
-            Event::LoopDestroyed => {
-                on_destroy(game, ctx);
+            Event::LoopExiting => {
+                ctx.game_phase = GamePhase::Exit;
+                game.on_exit(ctx);
             }
             _ => (),
         }
-    });
-}
+    })?;
 
-fn on_init(game: &mut impl Game, ctx: &mut Context, control_flow: &mut ControlFlow) {
-    ctx.game_phase = GamePhase::Init;
-    if let Err(error) = game.on_init(ctx) {
-        handle_error(game, ctx, error, control_flow);
-    }
-}
-
-fn on_destroy(game: &mut impl Game, ctx: &mut Context) {
-    ctx.game_phase = GamePhase::Destroy;
-    game.on_destroy(ctx);
-}
-
-fn on_frame_start(game: &mut impl Game, ctx: &mut Context, control_flow: &mut ControlFlow) {
-    ctx.time.start_frame();
-    ctx.game_phase = GamePhase::Input;
-
-    if ctx.take_should_exit() && game.on_exit_request(ctx) {
-        control_flow.set_exit();
-    }
+    Ok(())
 }
 
 fn on_device_event(game: &mut impl Game, ctx: &mut Context, event: DeviceEvent) {
@@ -75,46 +91,44 @@ fn on_device_event(game: &mut impl Game, ctx: &mut Context, event: DeviceEvent) 
     }
 }
 
-fn on_window_event(
-    game: &mut impl Game,
-    ctx: &mut Context,
-    event: WindowEvent,
-    control_flow: &mut ControlFlow,
-) {
+fn on_window_event(game: &mut impl Game, ctx: &mut Context, event: WindowEvent) -> ShouldExit {
     match event {
         WindowEvent::CloseRequested => {
-            if game.on_exit_request(ctx) {
-                control_flow.set_exit();
+            if game.on_exit_request(ctx).should_exit() {
+                return ShouldExit::Yes;
             }
         }
-        WindowEvent::Resized(size)
-        | WindowEvent::ScaleFactorChanged { new_inner_size: &mut size, .. } => {
+        WindowEvent::Resized(size) => {
             on_window_resize(game, ctx, size.width, size.height, false);
         }
-        WindowEvent::KeyboardInput { event, .. } => match event.state {
-            ElementState::Pressed => {
-                ctx.input.keyboard.on_key_pressed(event.physical_key);
-                game.on_key_press(ctx, event.physical_key);
+        WindowEvent::KeyboardInput { event, .. } => {
+            match event.state {
+                ElementState::Pressed => {
+                    ctx.input.keyboard.on_key_pressed(event.physical_key);
+                    game.on_key_press(ctx, event.physical_key);
+                }
+                ElementState::Released => {
+                    ctx.input.keyboard.on_key_released(event.physical_key);
+                    game.on_key_release(ctx, event.physical_key);
+                }
             }
-            ElementState::Released => {
-                ctx.input.keyboard.on_key_released(event.physical_key);
-                game.on_key_release(ctx, event.physical_key);
-            }
-        },
+        }
         WindowEvent::ModifiersChanged(modifiers) => {
             ctx.input.modifiers = modifiers;
             game.on_modifiers_change(ctx, modifiers);
         }
-        WindowEvent::MouseInput { state, button, .. } => match state {
-            ElementState::Pressed => {
-                ctx.input.mouse.on_button_pressed(button);
-                game.on_mouse_button_press(ctx, button);
+        WindowEvent::MouseInput { state, button, .. } => {
+            match state {
+                ElementState::Pressed => {
+                    ctx.input.mouse.on_button_pressed(button);
+                    game.on_mouse_button_press(ctx, button);
+                }
+                ElementState::Released => {
+                    ctx.input.mouse.on_button_released(button);
+                    game.on_mouse_button_release(ctx, button);
+                }
             }
-            ElementState::Released => {
-                ctx.input.mouse.on_button_released(button);
-                game.on_mouse_button_release(ctx, button);
-            }
-        },
+        }
         WindowEvent::CursorEntered { .. } => {
             ctx.input.cursor.hovers_window = true;
         }
@@ -132,8 +146,15 @@ fn on_window_event(
         WindowEvent::Focused(false) => {
             ctx.input.on_focus_lost();
         }
+        WindowEvent::RedrawRequested => {
+            if draw(game, ctx).should_exit() {
+                return ShouldExit::Yes;
+            }
+        }
         _ => (),
     }
+
+    ShouldExit::No
 }
 
 fn update_window(game: &mut impl Game, ctx: &mut Context) {
@@ -141,9 +162,11 @@ fn update_window(game: &mut impl Game, ctx: &mut Context) {
         return;
     };
 
-    let physical_size = PhysicalSize::new(update.window_size.x, update.window_size.y);
-    ctx.window.window.set_inner_size(physical_size);
-    on_window_resize(game, ctx, update.window_size.x, update.window_size.y, true);
+    let size = PhysicalSize::new(update.window_size.x, update.window_size.y);
+
+    if let Some(size) = ctx.window.window.request_inner_size(size) {
+        on_window_resize(game, ctx, size.width, size.height, true);
+    }
 }
 
 fn on_window_resize(
@@ -158,66 +181,43 @@ fn on_window_resize(
     game.on_window_resize(ctx, width, height, is_programatic);
 }
 
-fn update(game: &mut impl Game, ctx: &mut Context, control_flow: &mut ControlFlow) {
+fn update(game: &mut impl Game, ctx: &mut Context) -> ShouldExit {
     ctx.game_phase = GamePhase::Update;
     if let Err(error) = game.update(ctx) {
-        if handle_error(game, ctx, error, control_flow) {
-            return;
+        if game.handle_error(ctx, error).should_exit() {
+            return ShouldExit::Yes;
         }
     }
 
     ctx.game_phase = GamePhase::FixedUpdate;
     while ctx.time.fixed_update() {
         if let Err(error) = game.fixed_update(ctx) {
-            if handle_error(game, ctx, error, control_flow) {
-                return;
+            if game.handle_error(ctx, error).should_exit() {
+                return ShouldExit::Yes;
             }
         }
     }
 
     ctx.game_phase = GamePhase::LateUpdate;
     if let Err(error) = game.late_update(ctx) {
-        if handle_error(game, ctx, error, control_flow) {
-            return;
+        if game.handle_error(ctx, error).should_exit() {
+            return ShouldExit::Yes;
         }
     }
 
-    ctx.window.window.request_redraw();
+    ShouldExit::No
 }
 
-fn draw(game: &mut impl Game, ctx: &mut Context, control_flow: &mut ControlFlow) {
+fn draw(game: &mut impl Game, ctx: &mut Context) -> ShouldExit {
     ctx.game_phase = GamePhase::Draw;
     ctx.graphics.prepare();
 
     if let Err(error) = game.draw(ctx) {
-        if handle_error(game, ctx, error, control_flow) {
-            return;
+        if game.handle_error(ctx, error).should_exit() {
+            return ShouldExit::Yes;
         }
     }
 
     ctx.graphics.present();
-}
-
-fn on_frame_end(ctx: &mut Context) {
-    ctx.input.on_frame_end();
-
-    if !ctx.graphics.vsync {
-        while !ctx.time.end_frame() {
-            std::thread::yield_now();
-        }
-    }
-}
-
-fn handle_error(
-    game: &mut impl Game,
-    ctx: &mut Context,
-    error: GameError,
-    control_flow: &mut ControlFlow,
-) -> bool {
-    if game.handle_error(ctx, error) {
-        control_flow.set_exit_with_code(ctx.game_phase.error_exit_code());
-        true
-    } else {
-        false
-    }
+    ShouldExit::No
 }

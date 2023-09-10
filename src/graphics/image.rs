@@ -1,4 +1,4 @@
-use crate::game::{GameErrorKind, GameResult};
+use crate::game::{GameError, GameResult};
 use image::error::ImageError;
 use image::RgbaImage;
 use std::path::Path;
@@ -23,12 +23,16 @@ impl Image {
         fn inner(path: &Path) -> GameResult<Image> {
             match image::open(path) {
                 Ok(image) => Ok(Image(image.into_rgba8())),
-                Err(error) => match error {
-                    ImageError::IoError(error) => {
-                        Err(GameErrorKind::IoError(error).into_error_with_path(path))
-                    }
-                    error => Err(GameErrorKind::ImageError(error).into_error_with_path(path)),
-                },
+                Err(error) => {
+                    let context = match error {
+                        ImageError::IoError(_) => {
+                            format!("Failed to read image file '{}'", path.display())
+                        }
+                        _ => format!("Failed to parse image file '{}'", path.display()),
+                    };
+
+                    Err(GameError::new(error).context(context))
+                }
             }
         }
 

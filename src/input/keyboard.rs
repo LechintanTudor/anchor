@@ -21,11 +21,6 @@ impl Keyboard {
         self.just_released_keys.contains(&key)
     }
 
-    pub fn on_frame_end(&mut self) {
-        self.just_pressed_keys.clear();
-        self.just_released_keys.clear();
-    }
-
     pub fn on_key_pressed(&mut self, key: KeyCode) {
         if self.pressed_keys.insert(key) {
             self.just_pressed_keys.insert(key);

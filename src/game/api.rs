@@ -1,9 +1,9 @@
-use crate::game::{Context, GamePhase};
+use crate::game::{Context, GamePhase, ShouldExit};
 
 /// Signals to the game that exit was requested.
 #[inline]
 pub fn request_exit(ctx: &mut Context) {
-    ctx.should_exit = true;
+    ctx.should_exit = ShouldExit::Yes;
 }
 
 /// Returns the current [GamePhase].

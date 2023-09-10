@@ -1,4 +1,4 @@
-use crate::game::{Context, GameErrorKind, GameResult};
+use crate::game::{Context, GameResult};
 use crate::graphics::Image;
 use glam::UVec2;
 use winit::dpi::PhysicalPosition;
@@ -66,6 +66,5 @@ pub(crate) fn create_icon(image: Image) -> GameResult<Icon> {
     let height = image.height();
     let data = image.into_data();
 
-    Icon::from_rgba(data, width, height)
-        .map_err(|e| GameErrorKind::OtherError(Box::new(e)).into_error())
+    Ok(Icon::from_rgba(data, width, height)?)
 }

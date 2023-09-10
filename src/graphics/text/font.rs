@@ -1,4 +1,5 @@
-use crate::game::{GameErrorKind, GameResult};
+use crate::game::GameResult;
+use anyhow::Context;
 use glyph_brush::ab_glyph::{self, CodepointIdIter, FontVec, GlyphId, GlyphImage, Outline};
 use std::path::Path;
 use std::sync::Arc;
@@ -11,9 +12,7 @@ impl Font {
     /// Creates a font with the given `data`.
     #[inline]
     pub fn new(data: Vec<u8>) -> GameResult<Self> {
-        let font_vec = ab_glyph::FontVec::try_from_vec(data)
-            .map_err(|e| GameErrorKind::FontError(e).into_error())?;
-
+        let font_vec = ab_glyph::FontVec::try_from_vec(data)?;
         Ok(Self(Arc::new(font_vec)))
     }
 
@@ -24,10 +23,10 @@ impl Font {
     {
         fn inner(path: &Path) -> GameResult<Font> {
             let data = std::fs::read(path)
-                .map_err(|e| GameErrorKind::IoError(e).into_error_with_path(path))?;
+                .with_context(|| format!("Failed to read font file '{}'", path.display()))?;
 
             let font_vec = ab_glyph::FontVec::try_from_vec(data)
-                .map_err(|e| GameErrorKind::FontError(e).into_error_with_path(path))?;
+                .with_context(|| format!("Failed to parse font file '{}'", path.display()))?;
 
             Ok(Self(Arc::new(font_vec)))
         }

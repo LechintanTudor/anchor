@@ -91,12 +91,14 @@ impl TextBatch {
         let sections = text
             .sections
             .iter()
-            .map(|section| PositionedTextSection {
-                content: section.content.clone(),
-                font_id: self.get_or_insert_font(&section.font),
-                font_size: section.font_size,
-                affine,
-                color: section.color,
+            .map(|section| {
+                PositionedTextSection {
+                    content: section.content.clone(),
+                    font_id: self.get_or_insert_font(&section.font),
+                    font_size: section.font_size,
+                    affine,
+                    color: section.color,
+                }
             })
             .collect();
 

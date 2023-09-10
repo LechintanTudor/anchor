@@ -1,4 +1,4 @@
-use crate::game::{Context, GameError, GameResult};
+use crate::game::{Context, GameError, GameResult, ShouldExit};
 use crate::graphics::{self, Color};
 use crate::input::{KeyCode, Modifiers, ScrollDelta};
 use glam::DVec2;
@@ -16,12 +16,11 @@ where
     }
 
     /// Called right before the application exits.
-    fn on_destroy(&mut self, ctx: &mut Context) {}
+    fn on_exit(&mut self, ctx: &mut Context) {}
 
     /// Intercepts exit requests and decides whether to exit the application.
-    /// Return `true` to exit or `false` to ignore the exit request.
-    fn on_exit_request(&mut self, ctx: &mut Context) -> bool {
-        true
+    fn on_exit_request(&mut self, ctx: &mut Context) -> ShouldExit {
+        ShouldExit::Yes
     }
 
     /// Called when the window is resized with the new window dimensions.
@@ -81,9 +80,9 @@ where
 
     /// Intercepts errors and decides whether to exit the application in response to them.
     /// Return `true` to exit the application or `false` continue.
-    fn handle_error(&mut self, ctx: &mut Context, error: GameError) -> bool {
+    fn handle_error(&mut self, ctx: &mut Context, error: GameError) -> ShouldExit {
         eprintln!("{:?}: {}", ctx.game_phase, error);
-        true
+        ShouldExit::Yes
     }
 }
 

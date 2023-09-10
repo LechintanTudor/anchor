@@ -14,10 +14,4 @@ impl InputContext {
         self.keyboard.on_focus_lost();
         self.mouse.on_focus_lost();
     }
-
-    #[inline]
-    pub fn on_frame_end(&mut self) {
-        self.keyboard.on_frame_end();
-        self.mouse.on_frame_end();
-    }
 }

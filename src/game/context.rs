@@ -1,4 +1,4 @@
-use crate::game::{Config, GamePhase, GameResult};
+use crate::game::{Config, GamePhase, GameResult, ShouldExit};
 use crate::graphics::GraphicsContext;
 use crate::input::InputContext;
 use crate::time::TimeContext;
@@ -8,7 +8,7 @@ use winit::event_loop::EventLoop;
 
 /// Groups together functionallity from all modules of the crate.
 pub struct Context {
-    pub(crate) should_exit: bool,
+    pub(crate) should_exit: ShouldExit,
     pub(crate) game_phase: GamePhase,
     pub(crate) time: TimeContext,
     pub(crate) window: WindowContext,
@@ -23,7 +23,7 @@ impl Context {
         let graphics = GraphicsContext::new(&window.window, config.graphics);
 
         Ok(Self {
-            should_exit: false,
+            should_exit: ShouldExit::No,
             game_phase: GamePhase::Input,
             time,
             window,
@@ -32,9 +32,9 @@ impl Context {
         })
     }
 
-    pub(crate) fn take_should_exit(&mut self) -> bool {
+    pub(crate) fn take_should_exit(&mut self) -> ShouldExit {
         let should_exit = self.should_exit;
-        self.should_exit = false;
+        self.should_exit = ShouldExit::No;
         should_exit
     }
 }

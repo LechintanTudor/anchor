@@ -22,30 +22,34 @@ pub fn draw(ctx: &mut Context, clear_color: Color, layers: &mut [Layer]) {
 
     {
         let mut pass = match framebuffer.as_mut() {
-            Some(framebuffer) => encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("display_render_pass"),
-                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: &framebuffer.view,
-                    resolve_target: Some(&surface_texture.view),
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(clear_color.into()),
-                        store: false,
-                    },
-                })],
-                depth_stencil_attachment: None,
-            }),
-            None => encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("display_render_pass"),
-                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: &surface_texture.view,
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(clear_color.into()),
-                        store: true,
-                    },
-                })],
-                depth_stencil_attachment: None,
-            }),
+            Some(framebuffer) => {
+                encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                    label: Some("display_render_pass"),
+                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                        view: &framebuffer.view,
+                        resolve_target: Some(&surface_texture.view),
+                        ops: wgpu::Operations {
+                            load: wgpu::LoadOp::Clear(clear_color.into()),
+                            store: false,
+                        },
+                    })],
+                    depth_stencil_attachment: None,
+                })
+            }
+            None => {
+                encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                    label: Some("display_render_pass"),
+                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                        view: &surface_texture.view,
+                        resolve_target: None,
+                        ops: wgpu::Operations {
+                            load: wgpu::LoadOp::Clear(clear_color.into()),
+                            store: true,
+                        },
+                    })],
+                    depth_stencil_attachment: None,
+                })
+            }
         };
 
         for layer in layers.iter_mut() {

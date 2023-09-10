@@ -21,11 +21,6 @@ impl Mouse {
         self.just_released_buttons.contains(&button)
     }
 
-    pub fn on_frame_end(&mut self) {
-        self.just_pressed_buttons.clear();
-        self.just_released_buttons.clear();
-    }
-
     pub fn on_button_pressed(&mut self, button: MouseButton) {
         if self.pressed_buttons.insert(button) {
             self.just_pressed_buttons.insert(button);

@@ -16,11 +16,13 @@ impl PositionedText {
         let text = self
             .sections
             .iter()
-            .map(|section| GlyphBrushText {
-                text: &section.content,
-                font_id: section.font_id,
-                scale: section.font_size.into(),
-                extra: RawGlyphInstanceData { affine: section.affine, color: section.color },
+            .map(|section| {
+                GlyphBrushText {
+                    text: &section.content,
+                    font_id: section.font_id,
+                    scale: section.font_size.into(),
+                    extra: RawGlyphInstanceData { affine: section.affine, color: section.color },
+                }
             })
             .collect();
 

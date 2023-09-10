@@ -1,4 +1,4 @@
-use crate::game::{GameErrorKind, GameResult};
+use crate::game::GameResult;
 use crate::window::WindowConfig;
 use glam::UVec2;
 use winit::dpi::PhysicalSize;
@@ -22,8 +22,7 @@ impl WindowContext {
             .with_title(config.title)
             .with_inner_size(PhysicalSize::<u32>::from(config.size))
             .with_resizable(config.resizable)
-            .build(event_loop)
-            .map_err(|error| GameErrorKind::OsError(error).into_error())?;
+            .build(event_loop)?;
 
         window.set_cursor_visible(config.cursor_visible);
 
