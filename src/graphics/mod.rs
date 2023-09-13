@@ -5,6 +5,7 @@ mod camera_manager;
 mod canvas;
 mod color;
 mod drawable;
+mod texture;
 mod transform;
 mod utils;
 mod wgpu_context;
@@ -14,6 +15,7 @@ pub use self::camera_manager::*;
 pub use self::canvas::*;
 pub use self::color::*;
 pub use self::drawable::*;
+pub use self::texture::*;
 pub use self::transform::*;
 pub use self::wgpu_context::*;
 
@@ -35,6 +37,7 @@ pub struct GraphicsContext {
     window: Window,
     pub(crate) camera_manager: CameraManager,
     pub(crate) shape_renderer: ShapeRenderer,
+    pub(crate) texture_renderer: TextureRenderer,
 }
 
 impl GraphicsContext {
@@ -109,10 +112,22 @@ impl GraphicsContext {
 
         let wgpu = WgpuContext::new(device, queue);
         let camera_manager = CameraManager::new(wgpu.clone());
+
         let shape_renderer =
             ShapeRenderer::new(wgpu.clone(), &camera_manager, surface_config.format, 1);
 
-        Ok(Self { wgpu, surface, surface_config, window, camera_manager, shape_renderer })
+        let texture_renderer =
+            TextureRenderer::new(wgpu.clone(), &camera_manager, surface_config.format, 1);
+
+        Ok(Self {
+            wgpu,
+            surface,
+            surface_config,
+            window,
+            camera_manager,
+            shape_renderer,
+            texture_renderer,
+        })
     }
 
     pub fn device(&self) -> &wgpu::Device {
