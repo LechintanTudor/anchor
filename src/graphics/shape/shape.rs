@@ -5,6 +5,7 @@ use std::{fmt, mem};
 use wgpu::util::DeviceExt;
 
 use crate::graphics::shape::DrawableShape;
+use crate::graphics::WgpuContext;
 
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
@@ -39,7 +40,12 @@ struct ShapeData {
 pub struct Shape(Arc<ShapeData>);
 
 impl Shape {
-    pub fn new(device: &wgpu::Device, vertexes: &[ShapeVertex], indexes: &[u16]) -> Self {
+    pub fn new<W>(wgpu: &W, vertexes: &[ShapeVertex], indexes: &[u16]) -> Self
+    where
+        W: AsRef<WgpuContext>,
+    {
+        let device = wgpu.as_ref().device();
+
         let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("shape_vertex_buffer"),
             contents: bytemuck::cast_slice(vertexes),

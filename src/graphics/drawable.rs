@@ -1,3 +1,5 @@
+use crate::graphics::Canvas;
+
 pub trait Drawable {
-    // Empty
+    fn draw(self, canvas: &mut Canvas);
 }

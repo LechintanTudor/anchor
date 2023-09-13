@@ -22,15 +22,3 @@ impl WgpuContext {
         &self.0.queue
     }
 }
-
-impl AsRef<wgpu::Device> for WgpuContext {
-    fn as_ref(&self) -> &wgpu::Device {
-        &self.0.device
-    }
-}
-
-impl AsRef<wgpu::Queue> for WgpuContext {
-    fn as_ref(&self) -> &wgpu::Queue {
-        &self.0.queue
-    }
-}

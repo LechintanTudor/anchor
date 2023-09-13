@@ -2,6 +2,8 @@ mod config;
 mod context;
 mod error;
 
+use crate::graphics::Canvas;
+
 pub use self::config::*;
 pub use self::context::*;
 pub use self::error::*;
@@ -35,6 +37,8 @@ pub trait Game {
     }
 
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
+        let canvas = Canvas::new(ctx);
+        canvas.present();
         Ok(())
     }
 

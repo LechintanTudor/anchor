@@ -19,7 +19,7 @@ pub struct CameraManager {
 
 impl CameraManager {
     pub fn new(wgpu: WgpuContext) -> Self {
-        let projection_bind_group_layout =
+        let bind_group_layout =
             wgpu.device().create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
                 label: Some("projection_bind_group_layout"),
                 entries: &[wgpu::BindGroupLayoutEntry {
@@ -34,12 +34,7 @@ impl CameraManager {
                 }],
             });
 
-        Self {
-            wgpu,
-            bind_group_layout: projection_bind_group_layout,
-            bind_groups: Vec::new(),
-            used_bind_groups: 0,
-        }
+        Self { wgpu, bind_group_layout, bind_groups: Vec::new(), used_bind_groups: 0 }
     }
 
     pub fn projection_bind_group_layout(&self) -> &wgpu::BindGroupLayout {

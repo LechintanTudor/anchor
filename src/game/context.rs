@@ -1,5 +1,5 @@
 use crate::game::{Config, GameResult};
-use crate::graphics::GraphicsContext;
+use crate::graphics::{GraphicsContext, WgpuContext};
 use winit::event_loop::EventLoopWindowTarget;
 
 #[derive(Debug)]
@@ -22,5 +22,11 @@ impl AsRef<GraphicsContext> for Context {
 impl AsMut<GraphicsContext> for Context {
     fn as_mut(&mut self) -> &mut GraphicsContext {
         &mut self.graphics
+    }
+}
+
+impl AsRef<WgpuContext> for Context {
+    fn as_ref(&self) -> &WgpuContext {
+        &self.graphics.wgpu
     }
 }

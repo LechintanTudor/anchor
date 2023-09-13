@@ -5,6 +5,7 @@ mod camera_manager;
 mod canvas;
 mod color;
 mod drawable;
+mod transform;
 mod utils;
 mod wgpu_context;
 
@@ -13,6 +14,7 @@ pub use self::camera_manager::*;
 pub use self::canvas::*;
 pub use self::color::*;
 pub use self::drawable::*;
+pub use self::transform::*;
 pub use self::wgpu_context::*;
 
 pub(crate) use self::utils::*;
@@ -152,5 +154,11 @@ impl GraphicsContext {
 
     pub fn configure_surface(&self) {
         self.surface.configure(self.device(), &self.surface_config);
+    }
+}
+
+impl AsRef<WgpuContext> for GraphicsContext {
+    fn as_ref(&self) -> &WgpuContext {
+        &self.wgpu
     }
 }

@@ -44,8 +44,6 @@ pub struct ShapeBatch {
 pub struct ShapeRenderer {
     wgpu: WgpuContext,
     pipeline: wgpu::RenderPipeline,
-    pipeline_layout: wgpu::PipelineLayout,
-    shader_module: wgpu::ShaderModule,
     instances: Vec<ShapeInstance>,
     instance_buffer: Option<wgpu::Buffer>,
 }
@@ -78,14 +76,7 @@ impl ShapeRenderer {
             sample_count,
         );
 
-        Self {
-            wgpu,
-            pipeline,
-            pipeline_layout,
-            shader_module,
-            instances: Vec::new(),
-            instance_buffer: None,
-        }
+        Self { wgpu, pipeline, instances: Vec::new(), instance_buffer: None }
     }
 
     fn create_pipeline(

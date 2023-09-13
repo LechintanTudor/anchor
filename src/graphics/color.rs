@@ -40,7 +40,7 @@ impl Color {
         Self { r: 1.0, g: 1.0, b: 1.0, a }
     }
 
-    pub fn as_linear_vec4(&self) -> Vec4 {
+    pub fn to_linear_vec4(&self) -> Vec4 {
         Vec4::new(srgb_to_linear(self.r), srgb_to_linear(self.g), srgb_to_linear(self.b), self.a)
     }
 }
