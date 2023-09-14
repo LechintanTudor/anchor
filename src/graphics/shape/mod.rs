@@ -4,7 +4,7 @@ mod shape;
 pub use self::drawable_shape::*;
 pub use self::shape::*;
 
-use crate::graphics::{vertex_attr_array, CameraManager, WgpuContext};
+use crate::graphics::{vertex_attr_array, WgpuContext};
 use bytemuck::{Pod, Zeroable};
 use glam::{Vec2, Vec4};
 use std::mem;
@@ -51,7 +51,7 @@ pub struct ShapeRenderer {
 impl ShapeRenderer {
     pub fn new(
         wgpu: WgpuContext,
-        camera_manager: &CameraManager,
+        projection_bind_group_layout: &wgpu::BindGroupLayout,
         texture_format: wgpu::TextureFormat,
         sample_count: u32,
     ) -> Self {
@@ -59,7 +59,7 @@ impl ShapeRenderer {
 
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("shape_pipeline_layout"),
-            bind_group_layouts: &[camera_manager.projection_bind_group_layout()],
+            bind_group_layouts: &[projection_bind_group_layout],
             push_constant_ranges: &[],
         });
 

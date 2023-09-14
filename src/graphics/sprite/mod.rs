@@ -1,7 +1,9 @@
+mod sprite;
 mod texture;
 
+pub use self::sprite::*;
 pub use self::texture::*;
-use crate::graphics::{vertex_attr_array, CameraManager, WgpuContext};
+use crate::graphics::{vertex_attr_array, WgpuContext};
 use bytemuck::{Pod, Zeroable};
 use glam::{Vec2, Vec4};
 use std::mem;
@@ -9,50 +11,52 @@ use std::ops::Range;
 
 #[repr(C)]
 #[derive(Clone, Copy, Default, Debug, Pod, Zeroable)]
-pub struct TextureVertex {
+pub struct SpriteVertex {
     pub position: Vec2,
     pub uv_coords: Vec2,
 }
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Pod, Zeroable)]
-pub struct TextureInstance {
+pub struct SpriteInstance {
     pub linear_color: Vec4,
 }
 
-impl Default for TextureInstance {
+impl Default for SpriteInstance {
     fn default() -> Self {
         Self { linear_color: Vec4::ONE }
     }
 }
 
 #[derive(Clone, Debug)]
-pub struct TextureBatch {
+pub struct SpriteBatch {
     pub texture: (),
     pub instances: Range<u32>,
 }
 
 #[derive(Debug)]
-struct TextureRendererData {
+struct SpriteRendererData {
     vertex_buffer: wgpu::Buffer,
     index_buffer: wgpu::Buffer,
     instance_buffer: wgpu::Buffer,
 }
 
 #[derive(Debug)]
-pub struct TextureRenderer {
+pub struct SpriteRenderer {
     wgpu: WgpuContext,
     pipeline: wgpu::RenderPipeline,
-    vertexes: Vec<TextureVertex>,
+    vertexes: Vec<SpriteVertex>,
     indexes: Vec<u32>,
-    instances: Vec<TextureInstance>,
-    data: Option<TextureRendererData>,
+    instances: Vec<SpriteInstance>,
+    data: Option<SpriteRendererData>,
 }
 
-impl TextureRenderer {
+impl SpriteRenderer {
     pub fn new(
         wgpu: WgpuContext,
-        camera_manager: &CameraManager,
+        projection_bind_group_layout: &wgpu::BindGroupLayout,
+        sampler_bind_group_layout: &wgpu::BindGroupLayout,
+        texture_bind_group_layout: &wgpu::BindGroupLayout,
         texture_format: wgpu::TextureFormat,
         sample_count: u32,
     ) -> Self {
@@ -60,7 +64,11 @@ impl TextureRenderer {
 
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("texture_pipeline_layout"),
-            bind_group_layouts: &[camera_manager.projection_bind_group_layout()],
+            bind_group_layouts: &[
+                projection_bind_group_layout,
+                sampler_bind_group_layout,
+                texture_bind_group_layout,
+            ],
             push_constant_ranges: &[],
         });
 
@@ -102,17 +110,17 @@ impl TextureRenderer {
                 entry_point: "vs_main",
                 buffers: &[
                     wgpu::VertexBufferLayout {
-                        array_stride: mem::size_of::<TextureVertex>() as _,
+                        array_stride: mem::size_of::<SpriteVertex>() as _,
                         step_mode: wgpu::VertexStepMode::Vertex,
-                        attributes: &vertex_attr_array!(TextureVertex {
+                        attributes: &vertex_attr_array!(SpriteVertex {
                             0 => position: Float32x2,
                             1 => uv_coords: Float32x2,
                         }),
                     },
                     wgpu::VertexBufferLayout {
-                        array_stride: mem::size_of::<TextureInstance>() as _,
+                        array_stride: mem::size_of::<SpriteInstance>() as _,
                         step_mode: wgpu::VertexStepMode::Instance,
-                        attributes: &vertex_attr_array!(TextureInstance {
+                        attributes: &vertex_attr_array!(SpriteInstance {
                             2 => linear_color: Float32x4,
                         }),
                     },

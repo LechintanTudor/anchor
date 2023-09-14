@@ -1,21 +1,22 @@
 pub mod shape;
+pub mod sprite;
 
+mod bounds;
 mod camera;
 mod camera_manager;
 mod canvas;
 mod color;
 mod drawable;
-mod texture;
 mod transform;
 mod utils;
 mod wgpu_context;
 
+pub use self::bounds::*;
 pub use self::camera::*;
 pub use self::camera_manager::*;
 pub use self::canvas::*;
 pub use self::color::*;
 pub use self::drawable::*;
-pub use self::texture::*;
 pub use self::transform::*;
 pub use self::wgpu_context::*;
 
@@ -23,6 +24,7 @@ pub(crate) use self::utils::*;
 
 use crate::game::{Config, GameResult};
 use crate::graphics::shape::ShapeRenderer;
+use crate::graphics::sprite::SpriteRenderer;
 use anyhow::anyhow;
 use glam::UVec2;
 use winit::dpi::PhysicalSize;
@@ -32,12 +34,14 @@ use winit::window::{Window, WindowBuilder};
 #[derive(Debug)]
 pub struct GraphicsContext {
     pub wgpu: WgpuContext,
-    surface: wgpu::Surface,
-    surface_config: wgpu::SurfaceConfiguration,
-    window: Window,
+    pub(crate) surface: wgpu::Surface,
+    pub(crate) surface_config: wgpu::SurfaceConfiguration,
+    pub(crate) window: Window,
     pub(crate) camera_manager: CameraManager,
+    pub(crate) texture_bind_group_layout: wgpu::BindGroupLayout,
+    pub(crate) sampler_bind_group_layout: wgpu::BindGroupLayout,
     pub(crate) shape_renderer: ShapeRenderer,
-    pub(crate) texture_renderer: TextureRenderer,
+    pub(crate) sprite_renderer: SpriteRenderer,
 }
 
 impl GraphicsContext {
@@ -110,14 +114,51 @@ impl GraphicsContext {
 
         surface.configure(&device, &surface_config);
 
+        let sampler_bind_group_layout =
+            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: Some("sampler_bind_group_layout"),
+                entries: &[wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                    count: None,
+                }],
+            });
+
+        let texture_bind_group_layout =
+            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: Some("texture_bind_group_layout"),
+                entries: &[wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                        multisampled: false,
+                    },
+                    count: None,
+                }],
+            });
+
         let wgpu = WgpuContext::new(device, queue);
+
         let camera_manager = CameraManager::new(wgpu.clone());
 
-        let shape_renderer =
-            ShapeRenderer::new(wgpu.clone(), &camera_manager, surface_config.format, 1);
+        let shape_renderer = ShapeRenderer::new(
+            wgpu.clone(),
+            camera_manager.projection_bind_group_layout(),
+            surface_config.format,
+            1,
+        );
 
-        let texture_renderer =
-            TextureRenderer::new(wgpu.clone(), &camera_manager, surface_config.format, 1);
+        let texture_renderer = SpriteRenderer::new(
+            wgpu.clone(),
+            camera_manager.projection_bind_group_layout(),
+            &sampler_bind_group_layout,
+            &texture_bind_group_layout,
+            surface_config.format,
+            1,
+        );
 
         Ok(Self {
             wgpu,
@@ -125,8 +166,10 @@ impl GraphicsContext {
             surface_config,
             window,
             camera_manager,
+            sampler_bind_group_layout,
+            texture_bind_group_layout,
             shape_renderer,
-            texture_renderer,
+            sprite_renderer: texture_renderer,
         })
     }
 

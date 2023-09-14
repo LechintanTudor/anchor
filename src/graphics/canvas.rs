@@ -1,12 +1,13 @@
 use crate::graphics::shape::{Shape, ShapeBatch, ShapeInstance};
-use crate::graphics::{Camera, Color, Drawable, GraphicsContext, TextureBatch};
+use crate::graphics::sprite::SpriteBatch;
+use crate::graphics::{Camera, Color, Drawable, GraphicsContext};
 use glam::Mat4;
 use std::ops::Range;
 
 enum CanvasCommand {
     UpdateCamera,
     DrawShapes(ShapeBatch),
-    DrawSprites(TextureBatch),
+    DrawSprites(SpriteBatch),
 }
 
 pub struct Canvas<'a> {
