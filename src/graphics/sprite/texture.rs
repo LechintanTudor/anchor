@@ -18,7 +18,7 @@ pub struct Texture {
 }
 
 impl Texture {
-    pub fn from_file<G, P>(graphics: G, path: P) -> GameResult<Self>
+    pub fn from_file<G, P>(graphics: &G, path: P) -> GameResult<Self>
     where
         G: AsRef<GraphicsContext>,
         P: AsRef<Path>,
@@ -74,4 +74,14 @@ impl Texture {
     pub fn size(&self) -> UVec2 {
         self.size
     }
+}
+
+impl PartialEq for Texture {
+    fn eq(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.data, &other.data)
+    }
+}
+
+impl Eq for Texture {
+    // Empty
 }

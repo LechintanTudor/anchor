@@ -2,12 +2,11 @@ mod config;
 mod context;
 mod error;
 
-use crate::graphics::Canvas;
-
 pub use self::config::*;
 pub use self::context::*;
 pub use self::error::*;
 
+use crate::graphics::Canvas;
 use glam::UVec2;
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]

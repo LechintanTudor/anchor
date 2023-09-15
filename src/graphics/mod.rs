@@ -39,7 +39,7 @@ pub struct GraphicsContext {
     pub(crate) window: Window,
     pub(crate) camera_manager: CameraManager,
     pub(crate) texture_bind_group_layout: wgpu::BindGroupLayout,
-    pub(crate) sampler_bind_group_layout: wgpu::BindGroupLayout,
+    pub(crate) smooth_sampler_bind_group: wgpu::BindGroup,
     pub(crate) shape_renderer: ShapeRenderer,
     pub(crate) sprite_renderer: SpriteRenderer,
 }
@@ -140,6 +140,21 @@ impl GraphicsContext {
                 }],
             });
 
+        let smooth_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+            min_filter: wgpu::FilterMode::Linear,
+            mag_filter: wgpu::FilterMode::Linear,
+            ..Default::default()
+        });
+
+        let smooth_sampler_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("smooth_sampler_bind_group"),
+            layout: &sampler_bind_group_layout,
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: wgpu::BindingResource::Sampler(&smooth_sampler),
+            }],
+        });
+
         let wgpu = WgpuContext::new(device, queue);
 
         let camera_manager = CameraManager::new(wgpu.clone());
@@ -166,8 +181,8 @@ impl GraphicsContext {
             surface_config,
             window,
             camera_manager,
-            sampler_bind_group_layout,
             texture_bind_group_layout,
+            smooth_sampler_bind_group,
             shape_renderer,
             sprite_renderer: texture_renderer,
         })

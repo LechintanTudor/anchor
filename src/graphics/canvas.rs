@@ -1,5 +1,5 @@
 use crate::graphics::shape::{Shape, ShapeBatch, ShapeInstance};
-use crate::graphics::sprite::SpriteBatch;
+use crate::graphics::sprite::{SpriteBatch, SpriteInstance, Texture};
 use crate::graphics::{Camera, Color, Drawable, GraphicsContext};
 use glam::Mat4;
 use std::ops::Range;
@@ -26,6 +26,7 @@ impl<'a> Canvas<'a> {
         let graphics = graphics.as_mut();
         graphics.camera_manager.clear();
         graphics.shape_renderer.begin();
+        graphics.sprite_renderer.begin();
 
         let surface_texture = graphics.get_surface_texture().unwrap();
         let surface_size = graphics.surface_size().as_vec2();
@@ -84,8 +85,28 @@ impl<'a> Canvas<'a> {
         self.graphics.shape_renderer.add(shape_instance);
     }
 
+    pub fn draw_sprite(&mut self, texture: &Texture, sprite_instance: SpriteInstance) {
+        match self.commands.last_mut() {
+            Some(CanvasCommand::DrawSprites(batch)) if &batch.texture == texture => {
+                batch.instances.end += 1;
+            }
+            _ => {
+                self.commands.push(CanvasCommand::DrawSprites(SpriteBatch {
+                    texture: texture.clone(),
+                    instances: Range {
+                        start: self.graphics.sprite_renderer.instance_count(),
+                        end: self.graphics.sprite_renderer.instance_count() + 1,
+                    },
+                }))
+            }
+        }
+
+        self.graphics.sprite_renderer.add(sprite_instance);
+    }
+
     pub fn present(self) {
         self.graphics.shape_renderer.end();
+        self.graphics.sprite_renderer.end();
 
         for projection in self.projections.iter() {
             self.graphics.camera_manager.alloc_bind_group(projection);
@@ -136,7 +157,13 @@ impl<'a> Canvas<'a> {
                         self.graphics.shape_renderer.draw(&mut pass, batch);
                     }
                     CanvasCommand::DrawSprites(batch) => {
-                        todo!();
+                        if !matches!(last_draw_command, CanvasCommand::DrawSprites(_)) {
+                            self.graphics.sprite_renderer.prepare_pipeline(&mut pass);
+                            pass.set_bind_group(1, &self.graphics.smooth_sampler_bind_group, &[]);
+                            last_draw_command = command;
+                        }
+
+                        self.graphics.sprite_renderer.draw(&mut pass, batch);
                     }
                 }
             }

@@ -1,7 +1,13 @@
 use crate::graphics::Canvas;
 
 pub trait Drawable {
-    fn draw(self, canvas: &mut Canvas);
+    fn draw(&self, canvas: &mut Canvas);
+}
+
+pub trait AsDrawable {
+    type Drawable;
+
+    fn as_drawable(self) -> Self::Drawable;
 }
 
 macro_rules! impl_drawable_methods {

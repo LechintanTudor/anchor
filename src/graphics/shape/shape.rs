@@ -1,11 +1,9 @@
+use crate::graphics::WgpuContext;
 use bytemuck::{Pod, Zeroable};
 use glam::{Vec2, Vec4};
 use std::sync::Arc;
 use std::{fmt, mem};
 use wgpu::util::DeviceExt;
-
-use crate::graphics::shape::DrawableShape;
-use crate::graphics::WgpuContext;
 
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
@@ -40,7 +38,7 @@ struct ShapeData {
 pub struct Shape(Arc<ShapeData>);
 
 impl Shape {
-    pub fn new<W>(wgpu: W, vertexes: &[ShapeVertex], indexes: &[u16]) -> Self
+    pub fn new<W>(wgpu: &W, vertexes: &[ShapeVertex], indexes: &[u16]) -> Self
     where
         W: AsRef<WgpuContext>,
     {
@@ -71,10 +69,6 @@ impl Shape {
 
     pub fn index_count(&self) -> u32 {
         (self.0.index_buffer.size() / (mem::size_of::<u16>() as wgpu::BufferAddress)) as u32
-    }
-
-    pub fn as_drawable(&self) -> DrawableShape {
-        self.into()
     }
 }
 

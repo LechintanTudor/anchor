@@ -15,8 +15,8 @@ use wgpu::util::DeviceExt;
 #[non_exhaustive]
 #[derive(Clone, Copy, Debug, Pod, Zeroable)]
 pub struct ShapeInstance {
-    pub scale_rotation_col_0: Vec2,
-    pub scale_rotation_col_1: Vec2,
+    pub scale_rotation_x_axis: Vec2,
+    pub scale_rotation_y_axis: Vec2,
     pub translation: Vec2,
     pub anchor_offset: Vec2,
     pub linear_color: Vec4,
@@ -25,8 +25,8 @@ pub struct ShapeInstance {
 impl Default for ShapeInstance {
     fn default() -> Self {
         Self {
-            scale_rotation_col_0: Vec2::new(1.0, 0.0),
-            scale_rotation_col_1: Vec2::new(0.0, 1.0),
+            scale_rotation_x_axis: Vec2::new(1.0, 0.0),
+            scale_rotation_y_axis: Vec2::new(0.0, 1.0),
             translation: Vec2::ZERO,
             anchor_offset: Vec2::ZERO,
             linear_color: Vec4::ONE,
@@ -103,8 +103,8 @@ impl ShapeRenderer {
                         array_stride: mem::size_of::<ShapeInstance>() as _,
                         step_mode: wgpu::VertexStepMode::Instance,
                         attributes: &vertex_attr_array!(ShapeInstance {
-                            2 => scale_rotation_col_0: Float32x2,
-                            3 => scale_rotation_col_1: Float32x2,
+                            2 => scale_rotation_x_axis: Float32x2,
+                            3 => scale_rotation_y_axis: Float32x2,
                             4 => translation: Float32x2,
                             5 => anchor_offset: Float32x2,
                             6 => linear_color: Float32x4,
