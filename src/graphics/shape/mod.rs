@@ -178,8 +178,9 @@ impl ShapeRenderer {
         }
     }
 
-    pub fn instance_count(&self) -> u32 {
-        self.instances.len() as _
+    pub fn next_batch(&self, shape: Shape) -> ShapeBatch {
+        let instance_count = self.instances.len() as u32;
+        ShapeBatch { shape, instances: instance_count..(instance_count + 1) }
     }
 
     pub fn prepare_pipeline<'a>(&'a self, pass: &mut wgpu::RenderPass<'a>) {

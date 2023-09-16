@@ -7,6 +7,7 @@ use glam::Vec2;
 #[derive(Clone, Debug)]
 pub struct Sprite<'a> {
     pub texture: &'a Texture,
+    pub smooth: bool,
     pub custom_size: Option<Vec2>,
     pub uv_bounds: Bounds,
     pub flip_x: bool,
@@ -84,7 +85,7 @@ impl Sprite<'_> {
 
 impl Drawable for Sprite<'_> {
     fn draw(&self, canvas: &mut Canvas) {
-        canvas.draw_sprite(self.texture, self.to_sprite_instance());
+        canvas.draw_sprite(self.texture, self.smooth, self.to_sprite_instance());
     }
 }
 
@@ -94,6 +95,7 @@ impl<'a> AsDrawable for &'a Texture {
     fn as_drawable(self) -> Self::Drawable {
         Sprite {
             texture: self,
+            smooth: false,
             custom_size: None,
             uv_bounds: Bounds::new(0.0, 0.0, 1.0, 1.0),
             flip_x: false,

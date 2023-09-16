@@ -41,6 +41,7 @@ impl Default for SpriteInstance {
 #[derive(Clone, Debug)]
 pub struct SpriteBatch {
     pub texture: Texture,
+    pub smooth: bool,
     pub instances: Range<u32>,
 }
 
@@ -48,6 +49,8 @@ pub struct SpriteBatch {
 pub struct SpriteRenderer {
     wgpu: WgpuContext,
     pipeline: wgpu::RenderPipeline,
+    nearest_sampler_bind_group: wgpu::BindGroup,
+    linear_sampler_bind_group: wgpu::BindGroup,
     instances: Vec<SpriteInstance>,
     instance_buffer: Option<wgpu::Buffer>,
 }
@@ -56,19 +59,29 @@ impl SpriteRenderer {
     pub fn new(
         wgpu: WgpuContext,
         projection_bind_group_layout: &wgpu::BindGroupLayout,
-        sampler_bind_group_layout: &wgpu::BindGroupLayout,
-        bind_group_layout: &wgpu::BindGroupLayout,
+        texture_bind_group_layout: &wgpu::BindGroupLayout,
         format: wgpu::TextureFormat,
         sample_count: u32,
     ) -> Self {
         let device = wgpu.device();
 
+        let sampler_bind_group_layout =
+            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: Some("sampler_bind_group_layout"),
+                entries: &[wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                    count: None,
+                }],
+            });
+
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("sprite_pipeline_layout"),
             bind_group_layouts: &[
                 projection_bind_group_layout,
-                sampler_bind_group_layout,
-                bind_group_layout,
+                &sampler_bind_group_layout,
+                texture_bind_group_layout,
             ],
             push_constant_ranges: &[],
         });
@@ -81,7 +94,44 @@ impl SpriteRenderer {
         let pipeline =
             Self::create_pipeline(device, &pipeline_layout, &shader_module, format, sample_count);
 
-        Self { wgpu, pipeline, instances: Vec::new(), instance_buffer: None }
+        let nearest_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+            min_filter: wgpu::FilterMode::Nearest,
+            mag_filter: wgpu::FilterMode::Nearest,
+            ..Default::default()
+        });
+
+        let nearest_sampler_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("nearest_sampler_bind_group"),
+            layout: &sampler_bind_group_layout,
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: wgpu::BindingResource::Sampler(&nearest_sampler),
+            }],
+        });
+
+        let linear_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+            min_filter: wgpu::FilterMode::Linear,
+            mag_filter: wgpu::FilterMode::Linear,
+            ..Default::default()
+        });
+
+        let linear_sampler_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("linear_sampler_bind_group"),
+            layout: &sampler_bind_group_layout,
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: wgpu::BindingResource::Sampler(&linear_sampler),
+            }],
+        });
+
+        Self {
+            wgpu,
+            pipeline,
+            nearest_sampler_bind_group,
+            linear_sampler_bind_group,
+            instances: Vec::new(),
+            instance_buffer: None,
+        }
     }
 
     fn create_pipeline(
@@ -175,8 +225,9 @@ impl SpriteRenderer {
         }
     }
 
-    pub fn instance_count(&self) -> u32 {
-        self.instances.len() as _
+    pub fn next_batch(&self, texture: Texture, smooth: bool) -> SpriteBatch {
+        let instance_count = self.instances.len() as u32;
+        SpriteBatch { texture, smooth, instances: instance_count..(instance_count + 1) }
     }
 
     pub fn prepare_pipeline<'a>(&'a self, pass: &mut wgpu::RenderPass<'a>) {
@@ -189,6 +240,13 @@ impl SpriteRenderer {
     }
 
     pub fn draw<'a>(&'a self, pass: &mut wgpu::RenderPass<'a>, batch: &'a SpriteBatch) {
+        let sampler_bind_group = if batch.smooth {
+            &self.linear_sampler_bind_group
+        } else {
+            &self.nearest_sampler_bind_group
+        };
+
+        pass.set_bind_group(1, sampler_bind_group, &[]);
         pass.set_bind_group(2, batch.texture.bind_group(), &[]);
         pass.draw(0..4, batch.instances.clone());
     }
