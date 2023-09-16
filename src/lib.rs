@@ -3,12 +3,16 @@
 
 pub mod game;
 pub mod graphics;
+pub mod time;
 
-use crate::game::{Config, Context, Game, GameBuilder, GameResult};
+pub use {glam, wgpu, winit};
+
+use crate::game::{Config, Context, Game, GameBuilder, GameResult, ShouldExit};
+use crate::time::GamePhase;
 use glam::UVec2;
+use std::thread;
 use winit::event::{Event, StartCause, WindowEvent};
 use winit::event_loop::EventLoop;
-pub use {glam, wgpu, winit};
 
 pub fn run<G>(game_builder: G, config: Config) -> GameResult
 where
@@ -31,14 +35,21 @@ where
                 }
             }
             Event::NewEvents(StartCause::Poll) => {
-                if let Err(error) = game.update(ctx) {
-                    if game.handle_error(ctx, error).should_exit() {
-                        event_loop.exit();
-                        return;
+                if !ctx.graphics.vsync() {
+                    while !ctx.time.frame_ended() {
+                        thread::yield_now();
                     }
                 }
 
+                ctx.time.start_frame();
+
+                if update(game, ctx).should_exit() {
+                    event_loop.exit();
+                    return;
+                }
+
                 ctx.graphics.window().request_redraw();
+                ctx.time.phase = GamePhase::Input;
             }
             Event::WindowEvent { event, .. } => {
                 match event {
@@ -52,7 +63,14 @@ where
                         ctx.graphics.resize_surface(size);
                         game.on_window_resize(ctx, size);
                     }
+                    WindowEvent::KeyboardInput { event, is_synthetic, .. } => {
+                        game.on_key_event(ctx, event, is_synthetic);
+                    }
+                    WindowEvent::MouseInput { state, button, .. } => {
+                        game.on_mouse_event(ctx, state.is_pressed(), button);
+                    }
                     WindowEvent::RedrawRequested => {
+                        ctx.time.phase = GamePhase::Draw;
                         if let Err(error) = game.draw(ctx) {
                             if game.handle_error(ctx, error).should_exit() {
                                 event_loop.exit();
@@ -63,6 +81,7 @@ where
                 }
             }
             Event::LoopExiting => {
+                ctx.time.phase = GamePhase::Exit;
                 game.on_exit(ctx);
             }
             _ => (),
@@ -70,4 +89,34 @@ where
     })?;
 
     Ok(())
+}
+
+fn update<G>(game: &mut G, ctx: &mut Context) -> ShouldExit
+where
+    G: Game,
+{
+    ctx.time.phase = GamePhase::Update;
+    if let Err(error) = game.update(ctx) {
+        if game.handle_error(ctx, error).should_exit() {
+            return ShouldExit::Yes;
+        }
+    }
+
+    ctx.time.phase = GamePhase::FixedUpdate;
+    while ctx.time.fixed_update() {
+        if let Err(error) = game.fixed_update(ctx) {
+            if game.handle_error(ctx, error).should_exit() {
+                return ShouldExit::Yes;
+            }
+        }
+    }
+
+    ctx.time.phase = GamePhase::LateUpdate;
+    if let Err(error) = game.late_update(ctx) {
+        if game.handle_error(ctx, error).should_exit() {
+            return ShouldExit::Yes;
+        }
+    }
+
+    ShouldExit::No
 }

@@ -3,6 +3,7 @@ mod texture;
 
 pub use self::sprite::*;
 pub use self::texture::*;
+
 use crate::graphics::{vertex_attr_array, WgpuContext};
 use bytemuck::{Pod, Zeroable};
 use glam::{Vec2, Vec4};

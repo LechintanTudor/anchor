@@ -175,6 +175,14 @@ impl GraphicsContext {
         UVec2::new(self.surface_config.width, self.surface_config.height)
     }
 
+    pub fn vsync(&self) -> bool {
+        match self.surface_config.present_mode {
+            wgpu::PresentMode::AutoVsync => true,
+            wgpu::PresentMode::AutoNoVsync => false,
+            _ => unreachable!("Unexpected present mode"),
+        }
+    }
+
     pub fn get_surface_texture(&self) -> Option<wgpu::SurfaceTexture> {
         match self.surface.get_current_texture() {
             Ok(texture) => Some(texture),

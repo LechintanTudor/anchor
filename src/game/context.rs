@@ -1,15 +1,32 @@
 use crate::game::{Config, GameResult};
 use crate::graphics::{GraphicsContext, WgpuContext};
+use crate::time::TimeContext;
 use winit::event_loop::EventLoopWindowTarget;
 
 #[derive(Debug)]
 pub struct Context {
+    pub time: TimeContext,
     pub graphics: GraphicsContext,
 }
 
 impl Context {
     pub fn new(event_loop: &EventLoopWindowTarget<()>, config: &Config) -> GameResult<Self> {
-        Ok(Self { graphics: GraphicsContext::new(event_loop, config)? })
+        Ok(Self {
+            time: TimeContext::new(config),
+            graphics: GraphicsContext::new(event_loop, config)?,
+        })
+    }
+}
+
+impl AsRef<TimeContext> for Context {
+    fn as_ref(&self) -> &TimeContext {
+        &self.time
+    }
+}
+
+impl AsMut<TimeContext> for Context {
+    fn as_mut(&mut self) -> &mut TimeContext {
+        &mut self.time
     }
 }
 

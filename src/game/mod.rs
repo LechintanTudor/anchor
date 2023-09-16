@@ -8,6 +8,7 @@ pub use self::error::*;
 
 use crate::graphics::Canvas;
 use glam::UVec2;
+use winit::event::{KeyEvent, MouseButton};
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum ShouldExit {
@@ -35,9 +36,12 @@ pub trait Game {
         Ok(())
     }
 
+    fn late_update(&mut self, ctx: &mut Context) -> GameResult {
+        Ok(())
+    }
+
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
-        let canvas = Canvas::new(ctx);
-        canvas.present();
+        Canvas::new(ctx).present();
         Ok(())
     }
 
@@ -46,6 +50,14 @@ pub trait Game {
     }
 
     fn on_window_resize(&mut self, ctx: &mut Context, size: UVec2) {
+        // Empty
+    }
+
+    fn on_key_event(&mut self, ctx: &mut Context, event: KeyEvent, is_synthetic: bool) {
+        // Empty
+    }
+
+    fn on_mouse_event(&mut self, ctx: &mut Context, is_pressed: bool, button: MouseButton) {
         // Empty
     }
 
