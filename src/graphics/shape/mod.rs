@@ -65,7 +65,7 @@ impl ShapeRenderer {
 
         let shader_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("shape_shader"),
-            source: wgpu::ShaderSource::Wgsl(include_str!("shape_shader.wgsl").into()),
+            source: wgpu::ShaderSource::Wgsl(include_str!("../shaders/shape.wgsl").into()),
         });
 
         let pipeline = Self::create_pipeline(
