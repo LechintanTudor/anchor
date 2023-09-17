@@ -20,5 +20,5 @@ ordered-float = "3"
 pollster = "0.3"
 rustc-hash = "1.1"
 serde = { version = "1.0", features = ["derive"] }
-winit = { git = "https://github.com/rust-windowing/winit", rev = "0caba93b517ba9fc61fcf68bd65b31f9012e0019" }
+winit = { git = "https://github.com/rust-windowing/winit", rev = "f10ae5238535b1a38ccf1f0294e9913e5b743523" }
 wgpu = "0.17"
