@@ -22,3 +22,9 @@ impl WgpuContext {
         &self.0.queue
     }
 }
+
+impl AsRef<WgpuContext> for WgpuContext {
+    fn as_ref(&self) -> &WgpuContext {
+        self
+    }
+}

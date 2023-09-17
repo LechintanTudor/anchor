@@ -87,3 +87,9 @@ impl TimeContext {
         }
     }
 }
+
+impl AsRef<TimeContext> for TimeContext {
+    fn as_ref(&self) -> &TimeContext {
+        self
+    }
+}

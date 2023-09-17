@@ -209,6 +209,12 @@ impl GraphicsContext {
     }
 }
 
+impl AsRef<GraphicsContext> for GraphicsContext {
+    fn as_ref(&self) -> &GraphicsContext {
+        self
+    }
+}
+
 impl AsRef<WgpuContext> for GraphicsContext {
     fn as_ref(&self) -> &WgpuContext {
         &self.wgpu
