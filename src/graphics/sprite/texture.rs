@@ -48,14 +48,16 @@ impl Texture {
             )
             .create_view(&Default::default());
 
-        let bind_group = graphics.device().create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("rgba_texture_bind_group"),
-            layout: &graphics.texture_bind_group_layout,
-            entries: &[wgpu::BindGroupEntry {
-                binding: 0,
-                resource: wgpu::BindingResource::TextureView(&view),
-            }],
-        });
+        let bind_group = graphics
+            .device()
+            .create_bind_group(&wgpu::BindGroupDescriptor {
+                label: Some("rgba_texture_bind_group"),
+                layout: &graphics.texture_bind_group_layout,
+                entries: &[wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::TextureView(&view),
+                }],
+            });
 
         Ok(Self {
             data: Arc::new(TextureData { view, bind_group }),

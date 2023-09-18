@@ -7,7 +7,7 @@ pub use self::context::*;
 pub use self::error::*;
 
 use crate::graphics::Canvas;
-use glam::UVec2;
+use glam::{DVec2, UVec2};
 use winit::event::{KeyEvent, MouseButton};
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
@@ -58,6 +58,10 @@ pub trait Game {
     }
 
     fn on_mouse_event(&mut self, ctx: &mut Context, is_pressed: bool, button: MouseButton) {
+        // Empty
+    }
+
+    fn on_cursor_move(&mut self, ctx: &mut Context, cursor_position: DVec2) {
         // Empty
     }
 

@@ -26,7 +26,7 @@ use crate::game::{Config, GameResult};
 use crate::graphics::shape::ShapeRenderer;
 use crate::graphics::sprite::SpriteRenderer;
 use anyhow::anyhow;
-use glam::UVec2;
+use glam::{UVec2, Vec2};
 use winit::dpi::PhysicalSize;
 use winit::event_loop::EventLoopWindowTarget;
 use winit::window::{Window, WindowBuilder};
@@ -181,6 +181,22 @@ impl GraphicsContext {
             wgpu::PresentMode::AutoNoVsync => false,
             _ => unreachable!("Unexpected present mode"),
         }
+    }
+
+    pub fn default_viewport(&self) -> Bounds {
+        Bounds::new(
+            0.0,
+            0.0,
+            self.surface_config.width as _,
+            self.surface_config.height as _,
+        )
+    }
+
+    pub fn default_camera(&self) -> Camera {
+        Camera::from_size(Vec2::new(
+            self.surface_config.width as _,
+            self.surface_config.height as _,
+        ))
     }
 
     pub fn get_surface_texture(&self) -> Option<wgpu::SurfaceTexture> {

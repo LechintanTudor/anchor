@@ -21,7 +21,11 @@ impl TimeConsts {
         let max_fixed_update_accumulator =
             fixed_update_interval.mul_f64(config.max_fixed_updates_per_frame);
 
-        Self { frame_interval, fixed_update_interval, max_fixed_update_accumulator }
+        Self {
+            frame_interval,
+            fixed_update_interval,
+            max_fixed_update_accumulator,
+        }
     }
 }
 

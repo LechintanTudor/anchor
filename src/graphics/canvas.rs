@@ -1,10 +1,11 @@
 use crate::graphics::shape::{Shape, ShapeBatch, ShapeInstance};
 use crate::graphics::sprite::{SpriteBatch, SpriteInstance, Texture};
-use crate::graphics::{Camera, Color, Drawable, GraphicsContext};
+use crate::graphics::{Bounds, Camera, Color, Drawable, GraphicsContext};
 use glam::Mat4;
 
 enum CanvasCommand {
-    UpdateCamera,
+    UpdateProjection,
+    UpdateViewport(Bounds),
     DrawShapes(ShapeBatch),
     DrawSprites(SpriteBatch),
 }
@@ -35,7 +36,7 @@ impl<'a> Canvas<'a> {
             graphics,
             surface_texture,
             clear_color: Color::BLACK,
-            commands: vec![CanvasCommand::UpdateCamera],
+            commands: vec![CanvasCommand::UpdateProjection],
             projections: vec![projection],
         }
     }
@@ -44,17 +45,36 @@ impl<'a> Canvas<'a> {
         self.clear_color = clear_color;
     }
 
-    pub fn set_camera<P>(&mut self, projection: P)
+    pub fn set_projection<P>(&mut self, projection: P)
     where
         P: Into<Mat4>,
     {
         let projection = projection.into();
 
-        if matches!(self.commands.last_mut(), Some(CanvasCommand::UpdateCamera)) {
-            *self.projections.last_mut().unwrap() = projection;
-        } else {
-            self.commands.push(CanvasCommand::UpdateCamera);
-            self.projections.push(projection);
+        match self.commands.last() {
+            Some(CanvasCommand::UpdateProjection) => {
+                *self.projections.last_mut().unwrap() = projection;
+            }
+            _ => {
+                self.commands.push(CanvasCommand::UpdateProjection);
+                self.projections.push(projection);
+            }
+        }
+    }
+
+    pub fn set_viewport<V>(&mut self, viewport: V)
+    where
+        V: Into<Bounds>,
+    {
+        let viewport = viewport.into();
+
+        match self.commands.last_mut() {
+            Some(CanvasCommand::UpdateViewport(old_viewport)) => {
+                *old_viewport = viewport;
+            }
+            _ => {
+                self.commands.push(CanvasCommand::UpdateViewport(viewport));
+            }
         }
     }
 
@@ -94,7 +114,9 @@ impl<'a> Canvas<'a> {
             }
             _ => {
                 self.commands.push(CanvasCommand::DrawSprites(
-                    self.graphics.sprite_renderer.next_batch(texture.clone(), smooth),
+                    self.graphics
+                        .sprite_renderer
+                        .next_batch(texture.clone(), smooth),
                 ));
             }
         }
@@ -119,11 +141,16 @@ impl<'a> Canvas<'a> {
         };
 
         let mut encoder =
-            self.graphics.device().create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                label: Some("command_encoder"),
-            });
+            self.graphics
+                .device()
+                .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                    label: Some("command_encoder"),
+                });
 
-        let surface_view = self.surface_texture.texture.create_view(&Default::default());
+        let surface_view = self
+            .surface_texture
+            .texture
+            .create_view(&Default::default());
 
         {
             let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -139,12 +166,15 @@ impl<'a> Canvas<'a> {
                 depth_stencil_attachment: None,
             });
 
-            let mut last_draw_command = &CanvasCommand::UpdateCamera;
+            let mut last_draw_command = &CanvasCommand::UpdateProjection;
 
             for command in self.commands.iter() {
                 match command {
-                    CanvasCommand::UpdateCamera => {
+                    CanvasCommand::UpdateProjection => {
                         pass.set_bind_group(0, next_projection_bind_group(), &[]);
+                    }
+                    CanvasCommand::UpdateViewport(viewport) => {
+                        pass.set_viewport(viewport.x, viewport.y, viewport.w, viewport.h, 0.0, 1.0);
                     }
                     CanvasCommand::DrawShapes(batch) => {
                         if !matches!(last_draw_command, CanvasCommand::DrawShapes(_)) {

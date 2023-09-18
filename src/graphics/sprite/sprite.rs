@@ -64,7 +64,8 @@ impl Sprite<'_> {
     }
 
     pub fn size(&self) -> Vec2 {
-        self.custom_size.unwrap_or_else(|| self.texture.size().as_vec2())
+        self.custom_size
+            .unwrap_or_else(|| self.texture.size().as_vec2())
     }
 
     pub fn to_sprite_instance(&self) -> SpriteInstance {

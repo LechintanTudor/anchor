@@ -92,8 +92,13 @@ impl SpriteRenderer {
             source: wgpu::ShaderSource::Wgsl(include_str!("../shaders/sprite.wgsl").into()),
         });
 
-        let pipeline =
-            Self::create_pipeline(device, &pipeline_layout, &shader_module, format, sample_count);
+        let pipeline = Self::create_pipeline(
+            device,
+            &pipeline_layout,
+            &shader_module,
+            format,
+            sample_count,
+        );
 
         let nearest_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
             min_filter: wgpu::FilterMode::Nearest,
@@ -228,7 +233,11 @@ impl SpriteRenderer {
 
     pub fn next_batch(&self, texture: Texture, smooth: bool) -> SpriteBatch {
         let instance_count = self.instances.len() as u32;
-        SpriteBatch { texture, smooth, instances: instance_count..(instance_count + 1) }
+        SpriteBatch {
+            texture,
+            smooth,
+            instances: instance_count..(instance_count + 1),
+        }
     }
 
     pub fn prepare_pipeline<'a>(&'a self, pass: &mut wgpu::RenderPass<'a>) {

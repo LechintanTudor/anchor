@@ -76,7 +76,12 @@ impl ShapeRenderer {
             sample_count,
         );
 
-        Self { wgpu, pipeline, instances: Vec::new(), instance_buffer: None }
+        Self {
+            wgpu,
+            pipeline,
+            instances: Vec::new(),
+            instance_buffer: None,
+        }
     }
 
     fn create_pipeline(
@@ -180,7 +185,10 @@ impl ShapeRenderer {
 
     pub fn next_batch(&self, shape: Shape) -> ShapeBatch {
         let instance_count = self.instances.len() as u32;
-        ShapeBatch { shape, instances: instance_count..(instance_count + 1) }
+        ShapeBatch {
+            shape,
+            instances: instance_count..(instance_count + 1),
+        }
     }
 
     pub fn prepare_pipeline<'a>(&'a self, pass: &mut wgpu::RenderPass<'a>) {
@@ -194,7 +202,10 @@ impl ShapeRenderer {
 
     pub fn draw<'a>(&'a self, pass: &mut wgpu::RenderPass<'a>, batch: &'a ShapeBatch) {
         pass.set_vertex_buffer(0, batch.shape.vertex_buffer().slice(..));
-        pass.set_index_buffer(batch.shape.index_buffer().slice(..), wgpu::IndexFormat::Uint16);
+        pass.set_index_buffer(
+            batch.shape.index_buffer().slice(..),
+            wgpu::IndexFormat::Uint16,
+        );
         pass.draw_indexed(0..batch.shape.index_count(), 0, batch.instances.clone());
     }
 }

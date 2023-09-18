@@ -9,7 +9,7 @@ pub use {glam, wgpu, winit};
 
 use crate::game::{Config, Context, Game, GameBuilder, GameResult, ShouldExit};
 use crate::time::GamePhase;
-use glam::UVec2;
+use glam::{DVec2, UVec2};
 use std::thread;
 use winit::event::{Event, StartCause, WindowEvent};
 use winit::event_loop::EventLoop;
@@ -63,11 +63,19 @@ where
                         ctx.graphics.resize_surface(size);
                         game.on_window_resize(ctx, size);
                     }
-                    WindowEvent::KeyboardInput { event, is_synthetic, .. } => {
+                    WindowEvent::KeyboardInput {
+                        event,
+                        is_synthetic,
+                        ..
+                    } => {
                         game.on_key_event(ctx, event, is_synthetic);
                     }
                     WindowEvent::MouseInput { state, button, .. } => {
                         game.on_mouse_event(ctx, state.is_pressed(), button);
+                    }
+                    WindowEvent::CursorMoved { position, .. } => {
+                        let position = DVec2::new(position.x, position.y);
+                        game.on_cursor_move(ctx, position);
                     }
                     WindowEvent::RedrawRequested => {
                         ctx.time.phase = GamePhase::Draw;

@@ -29,19 +29,39 @@ impl Color {
     }
 
     pub const fn luma(value: f32) -> Self {
-        Self { r: value, g: value, b: value, a: 1.0 }
+        Self {
+            r: value,
+            g: value,
+            b: value,
+            a: 1.0,
+        }
     }
 
     pub const fn lumaa(value: f32, a: f32) -> Self {
-        Self { r: value, g: value, b: value, a }
+        Self {
+            r: value,
+            g: value,
+            b: value,
+            a,
+        }
     }
 
     pub const fn transparent(a: f32) -> Self {
-        Self { r: 1.0, g: 1.0, b: 1.0, a }
+        Self {
+            r: 1.0,
+            g: 1.0,
+            b: 1.0,
+            a,
+        }
     }
 
     pub fn to_linear_vec4(&self) -> Vec4 {
-        Vec4::new(srgb_to_linear(self.r), srgb_to_linear(self.g), srgb_to_linear(self.b), self.a)
+        Vec4::new(
+            srgb_to_linear(self.r),
+            srgb_to_linear(self.g),
+            srgb_to_linear(self.b),
+            self.a,
+        )
     }
 }
 

@@ -15,7 +15,11 @@ pub struct ShapeVertex {
 
 impl Default for ShapeVertex {
     fn default() -> Self {
-        Self { position: Vec2::ZERO, _padding: [0.0, 0.0], linear_color: Vec4::ONE }
+        Self {
+            position: Vec2::ZERO,
+            _padding: [0.0, 0.0],
+            linear_color: Vec4::ONE,
+        }
     }
 }
 
@@ -56,7 +60,10 @@ impl Shape {
             usage: wgpu::BufferUsages::INDEX,
         });
 
-        Self(Arc::new(ShapeData { vertex_buffer, index_buffer }))
+        Self(Arc::new(ShapeData {
+            vertex_buffer,
+            index_buffer,
+        }))
     }
 
     pub fn vertex_buffer(&self) -> &wgpu::Buffer {

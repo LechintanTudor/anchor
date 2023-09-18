@@ -8,10 +8,17 @@ pub struct Transform {
 }
 
 impl Transform {
-    pub const IDENTITY: Self = Self { translation: Vec2::ZERO, rotation: 0.0, scale: Vec2::ONE };
+    pub const IDENTITY: Self = Self {
+        translation: Vec2::ZERO,
+        rotation: 0.0,
+        scale: Vec2::ONE,
+    };
 
     pub fn from_translation(translation: Vec2) -> Self {
-        Self { translation, ..Default::default() }
+        Self {
+            translation,
+            ..Default::default()
+        }
     }
 
     pub fn to_affine2(&self) -> Affine2 {
