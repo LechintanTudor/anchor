@@ -1,6 +1,6 @@
 use crate::graphics::shape::{Shape, ShapeBatch, ShapeInstance};
 use crate::graphics::sprite::{SpriteBatch, SpriteInstance, Texture};
-use crate::graphics::{Bounds, Camera, Color, Drawable, GraphicsContext};
+use crate::graphics::{Bounds, Color, Drawable, GraphicsContext};
 use glam::Mat4;
 
 enum CanvasCommand {
@@ -29,8 +29,7 @@ impl<'a> Canvas<'a> {
         graphics.sprite_renderer.begin();
 
         let surface_texture = graphics.get_surface_texture().unwrap();
-        let surface_size = graphics.surface_size().as_vec2();
-        let projection = Camera::from_size(surface_size).ortho_matrix();
+        let projection = graphics.default_camera().ortho_matrix();
 
         Self {
             graphics,
