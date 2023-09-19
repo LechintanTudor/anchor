@@ -30,6 +30,10 @@ impl Font {
 
         inner(path.as_ref())
     }
+
+    pub(crate) fn id(&self) -> usize {
+        Arc::as_ptr(&self.0) as _
+    }
 }
 
 impl PartialEq for Font {

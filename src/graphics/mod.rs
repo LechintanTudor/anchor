@@ -8,6 +8,7 @@ mod camera_manager;
 mod canvas;
 mod color;
 mod drawable;
+mod texture_bind_group_layout;
 mod transform;
 mod utils;
 mod wgpu_context;
@@ -18,6 +19,7 @@ pub use self::camera_manager::*;
 pub use self::canvas::*;
 pub use self::color::*;
 pub use self::drawable::*;
+pub use self::texture_bind_group_layout::*;
 pub use self::transform::*;
 pub use self::wgpu_context::*;
 
@@ -39,7 +41,7 @@ pub struct GraphicsContext {
     pub(crate) surface_config: wgpu::SurfaceConfiguration,
     pub(crate) window: Window,
     pub(crate) camera_manager: CameraManager,
-    pub(crate) texture_bind_group_layout: wgpu::BindGroupLayout,
+    pub(crate) texture_bind_group_layout: TextureBindGroupLayout,
     pub(crate) shape_renderer: ShapeRenderer,
     pub(crate) sprite_renderer: SpriteRenderer,
 }
@@ -114,24 +116,9 @@ impl GraphicsContext {
 
         surface.configure(&device, &surface_config);
 
-        let texture_bind_group_layout =
-            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                label: Some("texture_bind_group_layout"),
-                entries: &[wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Texture {
-                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
-                        view_dimension: wgpu::TextureViewDimension::D2,
-                        multisampled: false,
-                    },
-                    count: None,
-                }],
-            });
-
         let wgpu = WgpuContext::new(device, queue);
-
         let camera_manager = CameraManager::new(wgpu.clone());
+        let texture_bind_group_layout = TextureBindGroupLayout::new(wgpu.device());
 
         let shape_renderer = ShapeRenderer::new(
             wgpu.clone(),
