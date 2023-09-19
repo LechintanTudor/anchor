@@ -1,5 +1,6 @@
 pub mod shape;
 pub mod sprite;
+pub mod text;
 
 mod bounds;
 mod camera;

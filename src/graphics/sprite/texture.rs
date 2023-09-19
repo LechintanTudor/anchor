@@ -1,5 +1,6 @@
 use crate::game::GameResult;
 use crate::graphics::GraphicsContext;
+use anyhow::Context;
 use glam::UVec2;
 use std::path::Path;
 use std::sync::Arc;
@@ -18,13 +19,17 @@ pub struct Texture {
 }
 
 impl Texture {
-    pub fn from_file<G, P>(graphics: &G, path: P) -> GameResult<Self>
+    pub fn from_file<G, P>(graphics: G, path: P) -> GameResult<Self>
     where
         G: AsRef<GraphicsContext>,
         P: AsRef<Path>,
     {
         let graphics = graphics.as_ref();
-        let image = image::open(path)?.to_rgba8();
+        let path = path.as_ref();
+
+        let image = image::open(path)
+            .map(|image| image.to_rgba8())
+            .with_context(|| format!("Failed to open image file: '{}'", path.display()))?;
 
         let view = graphics
             .device()
