@@ -19,7 +19,21 @@ pub struct Sprite<'a> {
 
 impl_drawable_methods!(Sprite<'_>);
 
-impl Sprite<'_> {
+impl<'a> Sprite<'a> {
+    pub fn new(texture: &'a Texture) -> Self {
+        Self {
+            texture,
+            smooth: false,
+            custom_size: None,
+            uv_bounds: Bounds::new(0.0, 0.0, 1.0, 1.0),
+            flip_x: false,
+            flip_y: false,
+            transform: Transform::IDENTITY,
+            anchor_offset: Vec2::ZERO,
+            color: Color::WHITE,
+        }
+    }
+
     pub fn custom_size<S>(mut self, size: S) -> Self
     where
         S: Into<Vec2>,
@@ -94,16 +108,6 @@ impl<'a> AsDrawable for &'a Texture {
     type Drawable = Sprite<'a>;
 
     fn as_drawable(self) -> Self::Drawable {
-        Sprite {
-            texture: self,
-            smooth: false,
-            custom_size: None,
-            uv_bounds: Bounds::new(0.0, 0.0, 1.0, 1.0),
-            flip_x: false,
-            flip_y: false,
-            transform: Transform::IDENTITY,
-            anchor_offset: Vec2::ZERO,
-            color: Color::WHITE,
-        }
+        Sprite::new(self)
     }
 }

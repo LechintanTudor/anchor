@@ -12,7 +12,16 @@ pub struct DrawableShape<'a> {
 
 impl_drawable_methods!(DrawableShape<'_>);
 
-impl DrawableShape<'_> {
+impl<'a> DrawableShape<'a> {
+    pub fn new(shape: &'a Shape) -> Self {
+        Self {
+            shape,
+            transform: Transform::IDENTITY,
+            anchor_offset: Vec2::ZERO,
+            color: Color::WHITE,
+        }
+    }
+
     pub fn to_shape_instance(&self) -> ShapeInstance {
         let affine2 = self.transform.to_affine2();
 
@@ -36,11 +45,6 @@ impl<'a> AsDrawable for &'a Shape {
     type Drawable = DrawableShape<'a>;
 
     fn as_drawable(self) -> Self::Drawable {
-        DrawableShape {
-            shape: self,
-            transform: Transform::IDENTITY,
-            anchor_offset: Vec2::ZERO,
-            color: Color::WHITE,
-        }
+        DrawableShape::new(self)
     }
 }
