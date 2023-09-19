@@ -79,8 +79,8 @@ impl<'a> Text<'a> {
 }
 
 impl Drawable for Text<'_> {
-    fn draw(&self, _canvas: &mut Canvas) {
-        todo!()
+    fn draw(self, canvas: &mut Canvas) {
+        canvas.draw_text(self)
     }
 }
 

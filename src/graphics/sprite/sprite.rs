@@ -99,7 +99,7 @@ impl<'a> Sprite<'a> {
 }
 
 impl Drawable for Sprite<'_> {
-    fn draw(&self, canvas: &mut Canvas) {
+    fn draw(self, canvas: &mut Canvas) {
         canvas.draw_sprite(self.texture, self.smooth, self.to_sprite_instance());
     }
 }

@@ -15,6 +15,7 @@ use rustc_hash::FxHashMap;
 
 const INITIAL_GLYPH_CACHE_SIZE: (u32, u32) = (128, 128);
 
+#[derive(Debug)]
 pub struct TextCache {
     wgpu: WgpuContext,
     texture_bind_group_layout: TextureBindGroupLayout,
@@ -51,11 +52,14 @@ impl TextCache {
         loop {
             match self.glyph_brush.process_queued(
                 |bounds, data| {
-                    let x = bounds.min[0];
-                    let y = bounds.min[1];
-                    let w = x + bounds.max[0];
-                    let h = y + bounds.max[1];
-                    self.glyph_texture.copy(self.wgpu.queue(), x, y, w, h, data);
+                    self.glyph_texture.write(
+                        self.wgpu.queue(),
+                        bounds.min[0],
+                        bounds.min[1],
+                        bounds.width(),
+                        bounds.height(),
+                        data,
+                    );
                 },
                 convert_to_sprite,
             ) {
@@ -67,6 +71,10 @@ impl TextCache {
                 }
             };
         }
+    }
+
+    pub fn glyph_texture(&self) -> &GlyphTexture {
+        &self.glyph_texture
     }
 
     fn convert_to_section<'a>(&mut self, text: Text<'a>) -> glyph_brush::Section<'a, GlyphData> {

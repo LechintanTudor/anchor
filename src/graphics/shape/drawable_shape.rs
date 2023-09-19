@@ -36,7 +36,7 @@ impl<'a> DrawableShape<'a> {
 }
 
 impl Drawable for DrawableShape<'_> {
-    fn draw(&self, canvas: &mut Canvas) {
+    fn draw(self, canvas: &mut Canvas) {
         canvas.draw_shape(self.shape, self.to_shape_instance());
     }
 }

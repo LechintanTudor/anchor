@@ -61,7 +61,7 @@ impl GlyphTexture {
         }
     }
 
-    pub fn copy(&self, queue: &wgpu::Queue, x: u32, y: u32, w: u32, h: u32, data: &[u8]) {
+    pub fn write(&self, queue: &wgpu::Queue, x: u32, y: u32, w: u32, h: u32, data: &[u8]) {
         queue.write_texture(
             wgpu::ImageCopyTexture {
                 texture: &self.texture,

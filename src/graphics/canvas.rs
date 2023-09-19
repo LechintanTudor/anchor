@@ -1,13 +1,22 @@
 use crate::graphics::shape::{Shape, ShapeBatch, ShapeInstance};
 use crate::graphics::sprite::{SpriteBatch, SpriteInstance, Texture};
+use crate::graphics::text::Text;
 use crate::graphics::{Bounds, Color, Drawable, GraphicsContext};
 use glam::Mat4;
 
+#[derive(Clone, Debug)]
 enum CanvasCommand {
     UpdateProjection,
     UpdateViewport(Bounds),
     DrawShapes(ShapeBatch),
     DrawSprites(SpriteBatch),
+    DrawText(u32),
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+enum CanvasPipeline {
+    Shape,
+    Sprite,
 }
 
 pub struct Canvas<'a> {
@@ -123,7 +132,24 @@ impl<'a> Canvas<'a> {
         self.graphics.sprite_renderer.add(sprite_instance);
     }
 
+    pub fn draw_text(&mut self, text: Text) {
+        self.graphics.text_cache.add(text);
+
+        match self.commands.last_mut() {
+            //Some(CanvasCommand::DrawText(count)) => *count += 1,
+            _ => self.commands.push(CanvasCommand::DrawText(2)),
+        }
+    }
+
     pub fn present(self) {
+        let mut start_text_instance = self.graphics.sprite_renderer.instance_count();
+
+        self.graphics
+            .text_cache
+            .end()
+            .into_iter()
+            .for_each(|instance| self.graphics.sprite_renderer.add(instance));
+
         self.graphics.shape_renderer.end();
         self.graphics.sprite_renderer.end();
 
@@ -165,7 +191,7 @@ impl<'a> Canvas<'a> {
                 depth_stencil_attachment: None,
             });
 
-            let mut last_draw_command = &CanvasCommand::UpdateProjection;
+            let mut last_pipeline = Option::<CanvasPipeline>::None;
 
             for command in self.commands.iter() {
                 match command {
@@ -176,20 +202,41 @@ impl<'a> Canvas<'a> {
                         pass.set_viewport(viewport.x, viewport.y, viewport.w, viewport.h, 0.0, 1.0);
                     }
                     CanvasCommand::DrawShapes(batch) => {
-                        if !matches!(last_draw_command, CanvasCommand::DrawShapes(_)) {
+                        if !matches!(last_pipeline, Some(CanvasPipeline::Shape)) {
                             self.graphics.shape_renderer.prepare_pipeline(&mut pass);
-                            last_draw_command = command;
+                            last_pipeline = Some(CanvasPipeline::Shape);
                         }
 
                         self.graphics.shape_renderer.draw(&mut pass, batch);
                     }
                     CanvasCommand::DrawSprites(batch) => {
-                        if !matches!(last_draw_command, CanvasCommand::DrawSprites(_)) {
+                        if !matches!(last_pipeline, Some(CanvasPipeline::Sprite)) {
                             self.graphics.sprite_renderer.prepare_pipeline(&mut pass);
-                            last_draw_command = command;
+                            last_pipeline = Some(CanvasPipeline::Sprite);
                         }
 
-                        self.graphics.sprite_renderer.draw(&mut pass, batch);
+                        self.graphics.sprite_renderer.draw(
+                            &mut pass,
+                            batch.smooth,
+                            batch.texture.bind_group(),
+                            batch.instances.clone(),
+                        );
+                    }
+                    CanvasCommand::DrawText(count) => {
+                        if !matches!(last_pipeline, Some(CanvasPipeline::Sprite)) {
+                            self.graphics.sprite_renderer.prepare_pipeline(&mut pass);
+                            last_pipeline = Some(CanvasPipeline::Sprite);
+                        }
+
+                        let instances = start_text_instance..(start_text_instance + count);
+                        start_text_instance += count;
+
+                        self.graphics.sprite_renderer.draw(
+                            &mut pass,
+                            true,
+                            self.graphics.text_cache.glyph_texture().bind_group(),
+                            instances,
+                        );
                     }
                 }
             }

@@ -28,6 +28,7 @@ pub(crate) use self::utils::*;
 use crate::game::{Config, GameResult};
 use crate::graphics::shape::ShapeRenderer;
 use crate::graphics::sprite::SpriteRenderer;
+use crate::graphics::text::TextCache;
 use anyhow::anyhow;
 use glam::{UVec2, Vec2};
 use winit::dpi::PhysicalSize;
@@ -44,6 +45,7 @@ pub struct GraphicsContext {
     pub(crate) texture_bind_group_layout: TextureBindGroupLayout,
     pub(crate) shape_renderer: ShapeRenderer,
     pub(crate) sprite_renderer: SpriteRenderer,
+    pub(crate) text_cache: TextCache,
 }
 
 impl GraphicsContext {
@@ -135,6 +137,8 @@ impl GraphicsContext {
             1,
         );
 
+        let text_cache = TextCache::new(wgpu.clone(), texture_bind_group_layout.clone());
+
         Ok(Self {
             wgpu,
             surface,
@@ -144,6 +148,7 @@ impl GraphicsContext {
             texture_bind_group_layout,
             shape_renderer,
             sprite_renderer,
+            text_cache,
         })
     }
 

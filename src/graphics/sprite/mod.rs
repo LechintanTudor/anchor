@@ -231,8 +231,13 @@ impl SpriteRenderer {
         }
     }
 
+    pub fn instance_count(&self) -> u32 {
+        self.instances.len() as _
+    }
+
     pub fn next_batch(&self, texture: Texture, smooth: bool) -> SpriteBatch {
         let instance_count = self.instances.len() as u32;
+
         SpriteBatch {
             texture,
             smooth,
@@ -249,15 +254,21 @@ impl SpriteRenderer {
         pass.set_vertex_buffer(0, instance_buffer.slice(..));
     }
 
-    pub fn draw<'a>(&'a self, pass: &mut wgpu::RenderPass<'a>, batch: &'a SpriteBatch) {
-        let sampler_bind_group = if batch.smooth {
+    pub fn draw<'a>(
+        &'a self,
+        pass: &mut wgpu::RenderPass<'a>,
+        smooth: bool,
+        texture_bind_group: &'a wgpu::BindGroup,
+        instances: Range<u32>,
+    ) {
+        let sampler_bind_group = if smooth {
             &self.linear_sampler_bind_group
         } else {
             &self.nearest_sampler_bind_group
         };
 
         pass.set_bind_group(1, sampler_bind_group, &[]);
-        pass.set_bind_group(2, batch.texture.bind_group(), &[]);
-        pass.draw(0..4, batch.instances.clone());
+        pass.set_bind_group(2, texture_bind_group, &[]);
+        pass.draw(0..4, instances);
     }
 }

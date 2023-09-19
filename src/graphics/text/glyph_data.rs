@@ -48,10 +48,7 @@ impl Hash for GlyphData {
 
 pub fn convert_to_sprite(vertex: GlyphVertex<GlyphData>) -> SpriteInstance {
     SpriteInstance {
-        size: Vec2::new(
-            vertex.bounds.max.x - vertex.bounds.min.x,
-            vertex.bounds.max.y - vertex.bounds.min.y,
-        ),
+        size: Vec2::new(vertex.pixel_coords.width(), vertex.pixel_coords.height()),
         scale_rotation_x_axis: vertex.extra.affine2.matrix2.x_axis,
         scale_rotation_y_axis: vertex.extra.affine2.matrix2.y_axis,
         translation: vertex.extra.affine2.translation,
