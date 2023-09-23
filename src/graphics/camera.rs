@@ -4,7 +4,7 @@ use glam::{Mat4, Vec2, Vec4};
 #[derive(Clone, Debug)]
 pub struct Camera {
     pub size: Vec2,
-    pub anchor: Vec2,
+    pub anchor_offset: Vec2,
 }
 
 impl Camera {
@@ -14,13 +14,26 @@ impl Camera {
     {
         Self {
             size: size.into(),
-            anchor: Vec2::ZERO,
+            anchor_offset: Vec2::ZERO,
         }
     }
 
+    pub fn anchor_offset<O>(mut self, offset: O) -> Self
+    where
+        O: Into<Vec2>,
+    {
+        self.anchor_offset = offset.into();
+        self
+    }
+
+    pub fn anchor_center(mut self) -> Self {
+        self.anchor_offset = self.size * 0.5;
+        self
+    }
+
     pub fn ortho_matrix(&self) -> Mat4 {
-        let tl = self.size * (0.0 - self.anchor);
-        let br = self.size * (1.0 - self.anchor);
+        let tl = -self.anchor_offset;
+        let br = self.size - self.anchor_offset;
         Mat4::orthographic_rh(tl.x, br.x, br.y, tl.y, 0.0, 1.0)
     }
 }

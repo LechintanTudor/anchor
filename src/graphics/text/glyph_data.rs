@@ -8,11 +8,12 @@ use std::hash::{Hash, Hasher};
 pub struct GlyphData {
     pub text_index: u32,
     pub affine2: Affine2,
+    pub anchor_offset: Vec2,
     pub linear_color: Vec4,
 }
 
 impl GlyphData {
-    fn props_as_ordered_floats(&self) -> [OrderedFloat<f32>; 10] {
+    fn props_as_ordered_floats(&self) -> [OrderedFloat<f32>; 12] {
         [
             OrderedFloat(self.affine2.x_axis.x),
             OrderedFloat(self.affine2.x_axis.y),
@@ -20,6 +21,8 @@ impl GlyphData {
             OrderedFloat(self.affine2.y_axis.y),
             OrderedFloat(self.affine2.translation.x),
             OrderedFloat(self.affine2.translation.y),
+            OrderedFloat(self.anchor_offset.x),
+            OrderedFloat(self.anchor_offset.y),
             OrderedFloat(self.linear_color.x),
             OrderedFloat(self.linear_color.y),
             OrderedFloat(self.linear_color.z),
@@ -57,8 +60,8 @@ pub fn convert_to_text_instance(vertex: GlyphVertex<GlyphData>) -> TextInstance 
         text_index: vertex.extra.text_index,
         scale_rotation_x_axis: vertex.extra.affine2.matrix2.x_axis,
         scale_rotation_y_axis: vertex.extra.affine2.matrix2.y_axis,
-        translation: position + vertex.extra.affine2.translation,
-        anchor_offset: Vec2::ZERO,
+        translation: vertex.extra.affine2.translation,
+        anchor_offset: vertex.extra.anchor_offset - position,
         uv_edges: Vec4::new(
             vertex.tex_coords.min.y,
             vertex.tex_coords.min.x,

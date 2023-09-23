@@ -21,7 +21,7 @@ pub enum VerticalAlign {
 #[derive(Clone, Debug)]
 pub struct Text<'a> {
     pub font: &'a Font,
-    pub size: f32,
+    pub font_size: f32,
     pub color: Color,
     pub bounds: Vec2,
     pub h_align: HorizontalAlign,
@@ -37,7 +37,7 @@ impl<'a> Text<'a> {
     pub fn new(font: &'a Font) -> Self {
         Self {
             font,
-            size: 32.0,
+            font_size: 32.0,
             color: Color::WHITE,
             bounds: Vec2::splat(f32::MAX),
             h_align: HorizontalAlign::Left,
@@ -53,8 +53,8 @@ impl<'a> Text<'a> {
         self
     }
 
-    pub fn size(mut self, size: f32) -> Self {
-        self.size = size;
+    pub fn font_size(mut self, font_size: f32) -> Self {
+        self.font_size = font_size;
         self
     }
 
@@ -63,6 +63,33 @@ impl<'a> Text<'a> {
         B: Into<Vec2>,
     {
         self.bounds = bounds.into();
+        self
+    }
+
+    pub fn anchor_center(mut self) -> Self {
+        self.anchor_offset = self.bounds * 0.5;
+        self
+    }
+
+    pub fn h_align(mut self, h_align: HorizontalAlign) -> Self {
+        self.h_align = h_align;
+        self
+    }
+
+    pub fn v_align(mut self, v_align: VerticalAlign) -> Self {
+        self.v_align = v_align;
+        self
+    }
+
+    pub fn align(mut self, h_align: HorizontalAlign, v_align: VerticalAlign) -> Self {
+        self.h_align = h_align;
+        self.v_align = v_align;
+        self
+    }
+
+    pub fn align_center(mut self) -> Self {
+        self.h_align = HorizontalAlign::Center;
+        self.v_align = VerticalAlign::Center;
         self
     }
 
@@ -93,7 +120,7 @@ impl<'a> AsDrawable for &'a Font {
 pub struct Section<'a> {
     pub content: &'a str,
     pub font: Option<&'a Font>,
-    pub size: Option<f32>,
+    pub font_size: Option<f32>,
     pub color: Option<Color>,
 }
 
@@ -102,7 +129,7 @@ impl<'a> Section<'a> {
         Self {
             content,
             font: None,
-            size: None,
+            font_size: None,
             color: None,
         }
     }
@@ -112,8 +139,8 @@ impl<'a> Section<'a> {
         self
     }
 
-    pub fn size(mut self, size: f32) -> Self {
-        self.size = Some(size);
+    pub fn font_size(mut self, font_size: f32) -> Self {
+        self.font_size = Some(font_size);
         self
     }
 

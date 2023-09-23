@@ -11,6 +11,7 @@ pub use self::text::*;
 pub use self::text_instance::*;
 
 use crate::graphics::{vertex_attr_array, SharedBindGroupLayouts, WgpuContext};
+use glam::Vec2;
 use glyph_brush::{BrushAction, BrushError, FontId, GlyphBrush, GlyphBrushBuilder};
 use rustc_hash::FxHashMap;
 use std::mem;
@@ -148,7 +149,33 @@ impl TextRenderer {
     }
 
     pub fn add(&mut self, text: Text) -> u32 {
+        let (layout, anchor_offset) = {
+            let (h_align, h_align_scale) = match text.h_align {
+                HorizontalAlign::Left => (glyph_brush::HorizontalAlign::Left, 0.0),
+                HorizontalAlign::Center => (glyph_brush::HorizontalAlign::Center, 0.5),
+                HorizontalAlign::Right => (glyph_brush::HorizontalAlign::Right, 1.0),
+            };
+
+            let (v_align, v_align_scale) = match text.v_align {
+                VerticalAlign::Top => (glyph_brush::VerticalAlign::Top, 0.0),
+                VerticalAlign::Center => (glyph_brush::VerticalAlign::Center, 0.5),
+                VerticalAlign::Bottom => (glyph_brush::VerticalAlign::Bottom, 1.0),
+            };
+
+            let layout = glyph_brush::Layout::Wrap {
+                line_breaker: glyph_brush::BuiltInLineBreaker::UnicodeLineBreaker,
+                h_align,
+                v_align,
+            };
+
+            let anchor_offset =
+                -Vec2::new(h_align_scale, v_align_scale) * text.bounds + text.anchor_offset;
+
+            (layout, anchor_offset)
+        };
+
         let text_index = self.text_index;
+        let affine2 = text.transform.to_affine2();
 
         let glyph_brush_texts = text
             .sections
@@ -156,11 +183,12 @@ impl TextRenderer {
             .map(|section| {
                 glyph_brush::Text {
                     text: section.content,
-                    scale: section.size.unwrap_or(text.size).into(),
+                    scale: section.font_size.unwrap_or(text.font_size).into(),
                     font_id: self.get_or_insert_font(section.font.unwrap_or(text.font)),
                     extra: GlyphData {
                         text_index,
-                        affine2: text.transform.to_affine2(),
+                        affine2,
+                        anchor_offset,
                         linear_color: section.color.unwrap_or(text.color).to_linear_vec4(),
                     },
                 }
@@ -172,7 +200,7 @@ impl TextRenderer {
         let glyph_brush_section = glyph_brush::Section {
             screen_position: (0.0, 0.0),
             bounds: text.bounds.into(),
-            layout: Default::default(),
+            layout,
             text: glyph_brush_texts,
         };
 
@@ -233,16 +261,18 @@ impl TextRenderer {
             .chain(Some(u32::MAX));
 
         let mut last_text_index = 0;
+        let mut range_start = 0;
         let mut range_len = 0;
 
         text_index_iter.for_each(|text_index| {
             if text_index == last_text_index {
                 range_len += 1;
             } else {
-                self.instance_ranges
-                    .push(last_text_index..(last_text_index + range_len));
+                let range_end = range_start + range_len;
+                self.instance_ranges.push(range_start..range_end);
 
                 last_text_index = text_index;
+                range_start = range_end;
                 range_len = 1;
             }
         });
