@@ -57,7 +57,7 @@ impl Texture {
             .device()
             .create_bind_group(&wgpu::BindGroupDescriptor {
                 label: Some("rgba_texture_bind_group"),
-                layout: &graphics.texture_bind_group_layout,
+                layout: graphics.bind_group_layouts.texture(),
                 entries: &[wgpu::BindGroupEntry {
                     binding: 0,
                     resource: wgpu::BindingResource::TextureView(&view),

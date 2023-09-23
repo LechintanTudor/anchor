@@ -3,6 +3,7 @@ use crate::graphics::sprite::{SpriteBatch, SpriteInstance, Texture};
 use crate::graphics::text::Text;
 use crate::graphics::{Bounds, Color, Drawable, GraphicsContext};
 use glam::Mat4;
+use std::ops::Range;
 
 #[derive(Clone, Debug)]
 enum CanvasCommand {
@@ -10,13 +11,7 @@ enum CanvasCommand {
     UpdateViewport(Bounds),
     DrawShapes(ShapeBatch),
     DrawSprites(SpriteBatch),
-    DrawText(u32),
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
-enum CanvasPipeline {
-    Shape,
-    Sprite,
+    DrawText(Range<u32>),
 }
 
 pub struct Canvas<'a> {
@@ -33,9 +28,10 @@ impl<'a> Canvas<'a> {
         G: AsMut<GraphicsContext>,
     {
         let graphics = graphics.as_mut();
-        graphics.camera_manager.clear();
+        graphics.projection_bind_group_allocator.clear();
         graphics.shape_renderer.begin();
         graphics.sprite_renderer.begin();
+        graphics.text_renderer.begin();
 
         let surface_texture = graphics.get_surface_texture().unwrap();
         let projection = graphics.default_camera().ortho_matrix();
@@ -133,34 +129,33 @@ impl<'a> Canvas<'a> {
     }
 
     pub fn draw_text(&mut self, text: Text) {
-        self.graphics.text_cache.add(text);
+        let text_index = self.graphics.text_renderer.add(text);
 
         match self.commands.last_mut() {
-            //Some(CanvasCommand::DrawText(count)) => *count += 1,
-            _ => self.commands.push(CanvasCommand::DrawText(2)),
+            Some(CanvasCommand::DrawText(text_range)) => text_range.end += 1,
+            _ => {
+                self.commands
+                    .push(CanvasCommand::DrawText(text_index..(text_index + 1)))
+            }
         }
     }
 
     pub fn present(self) {
-        let mut start_text_instance = self.graphics.sprite_renderer.instance_count();
-
-        self.graphics
-            .text_cache
-            .end()
-            .into_iter()
-            .for_each(|instance| self.graphics.sprite_renderer.add(instance));
-
-        self.graphics.shape_renderer.end();
-        self.graphics.sprite_renderer.end();
+        self.graphics.shape_renderer.end(&self.graphics.wgpu);
+        self.graphics.sprite_renderer.end(&self.graphics.wgpu);
+        self.graphics.text_renderer.end(&self.graphics.wgpu);
 
         for projection in self.projections.iter() {
-            self.graphics.camera_manager.alloc_bind_group(projection);
+            self.graphics
+                .projection_bind_group_allocator
+                .alloc(&self.graphics.wgpu, projection);
         }
 
         let mut projection_bind_group_index = 0;
 
         let mut next_projection_bind_group = || {
-            let bind_group = &self.graphics.camera_manager[projection_bind_group_index];
+            let bind_group =
+                &self.graphics.projection_bind_group_allocator[projection_bind_group_index];
             projection_bind_group_index += 1;
             bind_group
         };
@@ -191,7 +186,7 @@ impl<'a> Canvas<'a> {
                 depth_stencil_attachment: None,
             });
 
-            let mut last_pipeline = Option::<CanvasPipeline>::None;
+            let mut last_draw_command = &CanvasCommand::UpdateProjection;
 
             for command in self.commands.iter() {
                 match command {
@@ -202,40 +197,42 @@ impl<'a> Canvas<'a> {
                         pass.set_viewport(viewport.x, viewport.y, viewport.w, viewport.h, 0.0, 1.0);
                     }
                     CanvasCommand::DrawShapes(batch) => {
-                        if !matches!(last_pipeline, Some(CanvasPipeline::Shape)) {
+                        if !matches!(last_draw_command, CanvasCommand::DrawShapes(_)) {
                             self.graphics.shape_renderer.prepare_pipeline(&mut pass);
-                            last_pipeline = Some(CanvasPipeline::Shape);
+                            last_draw_command = command;
                         }
 
                         self.graphics.shape_renderer.draw(&mut pass, batch);
                     }
                     CanvasCommand::DrawSprites(batch) => {
-                        if !matches!(last_pipeline, Some(CanvasPipeline::Sprite)) {
+                        if !matches!(last_draw_command, CanvasCommand::DrawSprites(_)) {
                             self.graphics.sprite_renderer.prepare_pipeline(&mut pass);
-                            last_pipeline = Some(CanvasPipeline::Sprite);
+                            last_draw_command = command;
                         }
+
+                        let sampler_bind_group = if batch.smooth {
+                            &self.graphics.linear_sampler_bind_group
+                        } else {
+                            &self.graphics.nearest_sampler_bind_group
+                        };
 
                         self.graphics.sprite_renderer.draw(
                             &mut pass,
-                            batch.smooth,
                             batch.texture.bind_group(),
+                            sampler_bind_group,
                             batch.instances.clone(),
                         );
                     }
-                    CanvasCommand::DrawText(count) => {
-                        if !matches!(last_pipeline, Some(CanvasPipeline::Sprite)) {
-                            self.graphics.sprite_renderer.prepare_pipeline(&mut pass);
-                            last_pipeline = Some(CanvasPipeline::Sprite);
+                    CanvasCommand::DrawText(text_range) => {
+                        if !matches!(last_draw_command, CanvasCommand::DrawText(_)) {
+                            self.graphics.text_renderer.prepare_pipeline(&mut pass);
+                            last_draw_command = command;
                         }
 
-                        let instances = start_text_instance..(start_text_instance + count);
-                        start_text_instance += count;
-
-                        self.graphics.sprite_renderer.draw(
+                        self.graphics.text_renderer.draw(
                             &mut pass,
-                            true,
-                            self.graphics.text_cache.glyph_texture().bind_group(),
-                            instances,
+                            &self.graphics.linear_sampler_bind_group,
+                            text_range.clone(),
                         );
                     }
                 }

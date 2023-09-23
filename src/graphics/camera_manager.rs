@@ -1,4 +1,4 @@
-use crate::graphics::WgpuContext;
+use crate::graphics::{SharedBindGroupLayouts, WgpuContext};
 use glam::Mat4;
 use std::ops::Index;
 use wgpu::util::DeviceExt;
@@ -10,57 +10,34 @@ struct ProjectionBindGroup {
 }
 
 #[derive(Debug)]
-pub struct CameraManager {
-    wgpu: WgpuContext,
-    bind_group_layout: wgpu::BindGroupLayout,
+pub struct ProjectionBindGroupAllocator {
+    bind_group_layouts: SharedBindGroupLayouts,
     bind_groups: Vec<ProjectionBindGroup>,
     used_bind_groups: usize,
 }
 
-impl CameraManager {
-    pub fn new(wgpu: WgpuContext) -> Self {
-        let bind_group_layout =
-            wgpu.device()
-                .create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                    label: Some("projection_bind_group_layout"),
-                    entries: &[wgpu::BindGroupLayoutEntry {
-                        binding: 0,
-                        visibility: wgpu::ShaderStages::VERTEX,
-                        ty: wgpu::BindingType::Buffer {
-                            ty: wgpu::BufferBindingType::Uniform,
-                            has_dynamic_offset: false,
-                            min_binding_size: None,
-                        },
-                        count: None,
-                    }],
-                });
-
+impl ProjectionBindGroupAllocator {
+    pub fn new(bind_group_layouts: SharedBindGroupLayouts) -> Self {
         Self {
-            wgpu,
-            bind_group_layout,
+            bind_group_layouts,
             bind_groups: Vec::new(),
             used_bind_groups: 0,
         }
-    }
-
-    pub fn projection_bind_group_layout(&self) -> &wgpu::BindGroupLayout {
-        &self.bind_group_layout
     }
 
     pub fn clear(&mut self) {
         self.used_bind_groups = 0;
     }
 
-    pub fn alloc_bind_group(&mut self, projection: &Mat4) -> usize {
+    pub fn alloc(&mut self, wgpu: &WgpuContext, projection: &Mat4) -> usize {
         if self.used_bind_groups < self.bind_groups.len() {
-            self.wgpu.queue().write_buffer(
+            wgpu.queue().write_buffer(
                 &self.bind_groups[self.used_bind_groups].buffer,
                 0,
                 bytemuck::bytes_of(projection),
             );
         } else {
-            let buffer = self
-                .wgpu
+            let buffer = wgpu
                 .device()
                 .create_buffer_init(&wgpu::util::BufferInitDescriptor {
                     label: Some("projection_buffer"),
@@ -68,17 +45,14 @@ impl CameraManager {
                     usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
                 });
 
-            let bind_group = self
-                .wgpu
-                .device()
-                .create_bind_group(&wgpu::BindGroupDescriptor {
-                    label: Some("projection_bind_group"),
-                    layout: &self.bind_group_layout,
-                    entries: &[wgpu::BindGroupEntry {
-                        binding: 0,
-                        resource: buffer.as_entire_binding(),
-                    }],
-                });
+            let bind_group = wgpu.device().create_bind_group(&wgpu::BindGroupDescriptor {
+                label: Some("projection_bind_group"),
+                layout: self.bind_group_layouts.projection(),
+                entries: &[wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: buffer.as_entire_binding(),
+                }],
+            });
 
             self.bind_groups
                 .push(ProjectionBindGroup { buffer, bind_group });
@@ -90,7 +64,7 @@ impl CameraManager {
     }
 }
 
-impl Index<usize> for CameraManager {
+impl Index<usize> for ProjectionBindGroupAllocator {
     type Output = wgpu::BindGroup;
 
     fn index(&self, index: usize) -> &Self::Output {

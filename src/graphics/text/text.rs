@@ -1,5 +1,5 @@
 use crate::graphics::text::Font;
-use crate::graphics::{AsDrawable, Canvas, Color, Drawable, Transform};
+use crate::graphics::{impl_drawable_methods, AsDrawable, Canvas, Color, Drawable, Transform};
 use glam::Vec2;
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Default, Debug)]
@@ -31,6 +31,8 @@ pub struct Text<'a> {
     pub sections: Vec<Section<'a>>,
 }
 
+impl_drawable_methods!(Text<'_>);
+
 impl<'a> Text<'a> {
     pub fn new(font: &'a Font) -> Self {
         Self {
@@ -53,11 +55,6 @@ impl<'a> Text<'a> {
 
     pub fn size(mut self, size: f32) -> Self {
         self.size = size;
-        self
-    }
-
-    pub fn color(mut self, color: Color) -> Self {
-        self.color = color;
         self
     }
 

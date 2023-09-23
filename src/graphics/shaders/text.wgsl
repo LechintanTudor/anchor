@@ -62,11 +62,11 @@ fn vs_main(@builtin(vertex_index) i: u32, input: VertexInput) -> VertexOutput {
 
 @fragment
 fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
-    let sample = textureSample(
+    let alpha = textureSample(
         texture,
         texture_sampler,
         input.uv_coords,
-    );
+    ).r;
     
-    return sample * input.linear_color;
+    return vec4<f32>(1.0, 1.0, 1.0, alpha) * input.linear_color;
 }

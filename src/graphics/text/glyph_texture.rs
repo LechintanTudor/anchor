@@ -1,4 +1,4 @@
-use crate::graphics::WgpuContext;
+use crate::graphics::{SharedBindGroupLayouts, WgpuContext};
 use glam::UVec2;
 use wgpu::util::DeviceExt;
 
@@ -11,11 +11,7 @@ pub struct GlyphTexture {
 }
 
 impl GlyphTexture {
-    pub fn new<S>(
-        wgpu: &WgpuContext,
-        texture_bind_group_layout: &wgpu::BindGroupLayout,
-        size: S,
-    ) -> Self
+    pub fn new<S>(wgpu: &WgpuContext, bind_group_layouts: &SharedBindGroupLayouts, size: S) -> Self
     where
         S: Into<UVec2>,
     {
@@ -46,7 +42,7 @@ impl GlyphTexture {
 
         let bind_group = wgpu.device().create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("glyph_texture_bind_group"),
-            layout: texture_bind_group_layout,
+            layout: bind_group_layouts.texture(),
             entries: &[wgpu::BindGroupEntry {
                 binding: 0,
                 resource: wgpu::BindingResource::TextureView(&view),

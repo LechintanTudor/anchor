@@ -2,83 +2,155 @@ mod font;
 mod glyph_data;
 mod glyph_texture;
 mod text;
+mod text_instance;
 
 pub use self::font::*;
 pub use self::glyph_data::*;
 pub use self::glyph_texture::*;
 pub use self::text::*;
+pub use self::text_instance::*;
 
-use crate::graphics::sprite::SpriteInstance;
-use crate::graphics::{TextureBindGroupLayout, WgpuContext};
+use crate::graphics::{vertex_attr_array, SharedBindGroupLayouts, WgpuContext};
 use glyph_brush::{BrushAction, BrushError, FontId, GlyphBrush, GlyphBrushBuilder};
 use rustc_hash::FxHashMap;
+use std::mem;
+use std::ops::Range;
+use wgpu::util::DeviceExt;
 
 const INITIAL_GLYPH_CACHE_SIZE: (u32, u32) = (128, 128);
 
 #[derive(Debug)]
-pub struct TextCache {
-    wgpu: WgpuContext,
-    texture_bind_group_layout: TextureBindGroupLayout,
+pub struct TextRenderer {
+    // Brush
     fonts: FxHashMap<usize, FontId>,
-    glyph_brush: GlyphBrush<SpriteInstance, GlyphData, Font>,
+    glyph_brush: GlyphBrush<TextInstance, GlyphData, Font>,
+    text_index: u32,
+
+    // Texture
+    bind_group_layouts: SharedBindGroupLayouts,
     glyph_texture: GlyphTexture,
+
+    // Pipeline
+    pipeline: wgpu::RenderPipeline,
+    instance_buffer: Option<wgpu::Buffer>,
+    instance_ranges: Vec<Range<u32>>,
 }
 
-impl TextCache {
-    pub fn new(wgpu: WgpuContext, texture_bind_group_layout: TextureBindGroupLayout) -> Self {
+impl TextRenderer {
+    pub fn new(
+        wgpu: &WgpuContext,
+        bind_group_layouts: SharedBindGroupLayouts,
+        format: wgpu::TextureFormat,
+        sample_count: u32,
+    ) -> Self {
         let glyph_brush = GlyphBrushBuilder::using_fonts(vec![])
             .initial_cache_size(INITIAL_GLYPH_CACHE_SIZE)
             .cache_redraws(false)
             .build();
 
-        let glyph_texture =
-            GlyphTexture::new(&wgpu, &texture_bind_group_layout, INITIAL_GLYPH_CACHE_SIZE);
+        let glyph_texture = GlyphTexture::new(wgpu, &bind_group_layouts, INITIAL_GLYPH_CACHE_SIZE);
+
+        let device = wgpu.device();
+
+        let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: Some("text_pipeline_layout"),
+            bind_group_layouts: &[
+                bind_group_layouts.projection(),
+                bind_group_layouts.texture(),
+                bind_group_layouts.sampler(),
+            ],
+            push_constant_ranges: &[],
+        });
+
+        let shader_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("text_shader"),
+            source: wgpu::ShaderSource::Wgsl(include_str!("../shaders/text.wgsl").into()),
+        });
+
+        let pipeline = Self::create_pipeline(
+            device,
+            &pipeline_layout,
+            &shader_module,
+            format,
+            sample_count,
+        );
 
         Self {
-            wgpu,
-            texture_bind_group_layout,
             fonts: Default::default(),
             glyph_brush,
+            text_index: 0,
+            bind_group_layouts,
             glyph_texture,
+            pipeline,
+            instance_buffer: None,
+            instance_ranges: Vec::new(),
         }
     }
 
-    pub fn add(&mut self, text: Text) {
-        let section = self.convert_to_section(text);
-        self.glyph_brush.queue(section);
+    fn create_pipeline(
+        device: &wgpu::Device,
+        pipeline_layout: &wgpu::PipelineLayout,
+        shader_module: &wgpu::ShaderModule,
+        texture_format: wgpu::TextureFormat,
+        sample_count: u32,
+    ) -> wgpu::RenderPipeline {
+        device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("text_pipeline"),
+            layout: Some(pipeline_layout),
+            vertex: wgpu::VertexState {
+                module: shader_module,
+                entry_point: "vs_main",
+                buffers: &[wgpu::VertexBufferLayout {
+                    array_stride: mem::size_of::<TextInstance>() as _,
+                    step_mode: wgpu::VertexStepMode::Instance,
+                    attributes: &vertex_attr_array!(TextInstance {
+                        0 => size: Float32x2,
+                        1 => scale_rotation_x_axis: Float32x2,
+                        2 => scale_rotation_y_axis: Float32x2,
+                        3 => translation: Float32x2,
+                        4 => anchor_offset: Float32x2,
+                        5 => uv_edges: Float32x4,
+                        6 => linear_color: Float32x4,
+                    }),
+                }],
+            },
+            primitive: wgpu::PrimitiveState {
+                topology: wgpu::PrimitiveTopology::TriangleStrip,
+                strip_index_format: None,
+                front_face: wgpu::FrontFace::Ccw,
+                cull_mode: None,
+                unclipped_depth: false,
+                polygon_mode: wgpu::PolygonMode::Fill,
+                conservative: false,
+            },
+            depth_stencil: None,
+            multisample: wgpu::MultisampleState {
+                count: sample_count,
+                mask: !0,
+                alpha_to_coverage_enabled: false,
+            },
+            fragment: Some(wgpu::FragmentState {
+                module: shader_module,
+                entry_point: "fs_main",
+                targets: &[Some(wgpu::ColorTargetState {
+                    format: texture_format,
+                    blend: Some(wgpu::BlendState::ALPHA_BLENDING),
+                    write_mask: wgpu::ColorWrites::ALL,
+                })],
+            }),
+            multiview: None,
+        })
     }
 
-    pub fn end(&mut self) -> Vec<SpriteInstance> {
-        loop {
-            match self.glyph_brush.process_queued(
-                |bounds, data| {
-                    self.glyph_texture.write(
-                        self.wgpu.queue(),
-                        bounds.min[0],
-                        bounds.min[1],
-                        bounds.width(),
-                        bounds.height(),
-                        data,
-                    );
-                },
-                convert_to_sprite,
-            ) {
-                Ok(BrushAction::Draw(instances)) => return instances,
-                Ok(BrushAction::ReDraw) => unimplemented!(),
-                Err(BrushError::TextureTooSmall { suggested }) => {
-                    self.glyph_texture =
-                        GlyphTexture::new(&self.wgpu, &self.texture_bind_group_layout, suggested);
-                }
-            };
-        }
+    pub fn begin(&mut self) {
+        self.text_index = 0;
+        self.instance_ranges.clear();
     }
 
-    pub fn glyph_texture(&self) -> &GlyphTexture {
-        &self.glyph_texture
-    }
+    pub fn add(&mut self, text: Text) -> u32 {
+        let text_index = self.text_index;
 
-    fn convert_to_section<'a>(&mut self, text: Text<'a>) -> glyph_brush::Section<'a, GlyphData> {
-        let sections = text
+        let glyph_brush_texts = text
             .sections
             .iter()
             .map(|section| {
@@ -87,19 +159,116 @@ impl TextCache {
                     scale: section.size.unwrap_or(text.size).into(),
                     font_id: self.get_or_insert_font(section.font.unwrap_or(text.font)),
                     extra: GlyphData {
+                        text_index,
                         affine2: text.transform.to_affine2(),
-                        linear_color: text.color.to_linear_vec4(),
+                        linear_color: section.color.unwrap_or(text.color).to_linear_vec4(),
                     },
                 }
             })
             .collect::<Vec<_>>();
 
-        glyph_brush::Section {
+        self.text_index += 1;
+
+        let glyph_brush_section = glyph_brush::Section {
             screen_position: (0.0, 0.0),
             bounds: text.bounds.into(),
             layout: Default::default(),
-            text: sections,
+            text: glyph_brush_texts,
+        };
+
+        self.glyph_brush.queue(glyph_brush_section);
+        text_index
+    }
+
+    pub fn end(&mut self, wgpu: &WgpuContext) {
+        let instances = loop {
+            match self.glyph_brush.process_queued(
+                |bounds, data| {
+                    self.glyph_texture.write(
+                        wgpu.queue(),
+                        bounds.min[0],
+                        bounds.min[1],
+                        bounds.width(),
+                        bounds.height(),
+                        data,
+                    );
+                },
+                convert_to_text_instance,
+            ) {
+                Ok(BrushAction::Draw(instances)) => break instances,
+                Ok(BrushAction::ReDraw) => unimplemented!(),
+                Err(BrushError::TextureTooSmall { suggested }) => {
+                    self.glyph_texture =
+                        GlyphTexture::new(wgpu, &self.bind_group_layouts, suggested);
+                }
+            };
+        };
+
+        if instances.is_empty() {
+            return;
         }
+
+        let instances_size =
+            (instances.len() * mem::size_of::<TextInstance>()) as wgpu::BufferAddress;
+
+        match self.instance_buffer.as_ref() {
+            Some(instance_buffer) if instances_size <= instance_buffer.size() => {
+                wgpu.queue()
+                    .write_buffer(instance_buffer, 0, bytemuck::cast_slice(&instances));
+            }
+            _ => {
+                self.instance_buffer = Some(wgpu.device().create_buffer_init(
+                    &wgpu::util::BufferInitDescriptor {
+                        label: Some("text_instance_buffer"),
+                        contents: bytemuck::cast_slice(&instances),
+                        usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+                    },
+                ));
+            }
+        }
+
+        let text_index_iter = instances
+            .iter()
+            .map(|instance| instance.text_index)
+            .chain(Some(u32::MAX));
+
+        let mut last_text_index = 0;
+        let mut range_len = 0;
+
+        text_index_iter.for_each(|text_index| {
+            if text_index == last_text_index {
+                range_len += 1;
+            } else {
+                self.instance_ranges
+                    .push(last_text_index..(last_text_index + range_len));
+
+                last_text_index = text_index;
+                range_len = 1;
+            }
+        });
+    }
+
+    pub fn prepare_pipeline<'a>(&'a self, pass: &mut wgpu::RenderPass<'a>) {
+        let Some(instance_buffer) = self.instance_buffer.as_ref() else {
+            return;
+        };
+
+        pass.set_pipeline(&self.pipeline);
+        pass.set_vertex_buffer(0, instance_buffer.slice(..));
+    }
+
+    pub fn draw<'a>(
+        &'a self,
+        pass: &mut wgpu::RenderPass<'a>,
+        sampler_bind_group: &'a wgpu::BindGroup,
+        texts: Range<u32>,
+    ) {
+        let start_instance = self.instance_ranges[texts.start as usize].start;
+        let end_instance = self.instance_ranges[(texts.end - 1) as usize].end;
+
+        pass.set_bind_group(1, self.glyph_texture.bind_group(), &[]);
+        pass.set_bind_group(2, sampler_bind_group, &[]);
+        pass.draw(0..4, start_instance..end_instance);
     }
 
     fn get_or_insert_font(&mut self, font: &Font) -> FontId {

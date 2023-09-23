@@ -1,43 +1,15 @@
 mod sprite;
+mod sprite_instance;
 mod texture;
 
 pub use self::sprite::*;
+pub use self::sprite_instance::*;
 pub use self::texture::*;
 
-use crate::graphics::{vertex_attr_array, WgpuContext};
-use bytemuck::{Pod, Zeroable};
-use glam::{Vec2, Vec4};
+use crate::graphics::{vertex_attr_array, SharedBindGroupLayouts, WgpuContext};
 use std::mem;
 use std::ops::Range;
 use wgpu::util::DeviceExt;
-
-#[repr(C)]
-#[derive(Clone, Copy, Debug, Pod, Zeroable)]
-pub struct SpriteInstance {
-    pub size: Vec2,
-    pub _padding: Vec2,
-    pub scale_rotation_x_axis: Vec2,
-    pub scale_rotation_y_axis: Vec2,
-    pub translation: Vec2,
-    pub anchor_offset: Vec2,
-    pub uv_edges: Vec4, // top, left, bottom, right
-    pub linear_color: Vec4,
-}
-
-impl Default for SpriteInstance {
-    fn default() -> Self {
-        Self {
-            size: Vec2::ZERO,
-            _padding: Vec2::ZERO,
-            scale_rotation_x_axis: Vec2::new(1.0, 0.0),
-            scale_rotation_y_axis: Vec2::new(0.0, 1.0),
-            translation: Vec2::ZERO,
-            anchor_offset: Vec2::ZERO,
-            uv_edges: Vec4::new(0.0, 0.0, 1.0, 1.0),
-            linear_color: Vec4::ONE,
-        }
-    }
-}
 
 #[derive(Clone, Debug)]
 pub struct SpriteBatch {
@@ -48,41 +20,26 @@ pub struct SpriteBatch {
 
 #[derive(Debug)]
 pub struct SpriteRenderer {
-    wgpu: WgpuContext,
     pipeline: wgpu::RenderPipeline,
-    nearest_sampler_bind_group: wgpu::BindGroup,
-    linear_sampler_bind_group: wgpu::BindGroup,
     instances: Vec<SpriteInstance>,
     instance_buffer: Option<wgpu::Buffer>,
 }
 
 impl SpriteRenderer {
     pub fn new(
-        wgpu: WgpuContext,
-        projection_bind_group_layout: &wgpu::BindGroupLayout,
-        texture_bind_group_layout: &wgpu::BindGroupLayout,
+        wgpu: &WgpuContext,
+        bind_group_layouts: &SharedBindGroupLayouts,
         format: wgpu::TextureFormat,
         sample_count: u32,
     ) -> Self {
         let device = wgpu.device();
 
-        let sampler_bind_group_layout =
-            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                label: Some("sampler_bind_group_layout"),
-                entries: &[wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-                    count: None,
-                }],
-            });
-
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("sprite_pipeline_layout"),
             bind_group_layouts: &[
-                projection_bind_group_layout,
-                &sampler_bind_group_layout,
-                texture_bind_group_layout,
+                bind_group_layouts.projection(),
+                bind_group_layouts.texture(),
+                bind_group_layouts.sampler(),
             ],
             push_constant_ranges: &[],
         });
@@ -100,41 +57,8 @@ impl SpriteRenderer {
             sample_count,
         );
 
-        let nearest_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
-            min_filter: wgpu::FilterMode::Nearest,
-            mag_filter: wgpu::FilterMode::Nearest,
-            ..Default::default()
-        });
-
-        let nearest_sampler_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("nearest_sampler_bind_group"),
-            layout: &sampler_bind_group_layout,
-            entries: &[wgpu::BindGroupEntry {
-                binding: 0,
-                resource: wgpu::BindingResource::Sampler(&nearest_sampler),
-            }],
-        });
-
-        let linear_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
-            min_filter: wgpu::FilterMode::Linear,
-            mag_filter: wgpu::FilterMode::Linear,
-            ..Default::default()
-        });
-
-        let linear_sampler_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("linear_sampler_bind_group"),
-            layout: &sampler_bind_group_layout,
-            entries: &[wgpu::BindGroupEntry {
-                binding: 0,
-                resource: wgpu::BindingResource::Sampler(&linear_sampler),
-            }],
-        });
-
         Self {
-            wgpu,
             pipeline,
-            nearest_sampler_bind_group,
-            linear_sampler_bind_group,
             instances: Vec::new(),
             instance_buffer: None,
         }
@@ -203,7 +127,7 @@ impl SpriteRenderer {
         self.instances.push(instance);
     }
 
-    pub fn end(&mut self) {
+    pub fn end(&mut self, wgpu: &WgpuContext) {
         if self.instances.is_empty() {
             return;
         }
@@ -213,14 +137,14 @@ impl SpriteRenderer {
 
         match self.instance_buffer.as_ref() {
             Some(instance_buffer) if instances_size <= instance_buffer.size() => {
-                self.wgpu.queue().write_buffer(
+                wgpu.queue().write_buffer(
                     instance_buffer,
                     0,
                     bytemuck::cast_slice(&self.instances),
                 );
             }
             _ => {
-                self.instance_buffer = Some(self.wgpu.device().create_buffer_init(
+                self.instance_buffer = Some(wgpu.device().create_buffer_init(
                     &wgpu::util::BufferInitDescriptor {
                         label: Some("sprite_instance_buffer"),
                         contents: bytemuck::cast_slice(&self.instances),
@@ -257,18 +181,12 @@ impl SpriteRenderer {
     pub fn draw<'a>(
         &'a self,
         pass: &mut wgpu::RenderPass<'a>,
-        smooth: bool,
         texture_bind_group: &'a wgpu::BindGroup,
+        sampler_bind_group: &'a wgpu::BindGroup,
         instances: Range<u32>,
     ) {
-        let sampler_bind_group = if smooth {
-            &self.linear_sampler_bind_group
-        } else {
-            &self.nearest_sampler_bind_group
-        };
-
-        pass.set_bind_group(1, sampler_bind_group, &[]);
-        pass.set_bind_group(2, texture_bind_group, &[]);
+        pass.set_bind_group(1, texture_bind_group, &[]);
+        pass.set_bind_group(2, sampler_bind_group, &[]);
         pass.draw(0..4, instances);
     }
 }

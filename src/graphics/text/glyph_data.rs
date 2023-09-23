@@ -1,17 +1,18 @@
-use crate::graphics::sprite::SpriteInstance;
+use crate::graphics::text::TextInstance;
 use glam::{Affine2, Vec2, Vec4};
 use glyph_brush::GlyphVertex;
 use ordered_float::OrderedFloat;
 use std::hash::{Hash, Hasher};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct GlyphData {
+    pub text_index: u32,
     pub affine2: Affine2,
     pub linear_color: Vec4,
 }
 
 impl GlyphData {
-    fn to_ordered_float_array(&self) -> [OrderedFloat<f32>; 10] {
+    fn props_as_ordered_floats(&self) -> [OrderedFloat<f32>; 10] {
         [
             OrderedFloat(self.affine2.x_axis.x),
             OrderedFloat(self.affine2.x_axis.y),
@@ -29,7 +30,8 @@ impl GlyphData {
 
 impl PartialEq for GlyphData {
     fn eq(&self, other: &Self) -> bool {
-        self.to_ordered_float_array() == other.to_ordered_float_array()
+        self.text_index == other.text_index
+            && self.props_as_ordered_floats() == other.props_as_ordered_floats()
     }
 }
 
@@ -42,16 +44,20 @@ impl Hash for GlyphData {
     where
         H: Hasher,
     {
-        self.to_ordered_float_array().hash(state);
+        self.text_index.hash(state);
+        self.props_as_ordered_floats().hash(state);
     }
 }
 
-pub fn convert_to_sprite(vertex: GlyphVertex<GlyphData>) -> SpriteInstance {
-    SpriteInstance {
+pub fn convert_to_text_instance(vertex: GlyphVertex<GlyphData>) -> TextInstance {
+    let position = Vec2::new(vertex.pixel_coords.min.x, vertex.pixel_coords.min.y);
+
+    TextInstance {
         size: Vec2::new(vertex.pixel_coords.width(), vertex.pixel_coords.height()),
+        text_index: vertex.extra.text_index,
         scale_rotation_x_axis: vertex.extra.affine2.matrix2.x_axis,
         scale_rotation_y_axis: vertex.extra.affine2.matrix2.y_axis,
-        translation: vertex.extra.affine2.translation,
+        translation: position + vertex.extra.affine2.translation,
         anchor_offset: Vec2::ZERO,
         uv_edges: Vec4::new(
             vertex.tex_coords.min.y,

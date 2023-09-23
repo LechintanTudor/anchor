@@ -8,7 +8,7 @@ mod camera_manager;
 mod canvas;
 mod color;
 mod drawable;
-mod texture_bind_group_layout;
+mod shared_bind_group_layouts;
 mod transform;
 mod utils;
 mod wgpu_context;
@@ -19,7 +19,7 @@ pub use self::camera_manager::*;
 pub use self::canvas::*;
 pub use self::color::*;
 pub use self::drawable::*;
-pub use self::texture_bind_group_layout::*;
+pub use self::shared_bind_group_layouts::*;
 pub use self::transform::*;
 pub use self::wgpu_context::*;
 
@@ -28,7 +28,7 @@ pub(crate) use self::utils::*;
 use crate::game::{Config, GameResult};
 use crate::graphics::shape::ShapeRenderer;
 use crate::graphics::sprite::SpriteRenderer;
-use crate::graphics::text::TextCache;
+use crate::graphics::text::TextRenderer;
 use anyhow::anyhow;
 use glam::{UVec2, Vec2};
 use winit::dpi::PhysicalSize;
@@ -38,14 +38,22 @@ use winit::window::{Window, WindowBuilder};
 #[derive(Debug)]
 pub struct GraphicsContext {
     pub wgpu: WgpuContext,
-    pub(crate) surface: wgpu::Surface,
-    pub(crate) surface_config: wgpu::SurfaceConfiguration,
-    pub(crate) window: Window,
-    pub(crate) camera_manager: CameraManager,
-    pub(crate) texture_bind_group_layout: TextureBindGroupLayout,
-    pub(crate) shape_renderer: ShapeRenderer,
-    pub(crate) sprite_renderer: SpriteRenderer,
-    pub(crate) text_cache: TextCache,
+    pub bind_group_layouts: SharedBindGroupLayouts,
+
+    // Surface
+    surface: wgpu::Surface,
+    surface_config: wgpu::SurfaceConfiguration,
+    window: Window,
+
+    // Bind groups
+    nearest_sampler_bind_group: wgpu::BindGroup,
+    linear_sampler_bind_group: wgpu::BindGroup,
+    projection_bind_group_allocator: ProjectionBindGroupAllocator,
+
+    // Renderers
+    shape_renderer: ShapeRenderer,
+    sprite_renderer: SpriteRenderer,
+    text_renderer: TextRenderer,
 }
 
 impl GraphicsContext {
@@ -119,36 +127,64 @@ impl GraphicsContext {
         surface.configure(&device, &surface_config);
 
         let wgpu = WgpuContext::new(device, queue);
-        let camera_manager = CameraManager::new(wgpu.clone());
-        let texture_bind_group_layout = TextureBindGroupLayout::new(wgpu.device());
+        let bind_group_layouts = SharedBindGroupLayouts::new(wgpu.device());
 
-        let shape_renderer = ShapeRenderer::new(
-            wgpu.clone(),
-            camera_manager.projection_bind_group_layout(),
-            surface_config.format,
-            1,
-        );
+        let nearest_sampler = wgpu.device().create_sampler(&wgpu::SamplerDescriptor {
+            min_filter: wgpu::FilterMode::Nearest,
+            mag_filter: wgpu::FilterMode::Nearest,
+            ..Default::default()
+        });
 
-        let sprite_renderer = SpriteRenderer::new(
-            wgpu.clone(),
-            camera_manager.projection_bind_group_layout(),
-            &texture_bind_group_layout,
-            surface_config.format,
-            1,
-        );
+        let nearest_sampler_bind_group =
+            wgpu.device().create_bind_group(&wgpu::BindGroupDescriptor {
+                label: Some("nearest_sampler_bind_group"),
+                layout: bind_group_layouts.sampler(),
+                entries: &[wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::Sampler(&nearest_sampler),
+                }],
+            });
 
-        let text_cache = TextCache::new(wgpu.clone(), texture_bind_group_layout.clone());
+        let linear_sampler = wgpu.device().create_sampler(&wgpu::SamplerDescriptor {
+            min_filter: wgpu::FilterMode::Linear,
+            mag_filter: wgpu::FilterMode::Linear,
+            ..Default::default()
+        });
+
+        let linear_sampler_bind_group =
+            wgpu.device().create_bind_group(&wgpu::BindGroupDescriptor {
+                label: Some("linear_sampler_bind_group"),
+                layout: bind_group_layouts.sampler(),
+                entries: &[wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::Sampler(&linear_sampler),
+                }],
+            });
+
+        let projection_bind_group_allocator =
+            ProjectionBindGroupAllocator::new(bind_group_layouts.clone());
+
+        let shape_renderer =
+            ShapeRenderer::new(&wgpu, &bind_group_layouts, surface_config.format, 1);
+
+        let sprite_renderer =
+            SpriteRenderer::new(&wgpu, &bind_group_layouts, surface_config.format, 1);
+
+        let text_renderer =
+            TextRenderer::new(&wgpu, bind_group_layouts.clone(), surface_config.format, 1);
 
         Ok(Self {
             wgpu,
+            bind_group_layouts,
             surface,
             surface_config,
             window,
-            camera_manager,
-            texture_bind_group_layout,
+            nearest_sampler_bind_group,
+            linear_sampler_bind_group,
+            projection_bind_group_allocator,
             shape_renderer,
             sprite_renderer,
-            text_cache,
+            text_renderer,
         })
     }
 

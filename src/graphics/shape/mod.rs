@@ -4,7 +4,7 @@ mod shape;
 pub use self::drawable_shape::*;
 pub use self::shape::*;
 
-use crate::graphics::{vertex_attr_array, WgpuContext};
+use crate::graphics::{vertex_attr_array, SharedBindGroupLayouts, WgpuContext};
 use bytemuck::{Pod, Zeroable};
 use glam::{Vec2, Vec4};
 use std::mem;
@@ -42,7 +42,6 @@ pub struct ShapeBatch {
 
 #[derive(Debug)]
 pub struct ShapeRenderer {
-    wgpu: WgpuContext,
     pipeline: wgpu::RenderPipeline,
     instances: Vec<ShapeInstance>,
     instance_buffer: Option<wgpu::Buffer>,
@@ -50,8 +49,8 @@ pub struct ShapeRenderer {
 
 impl ShapeRenderer {
     pub fn new(
-        wgpu: WgpuContext,
-        projection_bind_group_layout: &wgpu::BindGroupLayout,
+        wgpu: &WgpuContext,
+        bind_group_layouts: &SharedBindGroupLayouts,
         texture_format: wgpu::TextureFormat,
         sample_count: u32,
     ) -> Self {
@@ -59,7 +58,7 @@ impl ShapeRenderer {
 
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("shape_pipeline_layout"),
-            bind_group_layouts: &[projection_bind_group_layout],
+            bind_group_layouts: &[bind_group_layouts.projection()],
             push_constant_ranges: &[],
         });
 
@@ -77,7 +76,6 @@ impl ShapeRenderer {
         );
 
         Self {
-            wgpu,
             pipeline,
             instances: Vec::new(),
             instance_buffer: None,
@@ -155,7 +153,7 @@ impl ShapeRenderer {
         self.instances.push(instance);
     }
 
-    pub fn end(&mut self) {
+    pub fn end(&mut self, wgpu: &WgpuContext) {
         if self.instances.is_empty() {
             return;
         }
@@ -165,14 +163,14 @@ impl ShapeRenderer {
 
         match self.instance_buffer.as_ref() {
             Some(instance_buffer) if instances_size <= instance_buffer.size() => {
-                self.wgpu.queue().write_buffer(
+                wgpu.queue().write_buffer(
                     instance_buffer,
                     0,
                     bytemuck::cast_slice(&self.instances),
                 );
             }
             _ => {
-                self.instance_buffer = Some(self.wgpu.device().create_buffer_init(
+                self.instance_buffer = Some(wgpu.device().create_buffer_init(
                     &wgpu::util::BufferInitDescriptor {
                         label: Some("shape_instance_buffer"),
                         contents: bytemuck::cast_slice(&self.instances),
