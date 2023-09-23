@@ -71,6 +71,14 @@ impl<'a> Text<'a> {
         self
     }
 
+    pub fn relative_anchor<A>(mut self, relative_anchor: A) -> Self
+    where
+        A: Into<Vec2>,
+    {
+        self.anchor_offset = self.bounds * relative_anchor.into();
+        self
+    }
+
     pub fn h_align(mut self, h_align: HorizontalAlign) -> Self {
         self.h_align = h_align;
         self

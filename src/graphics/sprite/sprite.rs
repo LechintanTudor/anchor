@@ -67,6 +67,19 @@ impl<'a> Sprite<'a> {
         self
     }
 
+    pub fn anchor_center(mut self) -> Self {
+        self.anchor_offset = self.size() * 0.5;
+        self
+    }
+
+    pub fn relative_anchor<A>(mut self, relative_anchor: A) -> Self
+    where
+        A: Into<Vec2>,
+    {
+        self.anchor_offset = self.size() * relative_anchor.into();
+        self
+    }
+
     pub fn flip_x(mut self, flip_x: bool) -> Self {
         self.flip_x = flip_x;
         self
@@ -77,7 +90,7 @@ impl<'a> Sprite<'a> {
         self
     }
 
-    pub fn size(&self) -> Vec2 {
+    fn size(&self) -> Vec2 {
         self.custom_size
             .unwrap_or_else(|| self.texture.size().as_vec2())
     }

@@ -2,6 +2,7 @@ pub mod shape;
 pub mod sprite;
 pub mod text;
 
+mod anchor;
 mod bounds;
 mod camera;
 mod camera_manager;
@@ -13,6 +14,7 @@ mod transform;
 mod utils;
 mod wgpu_context;
 
+pub use self::anchor::*;
 pub use self::bounds::*;
 pub use self::camera::*;
 pub use self::camera_manager::*;

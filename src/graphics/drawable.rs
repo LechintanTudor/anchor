@@ -44,11 +44,11 @@ macro_rules! impl_drawable_methods {
                 self
             }
 
-            pub fn anchor_offset<O>(mut self, offset: O) -> Self
+            pub fn pixel_anchor<A>(mut self, pixel_anchor: A) -> Self
             where
-                O: Into<Vec2>,
+                A: Into<Vec2>,
             {
-                self.anchor_offset = offset.into();
+                self.anchor_offset = pixel_anchor.into();
                 self
             }
 
