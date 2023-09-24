@@ -2,25 +2,25 @@ pub mod shape;
 pub mod sprite;
 pub mod text;
 
-mod anchor;
 mod bounds;
 mod camera;
 mod camera_manager;
 mod canvas;
 mod color;
 mod drawable;
+mod relative_anchor;
 mod shared_bind_group_layouts;
 mod transform;
 mod utils;
 mod wgpu_context;
 
-pub use self::anchor::*;
 pub use self::bounds::*;
 pub use self::camera::*;
 pub use self::camera_manager::*;
 pub use self::canvas::*;
 pub use self::color::*;
 pub use self::drawable::*;
+pub use self::relative_anchor::*;
 pub use self::shared_bind_group_layouts::*;
 pub use self::transform::*;
 pub use self::wgpu_context::*;

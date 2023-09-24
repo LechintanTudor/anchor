@@ -54,14 +54,14 @@ impl<'a> Sprite<'a> {
     where
         B: Into<Bounds>,
     {
-        let sprite_size = self.size();
+        let texture_size = self.texture.size().as_vec2();
         let pixel_uv_bounds = pixel_uv_bounds.into();
 
         self.uv_bounds = Bounds::new(
-            pixel_uv_bounds.x / sprite_size.x,
-            pixel_uv_bounds.y / sprite_size.y,
-            pixel_uv_bounds.w / sprite_size.x,
-            pixel_uv_bounds.h / sprite_size.y,
+            pixel_uv_bounds.x / texture_size.x,
+            pixel_uv_bounds.y / texture_size.y,
+            pixel_uv_bounds.w / texture_size.x,
+            pixel_uv_bounds.h / texture_size.y,
         );
 
         self
