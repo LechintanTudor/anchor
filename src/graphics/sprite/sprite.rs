@@ -2,7 +2,7 @@ use crate::graphics::sprite::{SpriteInstance, Texture};
 use crate::graphics::{
     impl_drawable_methods, AsDrawable, Bounds, Canvas, Color, Drawable, Transform,
 };
-use glam::Vec2;
+use glam::{Vec2, Vec4};
 
 #[derive(Clone, Debug)]
 pub struct Sprite<'a> {
@@ -98,13 +98,25 @@ impl<'a> Sprite<'a> {
     pub fn to_sprite_instance(&self) -> SpriteInstance {
         let affine2 = self.transform.to_affine2();
 
+        let (left, right) = if self.flip_x {
+            (self.uv_bounds.x + self.uv_bounds.w, self.uv_bounds.x)
+        } else {
+            (self.uv_bounds.x, self.uv_bounds.x + self.uv_bounds.w)
+        };
+
+        let (top, bottom) = if self.flip_y {
+            (self.uv_bounds.y + self.uv_bounds.h, self.uv_bounds.y)
+        } else {
+            (self.uv_bounds.y, self.uv_bounds.y + self.uv_bounds.h)
+        };
+
         SpriteInstance {
             size: self.size(),
             scale_rotation_x_axis: affine2.matrix2.x_axis,
             scale_rotation_y_axis: affine2.matrix2.y_axis,
             translation: affine2.translation,
             anchor_offset: self.anchor_offset,
-            uv_edges: self.uv_bounds.to_edges_vec4(),
+            uv_edges: Vec4::new(top, left, bottom, right),
             linear_color: self.color.to_linear_vec4(),
             ..Default::default()
         }

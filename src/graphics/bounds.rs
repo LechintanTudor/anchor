@@ -1,6 +1,7 @@
-use glam::{Vec2, Vec4};
+use glam::Vec2;
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Copy, Default, Debug)]
+#[derive(Clone, Copy, Default, Debug, Deserialize, Serialize)]
 pub struct Bounds {
     pub x: f32,
     pub y: f32,
@@ -19,10 +20,6 @@ impl Bounds {
 
     pub const fn size(&self) -> Vec2 {
         Vec2::new(self.w, self.h)
-    }
-
-    pub fn to_edges_vec4(&self) -> Vec4 {
-        Vec4::new(self.y, self.x, self.y + self.h, self.x + self.w)
     }
 }
 
