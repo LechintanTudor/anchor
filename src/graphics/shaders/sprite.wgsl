@@ -4,8 +4,9 @@ struct VertexInput {
     @location(2) scale_rotation_y_axis: vec2<f32>,
     @location(3) translation: vec2<f32>,
     @location(4) anchor_offset: vec2<f32>,
-    @location(5) uv_edges: vec4<f32>,
-    @location(6) linear_color: vec4<f32>,
+    @location(5) texture_size: vec2<f32>,
+    @location(6) uv_edges: vec4<f32>,
+    @location(7) linear_color: vec4<f32>,
 }
 
 struct VertexOutput {
@@ -14,11 +15,11 @@ struct VertexOutput {
     @location(1) linear_color: vec4<f32>,
 }
 
-var<private> EDGE_INDEXES: array<array<u32, 2>, 4> = array<array<u32, 2>, 4>(
-    array<u32, 2>(1u, 0u), // left, top
-    array<u32, 2>(1u, 2u), // left, bottom
-    array<u32, 2>(3u, 0u), // right, top
-    array<u32, 2>(3u, 2u), // right, bottom
+var<private> EDGE_INDEXES: array<vec2<u32>, 4> = array<vec2<u32>, 4>(
+    vec2<u32>(1u, 0u), // left, top
+    vec2<u32>(1u, 2u), // left, bottom
+    vec2<u32>(3u, 0u), // right, top
+    vec2<u32>(3u, 2u), // right, bottom
 );
 
 var<private> CORNERS: array<vec2<f32>, 4> = array<vec2<f32>, 4>(
@@ -53,8 +54,8 @@ fn vs_main(@builtin(vertex_index) i: u32, input: VertexInput) -> VertexOutput {
     let uv_indexes = EDGE_INDEXES[i];
 
     let uv_coords = vec2<f32>(
-        input.uv_edges[uv_indexes[0]],
-        input.uv_edges[uv_indexes[1]],
+        input.uv_edges[uv_indexes.x] / input.texture_size.x,
+        input.uv_edges[uv_indexes.y] / input.texture_size.y,
     );
 
     return VertexOutput(clip_position, uv_coords, input.linear_color);

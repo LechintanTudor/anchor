@@ -21,11 +21,13 @@ impl_drawable_methods!(Sprite<'_>);
 
 impl<'a> Sprite<'a> {
     pub fn new(texture: &'a Texture) -> Self {
+        let texture_size = texture.size().as_vec2();
+
         Self {
             texture,
             smooth: false,
             custom_size: None,
-            uv_bounds: Bounds::new(0.0, 0.0, 1.0, 1.0),
+            uv_bounds: Bounds::new(0.0, 0.0, texture_size.x, texture_size.y),
             flip_x: false,
             flip_y: false,
             transform: Transform::IDENTITY,
@@ -47,23 +49,6 @@ impl<'a> Sprite<'a> {
         B: Into<Bounds>,
     {
         self.uv_bounds = uv_bounds.into();
-        self
-    }
-
-    pub fn pixel_uv_bounds<B>(mut self, pixel_uv_bounds: B) -> Self
-    where
-        B: Into<Bounds>,
-    {
-        let texture_size = self.texture.size().as_vec2();
-        let pixel_uv_bounds = pixel_uv_bounds.into();
-
-        self.uv_bounds = Bounds::new(
-            pixel_uv_bounds.x / texture_size.x,
-            pixel_uv_bounds.y / texture_size.y,
-            pixel_uv_bounds.w / texture_size.x,
-            pixel_uv_bounds.h / texture_size.y,
-        );
-
         self
     }
 
@@ -91,8 +76,7 @@ impl<'a> Sprite<'a> {
     }
 
     fn size(&self) -> Vec2 {
-        self.custom_size
-            .unwrap_or_else(|| self.texture.size().as_vec2())
+        self.custom_size.unwrap_or_else(|| self.uv_bounds.size())
     }
 
     pub fn to_sprite_instance(&self) -> SpriteInstance {
@@ -116,9 +100,9 @@ impl<'a> Sprite<'a> {
             scale_rotation_y_axis: affine2.matrix2.y_axis,
             translation: affine2.translation,
             anchor_offset: self.anchor_offset,
+            texture_size: self.texture.size().as_vec2(),
             uv_edges: Vec4::new(top, left, bottom, right),
             linear_color: self.color.to_linear_vec4(),
-            ..Default::default()
         }
     }
 }
