@@ -1,6 +1,7 @@
 use crate::game::GameResult;
 use anyhow::Context;
-use glyph_brush::ab_glyph::{self, CodepointIdIter, FontVec, GlyphId, GlyphImage, Outline};
+use glyph_brush::ab_glyph::v2::GlyphImage;
+use glyph_brush::ab_glyph::{self, CodepointIdIter, FontVec, GlyphId, Outline};
 use std::cmp::{Eq, PartialEq};
 use std::path::Path;
 use std::sync::Arc;
@@ -113,7 +114,7 @@ impl ab_glyph::Font for Font {
     }
 
     #[inline]
-    fn glyph_raster_image(&self, id: GlyphId, size: u16) -> Option<GlyphImage> {
-        self.0.glyph_raster_image(id, size)
+    fn glyph_raster_image2(&self, id: GlyphId, pixel_size: u16) -> Option<GlyphImage> {
+        self.0.glyph_raster_image2(id, pixel_size)
     }
 }
