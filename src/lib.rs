@@ -5,7 +5,7 @@ pub mod game;
 pub mod graphics;
 pub mod time;
 
-pub use {glam, wgpu, winit};
+pub use {anyhow, glam, wgpu, winit};
 
 use crate::game::{Config, Context, Game, GameBuilder, GameResult, ShouldExit};
 use crate::time::GamePhase;
