@@ -1,7 +1,7 @@
 use crate::graphics::shape::{Shape, ShapeBatch, ShapeInstance};
 use crate::graphics::sprite::{SpriteBatch, SpriteInstance, Texture};
 use crate::graphics::text::Text;
-use crate::graphics::{Bounds, Color, Drawable, GraphicsContext};
+use crate::graphics::{Bounds, Color, Drawable, GraphicsContext, WgpuContext};
 use glam::Mat4;
 use std::ops::Range;
 
@@ -241,5 +241,17 @@ impl<'a> Canvas<'a> {
 
         self.graphics.wgpu.queue().submit(Some(encoder.finish()));
         self.surface_texture.present();
+    }
+}
+
+impl AsRef<GraphicsContext> for Canvas<'_> {
+    fn as_ref(&self) -> &GraphicsContext {
+        self.graphics
+    }
+}
+
+impl AsRef<WgpuContext> for Canvas<'_> {
+    fn as_ref(&self) -> &WgpuContext {
+        &self.graphics.wgpu
     }
 }

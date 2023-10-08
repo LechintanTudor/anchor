@@ -42,7 +42,7 @@ struct ShapeData {
 pub struct Shape(Arc<ShapeData>);
 
 impl Shape {
-    pub fn new<W>(wgpu: &W, vertexes: &[ShapeVertex], indexes: &[u16]) -> Self
+    pub fn new<W>(wgpu: W, vertexes: &[ShapeVertex], indexes: &[u16]) -> Self
     where
         W: AsRef<WgpuContext>,
     {

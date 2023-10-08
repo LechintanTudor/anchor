@@ -55,6 +55,23 @@ impl Color {
         }
     }
 
+    pub const fn as_array(&self) -> [f32; 4] {
+        [self.r, self.g, self.b, self.a]
+    }
+
+    pub const fn as_vec4(&self) -> Vec4 {
+        Vec4::new(self.r, self.g, self.b, self.a)
+    }
+
+    pub fn to_linear_array(&self) -> [f32; 4] {
+        [
+            srgb_to_linear(self.r),
+            srgb_to_linear(self.g),
+            srgb_to_linear(self.b),
+            self.a,
+        ]
+    }
+
     pub fn to_linear_vec4(&self) -> Vec4 {
         Vec4::new(
             srgb_to_linear(self.r),

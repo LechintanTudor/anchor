@@ -1,8 +1,14 @@
 mod drawable_shape;
 mod shape;
 
+#[cfg(feature = "shape-builder")]
+mod shape_builder;
+
 pub use self::drawable_shape::*;
 pub use self::shape::*;
+
+#[cfg(feature = "shape-builder")]
+pub use self::shape_builder::*;
 
 use crate::graphics::{vertex_attr_array, SharedBindGroupLayouts, WgpuContext};
 use bytemuck::{Pod, Zeroable};
