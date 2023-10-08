@@ -21,6 +21,14 @@ impl Bounds {
     pub const fn size(&self) -> Vec2 {
         Vec2::new(self.w, self.h)
     }
+
+    pub fn top_left(&self) -> Vec2 {
+        Vec2::new(self.x, self.y)
+    }
+
+    pub fn bottom_right(&self) -> Vec2 {
+        Vec2::new(self.x + self.w, self.y + self.h)
+    }
 }
 
 impl From<[f32; 4]> for Bounds {
