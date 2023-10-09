@@ -45,6 +45,7 @@ pub struct GraphicsContext {
     // Surface
     surface: wgpu::Surface,
     surface_config: wgpu::SurfaceConfiguration,
+    surface_texture: Option<wgpu::SurfaceTexture>,
     window: Window,
 
     // Bind groups
@@ -180,6 +181,7 @@ impl GraphicsContext {
             bind_group_layouts,
             surface,
             surface_config,
+            surface_texture: None,
             window,
             nearest_sampler_bind_group,
             linear_sampler_bind_group,
@@ -230,14 +232,17 @@ impl GraphicsContext {
         ))
     }
 
-    pub fn get_surface_texture(&self) -> Option<wgpu::SurfaceTexture> {
+    pub fn update_surface_texture(&mut self) -> bool {
         match self.surface.get_current_texture() {
-            Ok(texture) => Some(texture),
+            Ok(surface_texture) => {
+                self.surface_texture = Some(surface_texture);
+                true
+            }
             Err(wgpu::SurfaceError::Lost) => {
                 self.configure_surface();
-                None
+                false
             }
-            _ => None,
+            _ => false,
         }
     }
 

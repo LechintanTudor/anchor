@@ -78,10 +78,12 @@ where
                         game.on_cursor_move(ctx, position);
                     }
                     WindowEvent::RedrawRequested => {
-                        ctx.time.phase = GamePhase::Draw;
-                        if let Err(error) = game.draw(ctx) {
-                            if game.handle_error(ctx, error).should_exit() {
-                                event_loop.exit();
+                        if ctx.graphics.update_surface_texture() {
+                            ctx.time.phase = GamePhase::Draw;
+                            if let Err(error) = game.draw(ctx) {
+                                if game.handle_error(ctx, error).should_exit() {
+                                    event_loop.exit();
+                                }
                             }
                         }
                     }

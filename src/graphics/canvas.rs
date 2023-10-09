@@ -33,7 +33,7 @@ impl<'a> Canvas<'a> {
         graphics.sprite_renderer.begin();
         graphics.text_renderer.begin();
 
-        let surface_texture = graphics.get_surface_texture().unwrap();
+        let surface_texture = graphics.surface_texture.take().unwrap();
         let projection = graphics.default_camera().ortho_matrix();
 
         Self {
