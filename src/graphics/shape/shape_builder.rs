@@ -3,7 +3,7 @@ use crate::graphics::{Bounds, Color, WgpuContext};
 use glam::Vec2;
 use lyon::geom::Box2D;
 use lyon::math::{Angle, Point, Vector};
-use lyon::path::builder::BorderRadii;
+use lyon::path::builder::BorderRadii as LyonBorderRadii;
 use lyon::path::path::BuilderWithAttributes;
 use lyon::path::traits::PathBuilder as _;
 use lyon::path::{Path, Winding};
@@ -12,13 +12,44 @@ use std::mem;
 
 type PathBuilder = BuilderWithAttributes;
 
-impl Shape {
-    #[inline]
-    pub fn builder() -> ShapeBuilder {
-        ShapeBuilder::default()
+#[derive(Clone, Copy, Default, Debug)]
+pub struct BorderRadii {
+    pub top_left: f32,
+    pub bottom_left: f32,
+    pub bottom_right: f32,
+    pub top_right: f32,
+}
+
+impl From<f32> for BorderRadii {
+    fn from(value: f32) -> Self {
+        Self {
+            top_left: value,
+            bottom_left: value,
+            bottom_right: value,
+            top_right: value,
+        }
     }
 }
 
+impl From<[f32; 4]> for BorderRadii {
+    fn from(values: [f32; 4]) -> Self {
+        Self {
+            top_left: values[0],
+            bottom_left: values[1],
+            bottom_right: values[2],
+            top_right: values[3],
+        }
+    }
+}
+
+impl Shape {
+    #[inline]
+    pub fn builder() -> ShapeBuilder {
+        Default::default()
+    }
+}
+
+#[derive(Clone)]
 pub struct ShapeBuilder {
     path_builder: PathBuilder,
     active_color: Color,
@@ -73,9 +104,10 @@ impl ShapeBuilder {
         self
     }
 
-    pub fn rounded_rect<B>(&mut self, bounds: B, radii: [f32; 4]) -> &mut Self
+    pub fn rounded_rect<B, R>(&mut self, bounds: B, radii: R) -> &mut Self
     where
         B: Into<Bounds>,
+        R: Into<BorderRadii>,
     {
         let bounds = bounds.into();
         let bounds = Box2D {
@@ -83,11 +115,12 @@ impl ShapeBuilder {
             max: convert_point(bounds.bottom_right()),
         };
 
-        let radii = BorderRadii {
-            top_left: radii[0],
-            bottom_left: radii[1],
-            bottom_right: radii[2],
-            top_right: radii[3],
+        let radii = radii.into();
+        let radii = LyonBorderRadii {
+            top_left: radii.top_left,
+            bottom_left: radii.bottom_left,
+            bottom_right: radii.bottom_right,
+            top_right: radii.top_right,
         };
 
         self.path_builder.add_rounded_rectangle(

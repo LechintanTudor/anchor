@@ -31,5 +31,5 @@ lyon = { version = "1.0", optional = true }
 
 [dependencies.winit]
 git = "https://github.com/rust-windowing/winit"
-rev = "f5dd1c008ceb13309d98eb1333b56bc92f973ace"
+rev = "fac6110cb6bf960b7e32e97b0480fbb21d2a49f9"
 features = ["serde"]
