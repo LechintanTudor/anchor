@@ -25,11 +25,7 @@ pollster = "0.3"
 rustc-hash = "1.1"
 serde = { version = "1.0", features = ["derive"] }
 wgpu = "0.17"
+winit = { version = "0.29", features = ["rwh_05"] }
 
 # Optional dependencies
 lyon = { version = "1.0", optional = true }
-
-[dependencies.winit]
-git = "https://github.com/rust-windowing/winit"
-rev = "fac6110cb6bf960b7e32e97b0480fbb21d2a49f9"
-features = ["serde"]
