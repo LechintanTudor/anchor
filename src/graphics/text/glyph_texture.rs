@@ -35,6 +35,7 @@ impl GlyphTexture {
                 usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
                 view_formats: &[],
             },
+            wgpu::util::TextureDataOrder::default(),
             &vec![0; (size.x * size.y) as _],
         );
 

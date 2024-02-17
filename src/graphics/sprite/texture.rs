@@ -49,6 +49,7 @@ impl Texture {
                     usage: wgpu::TextureUsages::TEXTURE_BINDING,
                     view_formats: &[],
                 },
+                wgpu::util::TextureDataOrder::default(),
                 &image,
             )
             .create_view(&Default::default());

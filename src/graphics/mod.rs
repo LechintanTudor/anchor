@@ -33,6 +33,7 @@ use crate::graphics::sprite::SpriteRenderer;
 use crate::graphics::text::TextRenderer;
 use anyhow::anyhow;
 use glam::{UVec2, Vec2};
+use std::sync::Arc;
 use winit::dpi::PhysicalSize;
 use winit::event_loop::EventLoopWindowTarget;
 use winit::window::{Window, WindowBuilder};
@@ -43,10 +44,10 @@ pub struct GraphicsContext {
     pub bind_group_layouts: SharedBindGroupLayouts,
 
     // Surface
-    surface: wgpu::Surface,
+    surface: wgpu::Surface<'static>,
     surface_config: wgpu::SurfaceConfiguration,
     surface_texture: Option<wgpu::SurfaceTexture>,
-    window: Window,
+    window: Arc<Window>,
 
     // Bind groups
     nearest_sampler_bind_group: wgpu::BindGroup,
@@ -71,14 +72,15 @@ impl GraphicsContext {
         let window = WindowBuilder::new()
             .with_title(&config.window_title)
             .with_inner_size(PhysicalSize::<u32>::from(config.window_size))
-            .build(event_loop)?;
+            .build(event_loop)
+            .map(Arc::new)?;
 
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
             backends: wgpu::Backends::PRIMARY,
             ..Default::default()
         });
 
-        let surface = unsafe { instance.create_surface(&window)? };
+        let surface = instance.create_surface(window.clone())?;
 
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
@@ -120,11 +122,12 @@ impl GraphicsContext {
         let surface_config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
             format: surface_format,
-            view_formats: vec![],
             width: window_size.width,
             height: window_size.height,
             present_mode,
+            desired_maximum_frame_latency: 2,
             alpha_mode: wgpu::CompositeAlphaMode::Auto,
+            view_formats: vec![],
         };
 
         surface.configure(&device, &surface_config);
