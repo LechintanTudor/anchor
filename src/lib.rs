@@ -13,13 +13,14 @@ use glam::{DVec2, UVec2};
 use std::thread;
 use winit::application::ApplicationHandler;
 use winit::event::{StartCause, WindowEvent};
-use winit::event_loop::{ActiveEventLoop, EventLoop};
+use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
 
 pub fn run<G>(builder: G, config: Config) -> GameResult
 where
     G: GameBuilder,
 {
     let event_loop = EventLoop::new()?;
+    event_loop.set_control_flow(ControlFlow::Poll);
     event_loop.run_app(&mut App::Initial((Some(builder), config)))?;
     Ok(())
 }
