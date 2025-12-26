@@ -15,7 +15,7 @@ impl Font {
         Ok(Self(Arc::new(font_vec)))
     }
 
-    pub fn from_file<P>(path: P) -> GameResult<Font>
+    pub fn from_file<P>(path: P) -> GameResult<Self>
     where
         P: AsRef<Path>,
     {
@@ -26,7 +26,7 @@ impl Font {
             let font_vec = ab_glyph::FontVec::try_from_vec(data)
                 .with_context(|| format!("Failed to parse font file '{}'", path.display()))?;
 
-            Ok(Self(Arc::new(font_vec)))
+            Ok(Font(Arc::new(font_vec)))
         }
 
         inner(path.as_ref())
@@ -114,7 +114,7 @@ impl ab_glyph::Font for Font {
     }
 
     #[inline]
-    fn glyph_raster_image2(&self, id: GlyphId, pixel_size: u16) -> Option<GlyphImage> {
+    fn glyph_raster_image2(&self, id: GlyphId, pixel_size: u16) -> Option<GlyphImage<'_>> {
         self.0.glyph_raster_image2(id, pixel_size)
     }
 }

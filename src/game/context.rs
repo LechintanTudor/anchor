@@ -1,7 +1,7 @@
 use crate::game::{Config, GameResult};
 use crate::graphics::{GraphicsContext, WgpuContext};
 use crate::time::TimeContext;
-use winit::event_loop::EventLoopWindowTarget;
+use winit::event_loop::ActiveEventLoop;
 
 #[derive(Debug)]
 pub struct Context {
@@ -10,7 +10,7 @@ pub struct Context {
 }
 
 impl Context {
-    pub fn new(event_loop: &EventLoopWindowTarget<()>, config: &Config) -> GameResult<Self> {
+    pub fn new(event_loop: &ActiveEventLoop, config: &Config) -> GameResult<Self> {
         Ok(Self {
             time: TimeContext::new(config),
             graphics: GraphicsContext::new(event_loop, config)?,

@@ -65,7 +65,7 @@ impl ShapeRenderer {
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("shape_pipeline_layout"),
             bind_group_layouts: &[bind_group_layouts.projection()],
-            push_constant_ranges: &[],
+            immediate_size: 0,
         });
 
         let shader_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
@@ -121,7 +121,8 @@ impl ShapeRenderer {
                     },
                 ],
                 module: shader_module,
-                entry_point: "vs_main",
+                entry_point: Some("vs_main"),
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
             },
             primitive: wgpu::PrimitiveState {
                 topology: wgpu::PrimitiveTopology::TriangleList,
@@ -140,14 +141,16 @@ impl ShapeRenderer {
             },
             fragment: Some(wgpu::FragmentState {
                 module: shader_module,
-                entry_point: "fs_main",
+                entry_point: Some("fs_main"),
                 targets: &[Some(wgpu::ColorTargetState {
                     format: texture_format,
                     blend: Some(wgpu::BlendState::ALPHA_BLENDING),
                     write_mask: wgpu::ColorWrites::ALL,
                 })],
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
             }),
-            multiview: None,
+            multiview_mask: None,
+            cache: None,
         })
     }
 

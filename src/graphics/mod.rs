@@ -31,12 +31,12 @@ use crate::game::{Config, GameResult};
 use crate::graphics::shape::ShapeRenderer;
 use crate::graphics::sprite::SpriteRenderer;
 use crate::graphics::text::TextRenderer;
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use glam::{UVec2, Vec2};
 use std::sync::Arc;
 use winit::dpi::PhysicalSize;
-use winit::event_loop::EventLoopWindowTarget;
-use winit::window::{Window, WindowBuilder};
+use winit::event_loop::ActiveEventLoop;
+use winit::window::Window;
 
 #[derive(Debug)]
 pub struct GraphicsContext {
@@ -61,21 +61,18 @@ pub struct GraphicsContext {
 }
 
 impl GraphicsContext {
-    pub fn new(event_loop: &EventLoopWindowTarget<()>, config: &Config) -> GameResult<Self> {
+    pub fn new(event_loop: &ActiveEventLoop, config: &Config) -> GameResult<Self> {
         pollster::block_on(Self::new_async(event_loop, config))
     }
 
-    async fn new_async(
-        event_loop: &EventLoopWindowTarget<()>,
-        config: &Config,
-    ) -> GameResult<Self> {
-        let window = WindowBuilder::new()
+    async fn new_async(event_loop: &ActiveEventLoop, config: &Config) -> GameResult<Self> {
+        let window_attributes = Window::default_attributes()
             .with_title(&config.window_title)
-            .with_inner_size(PhysicalSize::<u32>::from(config.window_size))
-            .build(event_loop)
-            .map(Arc::new)?;
+            .with_inner_size(PhysicalSize::<u32>::from(config.window_size));
 
-        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+        let window = event_loop.create_window(window_attributes).map(Arc::new)?;
+
+        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
             backends: wgpu::Backends::PRIMARY,
             ..Default::default()
         });
@@ -89,16 +86,13 @@ impl GraphicsContext {
                 compatible_surface: Some(&surface),
             })
             .await
-            .ok_or_else(|| anyhow!("No suitable graphics adapter found"))?;
+            .context("No suitable graphics adapter found")?;
 
         let (device, queue) = adapter
-            .request_device(
-                &wgpu::DeviceDescriptor {
-                    label: Some("graphics_context_device"),
-                    ..Default::default()
-                },
-                None,
-            )
+            .request_device(&wgpu::DeviceDescriptor {
+                label: Some("graphics_context_device"),
+                ..Default::default()
+            })
             .await?;
 
         let surface_capabilities = surface.get_capabilities(&adapter);

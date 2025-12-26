@@ -41,7 +41,7 @@ impl SpriteRenderer {
                 bind_group_layouts.texture(),
                 bind_group_layouts.sampler(),
             ],
-            push_constant_ranges: &[],
+            immediate_size: 0,
         });
 
         let shader_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
@@ -76,7 +76,7 @@ impl SpriteRenderer {
             layout: Some(pipeline_layout),
             vertex: wgpu::VertexState {
                 module: shader_module,
-                entry_point: "vs_main",
+                entry_point: Some("vs_main"),
                 buffers: &[wgpu::VertexBufferLayout {
                     array_stride: mem::size_of::<SpriteInstance>() as _,
                     step_mode: wgpu::VertexStepMode::Instance,
@@ -91,6 +91,7 @@ impl SpriteRenderer {
                         7 => linear_color: Float32x4,
                     }),
                 }],
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
             },
             primitive: wgpu::PrimitiveState {
                 topology: wgpu::PrimitiveTopology::TriangleStrip,
@@ -109,14 +110,16 @@ impl SpriteRenderer {
             },
             fragment: Some(wgpu::FragmentState {
                 module: shader_module,
-                entry_point: "fs_main",
+                entry_point: Some("fs_main"),
                 targets: &[Some(wgpu::ColorTargetState {
                     format: texture_format,
                     blend: Some(wgpu::BlendState::ALPHA_BLENDING),
                     write_mask: wgpu::ColorWrites::ALL,
                 })],
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
             }),
-            multiview: None,
+            multiview_mask: None,
+            cache: None,
         })
     }
 
