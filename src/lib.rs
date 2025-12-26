@@ -24,6 +24,7 @@ where
     Ok(())
 }
 
+#[allow(clippy::large_enum_variant)]
 enum App<G>
 where
     G: GameBuilder,
@@ -45,7 +46,7 @@ where
             return;
         };
 
-        let mut ctx = match Context::new(event_loop, &config) {
+        let mut ctx = match Context::new(event_loop, config) {
             Ok(ctx) => ctx,
             Err(e) => {
                 eprintln!("Failed to build context: {e}");

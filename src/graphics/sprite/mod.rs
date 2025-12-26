@@ -6,7 +6,7 @@ pub use self::sprite::*;
 pub use self::sprite_instance::*;
 pub use self::texture::*;
 
-use crate::graphics::{vertex_attr_array, SharedBindGroupLayouts, WgpuContext};
+use crate::graphics::{SharedBindGroupLayouts, WgpuContext, vertex_attr_array};
 use std::mem;
 use std::ops::Range;
 use wgpu::util::DeviceExt;
@@ -26,6 +26,7 @@ pub struct SpriteRenderer {
 }
 
 impl SpriteRenderer {
+    #[must_use]
     pub fn new(
         wgpu: &WgpuContext,
         bind_group_layouts: &SharedBindGroupLayouts,
@@ -159,10 +160,12 @@ impl SpriteRenderer {
         }
     }
 
+    #[must_use]
     pub fn instance_count(&self) -> u32 {
         self.instances.len() as _
     }
 
+    #[must_use]
     pub fn next_batch(&self, texture: Texture, smooth: bool) -> SpriteBatch {
         let instance_count = self.instances.len() as u32;
 

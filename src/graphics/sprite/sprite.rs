@@ -1,9 +1,10 @@
 use crate::graphics::sprite::{SpriteInstance, Texture};
 use crate::graphics::{
-    impl_drawable_methods, AsDrawable, Bounds, Canvas, Color, Drawable, Transform,
+    AsDrawable, Bounds, Canvas, Color, Drawable, Transform, impl_drawable_methods,
 };
 use glam::{Vec2, Vec4};
 
+#[must_use]
 #[derive(Clone, Debug)]
 pub struct Sprite<'a> {
     pub texture: &'a Texture,
@@ -75,10 +76,12 @@ impl<'a> Sprite<'a> {
         self
     }
 
+    #[must_use]
     fn size(&self) -> Vec2 {
         self.custom_size.unwrap_or_else(|| self.uv_bounds.size())
     }
 
+    #[must_use]
     pub fn to_sprite_instance(&self) -> SpriteInstance {
         let affine2 = self.transform.to_affine2();
 

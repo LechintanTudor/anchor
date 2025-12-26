@@ -14,6 +14,7 @@ impl Transform {
         scale: Vec2::ONE,
     };
 
+    #[must_use]
     pub fn from_translation(translation: Vec2) -> Self {
         Self {
             translation,
@@ -21,10 +22,12 @@ impl Transform {
         }
     }
 
+    #[must_use]
     pub fn to_affine2(&self) -> Affine2 {
         Affine2::from_scale_angle_translation(self.scale, self.rotation, self.translation)
     }
 
+    #[must_use]
     pub fn to_mat4(&self) -> Mat4 {
         let translation = Vec3::new(self.translation.x, self.translation.y, 0.0);
         let rotation = Quat::from_rotation_z(self.rotation);
@@ -32,6 +35,7 @@ impl Transform {
         Mat4::from_scale_rotation_translation(scale, rotation, translation)
     }
 
+    #[must_use]
     pub fn lerp(&self, other: &Transform, alpha: f32) -> Transform {
         Transform {
             translation: self.translation.lerp(other.translation, alpha),

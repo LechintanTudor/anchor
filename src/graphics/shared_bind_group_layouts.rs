@@ -59,21 +59,25 @@ impl SharedBindGroupLayoutsData {
 pub struct SharedBindGroupLayouts(Arc<SharedBindGroupLayoutsData>);
 
 impl SharedBindGroupLayouts {
+    #[must_use]
     pub fn new(device: &wgpu::Device) -> Self {
         Self(Arc::new(SharedBindGroupLayoutsData::new(device)))
     }
 
     #[inline]
+    #[must_use]
     pub fn projection(&self) -> &wgpu::BindGroupLayout {
         &self.0.projection
     }
 
     #[inline]
+    #[must_use]
     pub fn texture(&self) -> &wgpu::BindGroupLayout {
         &self.0.texture
     }
 
     #[inline]
+    #[must_use]
     pub fn sampler(&self) -> &wgpu::BindGroupLayout {
         &self.0.sampler
     }

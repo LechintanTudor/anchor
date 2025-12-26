@@ -8,6 +8,7 @@ pub struct Camera {
 }
 
 impl Camera {
+    #[must_use]
     pub fn from_size<S>(size: S) -> Self
     where
         S: Into<Vec2>,
@@ -18,6 +19,7 @@ impl Camera {
         }
     }
 
+    #[must_use]
     pub fn anchor_offset<O>(mut self, offset: O) -> Self
     where
         O: Into<Vec2>,
@@ -26,11 +28,13 @@ impl Camera {
         self
     }
 
+    #[must_use]
     pub fn anchor_center(mut self) -> Self {
         self.anchor_offset = self.size * 0.5;
         self
     }
 
+    #[must_use]
     pub fn ortho_matrix(&self) -> Mat4 {
         let tl = -self.anchor_offset;
         let br = self.size - self.anchor_offset;

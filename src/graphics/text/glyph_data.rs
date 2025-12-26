@@ -13,6 +13,7 @@ pub struct GlyphData {
 }
 
 impl GlyphData {
+    #[must_use]
     fn props_as_ordered_floats(&self) -> [OrderedFloat<f32>; 12] {
         [
             OrderedFloat(self.affine2.x_axis.x),
@@ -52,6 +53,8 @@ impl Hash for GlyphData {
     }
 }
 
+#[must_use]
+#[allow(clippy::needless_pass_by_value)]
 pub fn convert_to_text_instance(vertex: GlyphVertex<GlyphData>) -> TextInstance {
     let position = Vec2::new(vertex.pixel_coords.min.x, vertex.pixel_coords.min.y);
 

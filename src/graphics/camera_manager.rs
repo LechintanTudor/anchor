@@ -17,6 +17,7 @@ pub struct ProjectionBindGroupAllocator {
 }
 
 impl ProjectionBindGroupAllocator {
+    #[must_use]
     pub fn new(bind_group_layouts: SharedBindGroupLayouts) -> Self {
         Self {
             bind_group_layouts,

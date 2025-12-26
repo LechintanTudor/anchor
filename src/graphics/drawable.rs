@@ -7,6 +7,7 @@ pub trait Drawable {
 pub trait AsDrawable {
     type Drawable;
 
+    #[must_use]
     fn as_drawable(self) -> Self::Drawable;
 }
 

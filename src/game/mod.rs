@@ -17,6 +17,7 @@ pub enum ShouldExit {
 }
 
 impl ShouldExit {
+    #[must_use]
     pub fn should_exit(&self) -> bool {
         matches!(self, Self::Yes)
     }

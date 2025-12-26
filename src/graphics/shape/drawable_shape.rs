@@ -1,7 +1,8 @@
 use crate::graphics::shape::{Shape, ShapeInstance};
-use crate::graphics::{impl_drawable_methods, AsDrawable, Canvas, Color, Drawable, Transform};
+use crate::graphics::{AsDrawable, Canvas, Color, Drawable, Transform, impl_drawable_methods};
 use glam::Vec2;
 
+#[must_use]
 #[derive(Clone, Debug)]
 pub struct DrawableShape<'a> {
     pub shape: &'a Shape,
@@ -22,6 +23,7 @@ impl<'a> DrawableShape<'a> {
         }
     }
 
+    #[must_use]
     pub fn to_shape_instance(&self) -> ShapeInstance {
         let affine2 = self.transform.to_affine2();
 

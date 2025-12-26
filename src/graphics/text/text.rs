@@ -1,5 +1,5 @@
 use crate::graphics::text::Font;
-use crate::graphics::{impl_drawable_methods, AsDrawable, Canvas, Color, Drawable, Transform};
+use crate::graphics::{AsDrawable, Canvas, Color, Drawable, Transform, impl_drawable_methods};
 use glam::Vec2;
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Default, Debug)]
@@ -18,6 +18,7 @@ pub enum VerticalAlign {
     Bottom,
 }
 
+#[must_use]
 #[derive(Clone, Debug)]
 pub struct Text<'a> {
     pub font: &'a Font,
@@ -42,7 +43,7 @@ impl<'a> Text<'a> {
             bounds: Vec2::splat(f32::MAX),
             h_align: HorizontalAlign::Left,
             v_align: VerticalAlign::Top,
-            transform: Default::default(),
+            transform: Transform::default(),
             anchor_offset: Vec2::ZERO,
             sections: Vec::new(),
         }
@@ -112,7 +113,7 @@ impl<'a> Text<'a> {
 
 impl Drawable for Text<'_> {
     fn draw(self, canvas: &mut Canvas) {
-        canvas.draw_text(self)
+        canvas.draw_text(self);
     }
 }
 
@@ -133,6 +134,7 @@ pub struct Section<'a> {
 }
 
 impl<'a> Section<'a> {
+    #[must_use]
     pub fn new(content: &'a str) -> Self {
         Self {
             content,
@@ -142,16 +144,19 @@ impl<'a> Section<'a> {
         }
     }
 
+    #[must_use]
     pub fn font(mut self, font: &'a Font) -> Self {
         self.font = Some(font);
         self
     }
 
+    #[must_use]
     pub fn font_size(mut self, font_size: f32) -> Self {
         self.font_size = Some(font_size);
         self
     }
 
+    #[must_use]
     pub fn color(mut self, color: Color) -> Self {
         self.color = Some(color);
         self

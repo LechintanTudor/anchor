@@ -11,6 +11,7 @@ pub struct GlyphTexture {
 }
 
 impl GlyphTexture {
+    #[must_use]
     pub fn new<S>(wgpu: &WgpuContext, bind_group_layouts: &SharedBindGroupLayouts, size: S) -> Self
     where
         S: Into<UVec2>,
@@ -39,7 +40,7 @@ impl GlyphTexture {
             &vec![0; (size.x * size.y) as _],
         );
 
-        let view = texture.create_view(&Default::default());
+        let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
 
         let bind_group = wgpu.device().create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("glyph_texture_bind_group"),
@@ -68,7 +69,7 @@ impl GlyphTexture {
             },
             data,
             wgpu::TexelCopyBufferLayout {
-                offset: (y * w + x) as _,
+                offset: (y * w + x).into(),
                 bytes_per_row: Some(w),
                 rows_per_image: Some(h),
             },
@@ -80,14 +81,17 @@ impl GlyphTexture {
         );
     }
 
+    #[must_use]
     pub fn view(&self) -> &wgpu::TextureView {
         &self.view
     }
 
+    #[must_use]
     pub fn bind_group(&self) -> &wgpu::BindGroup {
         &self.bind_group
     }
 
+    #[must_use]
     pub fn size(&self) -> UVec2 {
         self.size
     }

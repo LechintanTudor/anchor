@@ -10,7 +10,7 @@ pub use self::shape::*;
 #[cfg(feature = "shape-builder")]
 pub use self::shape_builder::*;
 
-use crate::graphics::{vertex_attr_array, SharedBindGroupLayouts, WgpuContext};
+use crate::graphics::{SharedBindGroupLayouts, WgpuContext, vertex_attr_array};
 use bytemuck::{Pod, Zeroable};
 use glam::{Vec2, Vec4};
 use std::mem;
@@ -54,6 +54,7 @@ pub struct ShapeRenderer {
 }
 
 impl ShapeRenderer {
+    #[must_use]
     pub fn new(
         wgpu: &WgpuContext,
         bind_group_layouts: &SharedBindGroupLayouts,
@@ -190,6 +191,7 @@ impl ShapeRenderer {
         }
     }
 
+    #[must_use]
     pub fn next_batch(&self, shape: Shape) -> ShapeBatch {
         let instance_count = self.instances.len() as u32;
         ShapeBatch {

@@ -10,22 +10,27 @@ pub struct Bounds {
 }
 
 impl Bounds {
+    #[must_use]
     pub const fn new(x: f32, y: f32, w: f32, h: f32) -> Self {
         Self { x, y, w, h }
     }
 
+    #[must_use]
     pub const fn position(&self) -> Vec2 {
         Vec2::new(self.x, self.y)
     }
 
+    #[must_use]
     pub const fn size(&self) -> Vec2 {
         Vec2::new(self.w, self.h)
     }
 
+    #[must_use]
     pub fn top_left(&self) -> Vec2 {
         Vec2::new(self.x, self.y)
     }
 
+    #[must_use]
     pub fn bottom_right(&self) -> Vec2 {
         Vec2::new(self.x + self.w, self.y + self.h)
     }

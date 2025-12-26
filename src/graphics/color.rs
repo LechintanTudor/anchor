@@ -20,14 +20,17 @@ impl Color {
     pub const AQUA: Self = Self::rgb(0.0, 1.0, 1.0);
     pub const MAGENTA: Self = Self::rgb(1.0, 0.0, 1.0);
 
+    #[must_use]
     pub const fn rgb(r: f32, g: f32, b: f32) -> Self {
         Self { r, g, b, a: 1.0 }
     }
 
+    #[must_use]
     pub const fn rgba(r: f32, g: f32, b: f32, a: f32) -> Self {
         Self { r, g, b, a }
     }
 
+    #[must_use]
     pub const fn luma(value: f32) -> Self {
         Self {
             r: value,
@@ -37,6 +40,7 @@ impl Color {
         }
     }
 
+    #[must_use]
     pub const fn lumaa(value: f32, a: f32) -> Self {
         Self {
             r: value,
@@ -46,6 +50,7 @@ impl Color {
         }
     }
 
+    #[must_use]
     pub const fn transparent(a: f32) -> Self {
         Self {
             r: 1.0,
@@ -55,14 +60,17 @@ impl Color {
         }
     }
 
+    #[must_use]
     pub const fn as_array(&self) -> [f32; 4] {
         [self.r, self.g, self.b, self.a]
     }
 
+    #[must_use]
     pub const fn as_vec4(&self) -> Vec4 {
         Vec4::new(self.r, self.g, self.b, self.a)
     }
 
+    #[must_use]
     pub fn to_linear_array(&self) -> [f32; 4] {
         [
             srgb_to_linear(self.r),
@@ -72,6 +80,7 @@ impl Color {
         ]
     }
 
+    #[must_use]
     pub fn to_linear_vec4(&self) -> Vec4 {
         Vec4::new(
             srgb_to_linear(self.r),
@@ -85,10 +94,10 @@ impl Color {
 impl From<Color> for wgpu::Color {
     fn from(color: Color) -> wgpu::Color {
         wgpu::Color {
-            r: srgb_to_linear(color.r) as f64,
-            g: srgb_to_linear(color.g) as f64,
-            b: srgb_to_linear(color.b) as f64,
-            a: color.a as f64,
+            r: f64::from(srgb_to_linear(color.r)),
+            g: f64::from(srgb_to_linear(color.g)),
+            b: f64::from(srgb_to_linear(color.b)),
+            a: f64::from(color.a),
         }
     }
 }

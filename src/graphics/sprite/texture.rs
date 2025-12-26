@@ -52,7 +52,7 @@ impl Texture {
                 wgpu::util::TextureDataOrder::default(),
                 &image,
             )
-            .create_view(&Default::default());
+            .create_view(&wgpu::TextureViewDescriptor::default());
 
         let bind_group = graphics
             .device()
@@ -71,14 +71,17 @@ impl Texture {
         })
     }
 
+    #[must_use]
     pub fn view(&self) -> &wgpu::TextureView {
         &self.data.view
     }
 
+    #[must_use]
     pub fn bind_group(&self) -> &wgpu::BindGroup {
         &self.data.bind_group
     }
 
+    #[must_use]
     pub fn size(&self) -> UVec2 {
         self.size
     }

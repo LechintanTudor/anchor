@@ -13,6 +13,7 @@ pub struct TimeConsts {
 }
 
 impl TimeConsts {
+    #[must_use]
     pub fn new(config: &Config) -> Self {
         let one_second = Duration::from_secs(1);
         let frame_interval = one_second.div_f64(config.frames_per_second);
@@ -39,6 +40,7 @@ pub struct TimeContext {
 }
 
 impl TimeContext {
+    #[must_use]
     pub fn new(config: &Config) -> Self {
         let consts = TimeConsts::new(config);
 
@@ -62,6 +64,7 @@ impl TimeContext {
         }
     }
 
+    #[must_use]
     pub fn fixed_update(&mut self) -> bool {
         if self.fixed_update_accumulator < self.consts.fixed_update_interval {
             return false;
@@ -71,18 +74,22 @@ impl TimeContext {
         true
     }
 
+    #[must_use]
     pub fn frame_ended(&self) -> bool {
-        Instant::now() - self.frame_start >= self.consts.frame_interval
+        self.frame_start.elapsed() >= self.consts.frame_interval
     }
 
+    #[must_use]
     pub fn fixed_delta_f32(&self) -> f32 {
         self.consts.fixed_update_interval.as_secs_f32()
     }
 
+    #[must_use]
     pub fn variable_delta_f32(&self) -> f32 {
         self.last_frame_duration.as_secs_f32()
     }
 
+    #[must_use]
     pub fn delta_f32(&self) -> f32 {
         if self.phase == GamePhase::FixedUpdate {
             self.fixed_delta_f32()

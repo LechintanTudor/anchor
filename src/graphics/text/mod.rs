@@ -10,10 +10,11 @@ pub use self::glyph_texture::*;
 pub use self::text::*;
 pub use self::text_instance::*;
 
-use crate::graphics::{vertex_attr_array, SharedBindGroupLayouts, WgpuContext};
+use crate::graphics::{SharedBindGroupLayouts, WgpuContext, vertex_attr_array};
 use glam::Vec2;
 use glyph_brush::{BrushAction, BrushError, FontId, GlyphBrush, GlyphBrushBuilder};
 use rustc_hash::FxHashMap;
+use std::collections::HashMap;
 use std::mem;
 use std::ops::Range;
 use wgpu::util::DeviceExt;
@@ -38,6 +39,7 @@ pub struct TextRenderer {
 }
 
 impl TextRenderer {
+    #[must_use]
     pub fn new(
         wgpu: &WgpuContext,
         bind_group_layouts: SharedBindGroupLayouts,
@@ -77,7 +79,7 @@ impl TextRenderer {
         );
 
         Self {
-            fonts: Default::default(),
+            fonts: HashMap::default(),
             glyph_brush,
             text_index: 0,
             bind_group_layouts,
@@ -151,6 +153,7 @@ impl TextRenderer {
         self.instance_ranges.clear();
     }
 
+    #[allow(clippy::needless_pass_by_value)]
     pub fn add(&mut self, text: Text) -> u32 {
         let (layout, anchor_offset) = {
             let (h_align, h_align_scale) = match text.h_align {
@@ -232,7 +235,7 @@ impl TextRenderer {
                     self.glyph_texture =
                         GlyphTexture::new(wgpu, &self.bind_group_layouts, suggested);
                 }
-            };
+            }
         };
 
         if instances.is_empty() {

@@ -7,7 +7,7 @@ use lyon::path::builder::BorderRadii as LyonBorderRadii;
 use lyon::path::path::BuilderWithAttributes;
 use lyon::path::traits::PathBuilder as _;
 use lyon::path::{Path, Winding};
-use lyon::tessellation::{BuffersBuilder, FillTessellator, FillVertex, VertexBuffers};
+use lyon::tessellation::{BuffersBuilder, FillOptions, FillTessellator, FillVertex, VertexBuffers};
 use std::mem;
 
 type PathBuilder = BuilderWithAttributes;
@@ -45,10 +45,11 @@ impl From<[f32; 4]> for BorderRadii {
 impl Shape {
     #[inline]
     pub fn builder() -> ShapeBuilder {
-        Default::default()
+        ShapeBuilder::default()
     }
 }
 
+#[must_use]
 #[derive(Clone)]
 pub struct ShapeBuilder {
     path_builder: PathBuilder,
@@ -174,7 +175,7 @@ impl ShapeBuilder {
         let mut buffers_builder = BuffersBuilder::new(&mut buffers, convert_vertex);
 
         FillTessellator::new()
-            .tessellate_path(&path, &Default::default(), &mut buffers_builder)
+            .tessellate_path(&path, &FillOptions::default(), &mut buffers_builder)
             .unwrap();
 
         Shape::new(wgpu, &buffers.vertices, &buffers.indices)

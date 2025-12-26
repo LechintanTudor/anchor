@@ -55,14 +55,11 @@ impl<'a> Canvas<'a> {
     {
         let projection = projection.into();
 
-        match self.commands.last() {
-            Some(CanvasCommand::UpdateProjection) => {
-                *self.projections.last_mut().unwrap() = projection;
-            }
-            _ => {
-                self.commands.push(CanvasCommand::UpdateProjection);
-                self.projections.push(projection);
-            }
+        if matches!(self.commands.last(), Some(CanvasCommand::UpdateProjection)) {
+            *self.projections.last_mut().unwrap() = projection;
+        } else {
+            self.commands.push(CanvasCommand::UpdateProjection);
+            self.projections.push(projection);
         }
     }
 
@@ -132,10 +129,12 @@ impl<'a> Canvas<'a> {
         let text_index = self.graphics.text_renderer.add(text);
 
         match self.commands.last_mut() {
-            Some(CanvasCommand::DrawText(text_range)) => text_range.end += 1,
+            Some(CanvasCommand::DrawText(text_range)) => {
+                text_range.end += 1;
+            }
             _ => {
                 self.commands
-                    .push(CanvasCommand::DrawText(text_index..(text_index + 1)))
+                    .push(CanvasCommand::DrawText(text_index..(text_index + 1)));
             }
         }
     }
@@ -145,7 +144,7 @@ impl<'a> Canvas<'a> {
         self.graphics.sprite_renderer.end(&self.graphics.wgpu);
         self.graphics.text_renderer.end(&self.graphics.wgpu);
 
-        for projection in self.projections.iter() {
+        for projection in &self.projections {
             self.graphics
                 .projection_bind_group_allocator
                 .alloc(&self.graphics.wgpu, projection);
@@ -170,7 +169,7 @@ impl<'a> Canvas<'a> {
         let surface_view = self
             .surface_texture
             .texture
-            .create_view(&Default::default());
+            .create_view(&wgpu::TextureViewDescriptor::default());
 
         {
             let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -192,7 +191,7 @@ impl<'a> Canvas<'a> {
 
             let mut last_draw_command = &CanvasCommand::UpdateProjection;
 
-            for command in self.commands.iter() {
+            for command in &self.commands {
                 match command {
                     CanvasCommand::UpdateProjection => {
                         pass.set_bind_group(0, next_projection_bind_group(), &[]);

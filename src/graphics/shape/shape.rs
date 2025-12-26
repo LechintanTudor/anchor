@@ -42,6 +42,7 @@ struct ShapeData {
 pub struct Shape(Arc<ShapeData>);
 
 impl Shape {
+    #[must_use]
     pub fn new<W>(wgpu: W, vertexes: &[ShapeVertex], indexes: &[u16]) -> Self
     where
         W: AsRef<WgpuContext>,
@@ -66,14 +67,17 @@ impl Shape {
         }))
     }
 
+    #[must_use]
     pub fn vertex_buffer(&self) -> &wgpu::Buffer {
         &self.0.vertex_buffer
     }
 
+    #[must_use]
     pub fn index_buffer(&self) -> &wgpu::Buffer {
         &self.0.index_buffer
     }
 
+    #[must_use]
     pub fn index_count(&self) -> u32 {
         (self.0.index_buffer.size() / (mem::size_of::<u16>() as wgpu::BufferAddress)) as u32
     }

@@ -31,7 +31,7 @@ use crate::game::{Config, GameResult};
 use crate::graphics::shape::ShapeRenderer;
 use crate::graphics::sprite::SpriteRenderer;
 use crate::graphics::text::TextRenderer;
-use anyhow::{anyhow, Context};
+use anyhow::{Context, anyhow};
 use glam::{UVec2, Vec2};
 use std::sync::Arc;
 use winit::dpi::PhysicalSize;
